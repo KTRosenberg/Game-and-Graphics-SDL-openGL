@@ -57,7 +57,7 @@ int main(int argc, char* args[])
     SDL_FreeSurface(bmp);
     
     // disable the cursor
-    SDL_ShowCursor(SDL_DISABLE);
+    //SDL_ShowCursor(SDL_DISABLE);
 
     // define target
     target.w = (SCREEN_WIDTH/2)/IMG_PROPORTION;
@@ -74,11 +74,12 @@ int main(int argc, char* args[])
     // main loop
     while (keep_running)
     {
-        if (SDL_WaitEvent(&event))
+        while (SDL_WaitEvent(&event))
         {
             if (event.type == SDL_QUIT) 
             {
                 keep_running = false;
+                break;
             }
             else if (event.type == SDL_WINDOWEVENT)
             {
