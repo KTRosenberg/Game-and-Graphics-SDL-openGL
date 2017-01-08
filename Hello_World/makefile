@@ -1,6 +1,6 @@
 CXX         = g++
 CXXFLAGS    = -O3 -g -Wall -Wextra -std=c++1y
-#LDFLAGS    = -lSDL2_image
+LDFLAGS     = # -lSDL2_image
 SDLCFLAGS   = $(shell sdl2-config --cflags)
 SDLLIBFLAGS = $(shell sdl2-config --libs)
 
