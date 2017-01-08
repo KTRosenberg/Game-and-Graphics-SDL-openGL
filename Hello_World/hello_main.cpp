@@ -93,12 +93,12 @@ int main(int argc, char* args[])
                 }
             }
 
-            int mouse_x = 0;
-            int mouse_y = 0;
-            SDL_GetMouseState(&mouse_x, &mouse_y);
-
             if (mouse_inside_window)
             {
+                int mouse_x = 0;
+                int mouse_y = 0;
+                SDL_GetMouseState(&mouse_x, &mouse_y);
+                
                 target.x = mouse_x - OFFSET_W;
                 target.y = mouse_y - OFFSET_H;
             
