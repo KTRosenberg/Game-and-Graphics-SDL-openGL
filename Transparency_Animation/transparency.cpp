@@ -2,6 +2,7 @@
 #include <SDL2/SDL_image.h>
 #include <cstdio>
 #include <cstdlib>
+#include <cinttypes>
 #include <string>
 
 #define PRINTOUT 0
@@ -34,8 +35,8 @@ void draw_bg_rect(SDL_Rect* fill_rect_ptr, SDL_Renderer* rend)
 
 void move_bg_rect(SDL_Rect& fill_rect)
 {
-    static Uint8 mov_right  = 1;
-    static Uint8 mov_up     = 1;
+    static uint8_t mov_right  = 1;
+    static uint8_t mov_up     = 1;
     static const int mov_by = 4;
         
 	if (mov_right)
@@ -88,11 +89,11 @@ void sdl_quit_on_error_gracefully(std::string message)
 // http://stackoverflow.com/questions/15752122/texture-fading-in-sdl2-using-sdl-image/15769305#15769305
 void update_alpha(SDL_Texture* texture,
 				  double elapsedTime,
-				  Uint8* alpha_ptr, float* alpha_calc_ptr)
+				  uint8_t* alpha_ptr, float* alpha_calc_ptr)
 {
-	Uint8 alpha = 0;
+	uint8_t alpha = 0;
 	double alpha_calc = 0;
-	static Uint8 from_transparent = 0;
+	static uint8_t from_transparent = 0;
 	
     // Check there is a texture
     if (texture && alpha_ptr && alpha_calc_ptr)
@@ -243,16 +244,16 @@ int main(int argc, char* argv[])
     fill_rect.h = (SCREEN_HEIGHT/4)*fill_rect_scale;
     fill_rect.x = (SCREEN_WIDTH/2 - (fill_rect.w/2)) + SDL_GetTicks()%32 + 1;
     fill_rect.y = (SCREEN_HEIGHT/2 - (fill_rect.h/2)) + SDL_GetTicks()%32 + 1;
-    Uint8 on_top = 0;
+    uint8_t on_top = 0;
 
     
     
-    Uint8 full = SDL_ALPHA_OPAQUE;
+    uint8_t full = SDL_ALPHA_OPAQUE;
     float calc = full;
-    Uint8* alpha = &full;
+    uint8_t* alpha = &full;
     float* alpha_calc = &calc;
     
-    Uint32 start_time = SDL_GetTicks();
+    uint32_t start_time = SDL_GetTicks();
     double elapsed = 0.0;
     int keep_running = 1;
     SDL_Event event;
