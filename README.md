@@ -6,6 +6,6 @@
   - my KTR insignia moves with the mouse, has working collision detection with sides of screen
  
 #### Transparency_Animation
-  - playing with adjusting opacity/transparency dynamically,
+  - playing with adjusting texture transparency dynamically,
   - animated shapes, collision detection, 
   
