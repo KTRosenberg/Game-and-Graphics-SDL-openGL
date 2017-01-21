@@ -3,7 +3,7 @@
  - makefiles included (Note, I installed SDL on Mac OSX)
 
 #### Hello_World
-  - move my insignia with the mouse, has working collision detection with sides of screen
+  - my KTR insignia moves with the mouse, has working collision detection with sides of screen
  
 #### Transparency_Animation
   - playing with adjusting opacity/transparency dynamically,
