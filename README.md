@@ -5,7 +5,7 @@
 #### Hello_World
   - move my insignia with the mouse, has working collision detection with sides of screen
  
-#### Transparency
+#### Transparency_Animation
   - playing with adjusting opacity/transparency dynamically,
   - animated shapes, collision detection, 
   
