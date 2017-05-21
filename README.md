@@ -7,5 +7,6 @@
  
 #### Transparency_Animation
   - playing with dynamically adjusting texture transparency
-  - animated shapes, collision detection, 
+  - animated shapes, collision detection
+  
   
