@@ -1,6 +1,5 @@
-# SDL-Game-Programming
- Experimenting with basic game programming and tutorials for C and C++ SDL library
- - makefiles included (Note, I installed SDL on Mac OSX)
+# Game and Graphics Programming in SDL and openGL
+ Experimenting with game and graphics programming in C++ with SDL and openGL
 
 #### Hello_World
   - my KTR insignia moves with the mouse, has working collision detection with sides of screen
@@ -9,4 +8,6 @@
   - playing with dynamically adjusting texture transparency
   - animated shapes, collision detection
   
+#### Other Tests
+  - openGL tutorials and tests with shaders
   
