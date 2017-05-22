@@ -3,118 +3,53 @@
 #include <OpenGL/glu.h>
 #include <OpenGL/gl.h>
 //#include <OpenGL/gl3.h>
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/ext.hpp>
-
 #include <SDL2/SDL.h>
-
 #include <iostream>
-
-#define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 480
-#define TIME_UNIT_TO_SECONDS 1000
-
-SDL_Window* window = nullptr;
 
 // based on tutorial at 
 // http://headerphile.com/sdl2/opengl-part-1-sdl-opengl-awesome/
 
 SDL_GLContext gl_context;
 
-GLuint shader_program = 0;
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 640
+#define TIME_UNIT_TO_SECONDS 1000
 
-GLuint g_VAO = 0;
-GLuint g_VBO = 0;
-GLuint g_EBO = 0;
+SDL_Window* window = nullptr;
+
+GLuint shader_program = 0; 
 
 // vertex shader source string
 const GLchar* vertex_shader_src[] = {
     "#version 330 core\n"
-    "layout (location = 0) in vec3 position;\n"
-    //"in vec3 position;\n" 
+    "layout (location = 0) in vec3 position;\n" 
     "uniform float u_time;\n"
     "out vec3 v_pos;\n"
-    "void main(void) {\n"
+    "void main() {\n"
     "   gl_Position = vec4(position.x, position.y, position.z, 1.0);\n"
     "   v_pos = position.xyz;\n"
     "}\n"
 };
 
 // fragment shader source string
-// const GLchar* fragment_shader_src[] = {
-//     "#version 330 core\n"
-//     "precision highp float;\n"
-//     "in vec3 v_pos;\n"
-//     "uniform float u_time;\n"
-//     "out vec4 color\n;"
-//     "void main(void) {\n"
-//     "   vec3 adjust = v_pos;\n"
-//     "   adjust.x = sin(adjust.x + u_time);\n"
-//     "   adjust.y = cos(adjust.y + u_time);\n"
-//     "   color = vec4(sqrt(adjust), 1.0);\n"
-//     "   //color = vec4(sqrt(v_pos), 1.0);\n"
-//     "}\n"
-// };
-
-// fragment shader source string
-// const GLchar* fragment_shader_src[] = {
-//     "#version 330 core\n"
-//     "precision highp float;\n"
-//     "in vec3 v_pos;\n"
-//     "uniform float u_time;\n"
-//     "out vec4 color\n;"
-//     "\n"
-//     "float generate(vec2 p)\n"
-//     "{\n"
-//     "   return sin(u_time) + sin((u_time * p.y * p.x) + cos(p.x) * .01);\n"
-//     "}\n"
-//     "\n"
-//     "void main(void)\n"
-//     "{\n"
-//     "   vec2 p = v_pos.xy;\n"
-//     "\n"
-//     "   vec3 c = mix(vec3(.11, .45, .59), vec3(.11, .45, .59), vec3(.11, .45, .59));\n"
-//     "\n"
-//     "   float z = generate(4. * p);\n"
-//     "   if (z > 0.) {\n"
-//     "       c = vec3(z, z, z);\n"
-//     "   }\n"
-//     "   color = vec4(sqrt(c), 1.);\n"
-//     "}\n"
-// };
-
-// const GLchar* fragment_shader_src[] = {
-//     "#version 330 core\n"
-//     "precision highp float;\n"
-//     "in vec3 v_pos;\n"
-//     "uniform float u_time;\n"
-//     "out vec4 color\n;"
-//     "\n"
-//     "void main(void)\n"
-//     "{\n"
-//     "   color = vec4(sqrt(sin(v_pos + u_time)), 1.);\n"
-//     "}\n"
-// };
-
 const GLchar* fragment_shader_src[] = {
-    R""(
-    #version 330 core
-    precision highp float;
-    in vec3 v_pos;
-    uniform float u_time;
-    out vec4 color;
-    
-    void main(void)
-    {
-        color = vec4(sqrt(sin(v_pos + u_time)), 1.);
-    }
-    )""
+    "#version 330 core\n"
+    "precision highp float;\n"
+    "in vec3 v_pos;\n"
+    "uniform float u_time;\n"
+    "out vec4 color\n;"
+    "void main() {\n"
+    "   vec3 adjust = v_pos;\n"
+    "   adjust.x = sin(adjust.x + u_time);\n"
+    "   adjust.y = cos(adjust.y + u_time);\n"
+    "   color = vec4(sqrt(adjust), 1.0);\n"
+    "   //color = vec4(sqrt(v_pos), 1.0);\n"
+    "}\n"
 };
 
-void gl_init(void);
+GLuint g_VAO = 0;
+GLuint g_VBO = 0;
+GLuint g_EBO = 0;
 
 void gl_init(void)
 {
@@ -218,11 +153,6 @@ void gl_init(void)
     
     // set attribute pointers for vertices
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-//     glVertexAttribPointer(
-//         glGetAttribLocation(shader_program, "position"), 
-//         3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0
-//     );
-
     glEnableVertexAttribArray(0);
     
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -238,7 +168,8 @@ int ignore_mouse_movement(void* unused, SDL_Event* event)
 int main(/*int argc, char* argv[]*/)
 {
     // initialize SDL
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    {
         std::cout << "SDL could not initialize" << std::endl;
         return EXIT_FAILURE;
     }
@@ -248,19 +179,17 @@ int main(/*int argc, char* argv[]*/)
     // ignore mouse movement events
     SDL_SetEventFilter(ignore_mouse_movement, nullptr);
     
-    // openGL initialization ///////////////////////////////////////////////////
-    
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
     // create the window
-    if (!(window = SDL_CreateWindow("openGL TEST",
+    if (!(window = SDL_CreateWindow("GL TEST",
                                     SDL_WINDOWPOS_UNDEFINED,
                                     SDL_WINDOWPOS_UNDEFINED,
                                     SCREEN_WIDTH, SCREEN_HEIGHT,
-                                    SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN /*| SDL_WINDOW_ALLOW_HIGHDPI*/)))
+                                    SDL_WINDOW_OPENGL /*| SDL_WINDOW_SHOWN*/)))
     {
         std::cout << "Window could not be created" << std::endl;
         return EXIT_FAILURE;

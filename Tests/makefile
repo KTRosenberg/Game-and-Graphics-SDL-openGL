@@ -4,7 +4,7 @@ LDFLAGS     = -framework OpenGL -lGLEW -lSDL2 -lSDL2_image
 SDLCFLAGS   = $(shell sdl2-config --cflags)
 SDLLIBFLAGS = $(shell sdl2-config --libs)
 
-SOURCES   = quad_shader_test_1_opengl.cpp
+SOURCES   = quad_shader_test_1_opengl_B.cpp file_handle.cpp shader.cpp
 OBJECTS   = $(SOURCES:.cpp=.o)
 EXECNAME  = t
 

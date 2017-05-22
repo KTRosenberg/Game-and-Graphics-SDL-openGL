@@ -1,0 +1,10 @@
+#version 330 core
+precision highp float;
+in vec3 v_pos;
+out vec4 color;
+uniform float u_time;
+
+void main(void)
+{
+    color = vec4(sqrt(sin(v_pos + u_time)), 1.);
+}

@@ -1,4 +1,5 @@
 #define GL3_PROTOTYPES 1
+#define GLEW_STATIC
 #include <GL/glew.h>
 #include <OpenGL/glu.h>
 #include <OpenGL/gl.h>
@@ -12,6 +13,8 @@
 #include <SDL2/SDL.h>
 
 #include <iostream>
+
+#include "shader.hpp"
 
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
@@ -31,17 +34,17 @@ GLuint g_VBO = 0;
 GLuint g_EBO = 0;
 
 // vertex shader source string
-const GLchar* vertex_shader_src[] = {
-    "#version 330 core\n"
-    "layout (location = 0) in vec3 position;\n"
-    //"in vec3 position;\n" 
-    "uniform float u_time;\n"
-    "out vec3 v_pos;\n"
-    "void main(void) {\n"
-    "   gl_Position = vec4(position.x, position.y, position.z, 1.0);\n"
-    "   v_pos = position.xyz;\n"
-    "}\n"
-};
+// const GLchar* vertex_shader_src[] = {
+//     "#version 330 core\n"
+//     "layout (location = 0) in vec3 position;\n"
+//     //"in vec3 position;\n" 
+//     "uniform float u_time;\n"
+//     "out vec3 v_pos;\n"
+//     "void main(void) {\n"
+//     "   gl_Position = vec4(position.x, position.y, position.z, 1.0);\n"
+//     "   v_pos = position.xyz;\n"
+//     "}\n"
+// };
 
 // fragment shader source string
 // const GLchar* fragment_shader_src[] = {
@@ -99,13 +102,28 @@ const GLchar* vertex_shader_src[] = {
 //     "}\n"
 // };
 
+// vertex shader source string
+const GLchar* vertex_shader_src[] = {
+    R""(
+    #version 330 core
+    layout (location = 0) in vec3 position; 
+    out vec3 v_pos;
+    uniform float u_time;
+    
+    void main(void) {
+       gl_Position = vec4(position, 1.0);
+       v_pos = position;
+    }
+    )""
+};
+
 const GLchar* fragment_shader_src[] = {
     R""(
     #version 330 core
     precision highp float;
     in vec3 v_pos;
-    uniform float u_time;
     out vec4 color;
+    uniform float u_time;
     
     void main(void)
     {
@@ -113,122 +131,6 @@ const GLchar* fragment_shader_src[] = {
     }
     )""
 };
-
-void gl_init(void);
-
-void gl_init(void)
-{
-    // for error checking:
-    GLchar info_log[512];
-    GLint success = GL_FALSE;
-    // VERTEX SHADER ///////////////////////////////////////////////////////////
-    
-    // create
-    GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    // set source
-    glShaderSource(vertex_shader, 1, vertex_shader_src, NULL);
-    // compile vertex source
-    glCompileShader(vertex_shader);
-    
-    // error checking
-    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
-    if (success != GL_TRUE) {
-        glGetShaderInfoLog(vertex_shader, 512, NULL, info_log);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" 
-                  << info_log << std::endl;
-        exit(EXIT_FAILURE);
-    } else {
-        std::cout << "SHADER::VERTEX::COMPILATION_SUCCEEDED" << std::endl;
-    }
-
-    
-    // FRAGMENT SHADER /////////////////////////////////////////////////////////
-    
-    // create 
-    GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    // set source
-    glShaderSource(fragment_shader, 1, fragment_shader_src, NULL);
-    // compile fragment source
-    glCompileShader(fragment_shader);
-    
-    // error checking
-    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
-    if (success != GL_TRUE) {
-        glGetShaderInfoLog(fragment_shader, 512, NULL, info_log);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" 
-                  << info_log << std::endl;
-        exit(EXIT_FAILURE);
-    } else {
-        std::cout << "SHADER::FRAGMENT::COMPILATION_SUCCEEDED" << std::endl;
-    }
-       
-    // create shader program
-    shader_program = glCreateProgram();
-    // attach vertex shader
-    glAttachShader(shader_program, vertex_shader);
-    // attach fragment shader
-    glAttachShader(shader_program, fragment_shader);
-    // link the program
-    glLinkProgram(shader_program);
-    
-    // error checking
-    glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
-    if (success != GL_TRUE) {
-        glGetProgramInfoLog(shader_program, 512, NULL, info_log);
-        std::cout << "ERROR::SHADER::PROGRAM::LINK_FAILED\n" 
-                  << info_log << std::endl;
-        exit(EXIT_FAILURE);
-    } else {
-        std::cout << "SHADER::PROGRAM::LINK_SUCCEEDED" << std::endl;
-    }
-    
-    glDeleteShader(vertex_shader);
-    glDeleteShader(fragment_shader);
-    
-    // VERTICES ////////////////////////////////////////////////////////////////
-
-    const GLfloat FACTOR = 1.0;
-        
-    // VERTEX BUFFER OBJECT DATA
-    GLfloat vertex_data[] = {
-        -FACTOR,  FACTOR, 0.0f,  // Top Left
-        -FACTOR, -FACTOR, 0.0f,  // Bottom Left 
-         FACTOR, -FACTOR, 0.0f,  // Bottom Right
-         FACTOR,  FACTOR, 0.0f,  // Top Right
-    };
-    
-    GLuint index_data[] = {
-        0, 1, 2,
-        2, 3, 0
-    };
-    
-    // VERTEX ARRAY OBJECT, VERTEX BUFFER OBJECT, ELEMENT BUFFER OBJECT
-    
-    glGenVertexArrays(1, &g_VAO);
-    glGenBuffers(1, &g_VBO);
-    glGenBuffers(1, &g_EBO);
-    glBindVertexArray(g_VAO);
-    
-    // copy vertices buffer
-    glBindBuffer(GL_ARRAY_BUFFER, g_VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
-    // copy element buffer
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_data), index_data, GL_STATIC_DRAW);
-    
-    // set attribute pointers for vertices
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-//     glVertexAttribPointer(
-//         glGetAttribLocation(shader_program, "position"), 
-//         3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0
-//     );
-
-    glEnableVertexAttribArray(0);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    
-    glBindVertexArray(0);
-}
 
 int ignore_mouse_movement(void* unused, SDL_Event* event)
 {
@@ -277,7 +179,53 @@ int main(/*int argc, char* argv[]*/)
     glDepthRange(0, 1);
     glDepthFunc(GL_LEQUAL);
 	
-	gl_init();
+	//gl_init();
+	
+    // VERTICES ////////////////////////////////////////////////////////////////
+
+    const GLfloat FACTOR = 1.0;
+        
+    // VERTEX BUFFER OBJECT DATA
+    GLfloat vertex_data[] = {
+        -FACTOR,  FACTOR, 0.0f,  // Top Left
+        -FACTOR, -FACTOR, 0.0f,  // Bottom Left 
+         FACTOR, -FACTOR, 0.0f,  // Bottom Right
+         FACTOR,  FACTOR, 0.0f,  // Top Right
+    };
+    
+    GLuint index_data[] = {
+        0, 1, 2,
+        2, 3, 0
+    };
+    
+    // VERTEX ARRAY OBJECT, VERTEX BUFFER OBJECT, ELEMENT BUFFER OBJECT
+    
+    glGenVertexArrays(1, &g_VAO);
+    glGenBuffers(1, &g_VBO);
+    glGenBuffers(1, &g_EBO);
+    glBindVertexArray(g_VAO);
+    
+    // copy vertices buffer
+    glBindBuffer(GL_ARRAY_BUFFER, g_VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
+    // copy element buffer
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_data), index_data, GL_STATIC_DRAW);
+    
+    // set attribute pointers for vertices
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+//     glVertexAttribPointer(
+//         glGetAttribLocation(shader_program, "position"), 
+//         3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0
+//     );
+
+    glEnableVertexAttribArray(0);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    
+    glBindVertexArray(0);
+    
+    Shader prog_shader("shaders/basic_a.vrts", "shaders/basic_a.frgs");
     
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     
@@ -297,10 +245,10 @@ int main(/*int argc, char* argv[]*/)
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
-        glUseProgram(shader_program);
+        prog_shader.use();
         
-        GLuint time_addr = glGetUniformLocation(shader_program, "u_time");
         GLfloat elapsed = (SDL_GetTicks() - start_time) / (GLfloat)TIME_UNIT_TO_SECONDS;
+        GLuint time_addr = glGetUniformLocation(prog_shader.program(), "u_time");
         glUniform1f(time_addr, elapsed);
         
         glBindVertexArray(g_VAO);
