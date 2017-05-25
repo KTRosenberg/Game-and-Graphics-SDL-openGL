@@ -21,6 +21,10 @@
 #define SCREEN_HEIGHT 480
 #define TIME_UNIT_TO_SECONDS 1000
 
+#define IMG_PATH_1 "textures/final_rush_walkway_2.png"
+#define IMG_PATH_2 "textures/brick.png"
+
+
 SDL_Window* window = nullptr;
 
 // based on tutorial at 
@@ -138,6 +142,12 @@ int ignore_mouse_movement(void* unused, SDL_Event* event)
 	return (event->type == SDL_MOUSEMOTION) ? 0 : 1;
 }
 
+struct {
+    glm::mat4 projection_matrix;
+    glm::mat4 model_matrix;
+    glm::mat4 view_matrix;
+} scene_matrices;
+
 int main(/*int argc, char* argv[]*/)
 {
     // initialize SDL
@@ -169,6 +179,14 @@ int main(/*int argc, char* argv[]*/)
         return EXIT_FAILURE;
     }
     
+    int imgFlags = IMG_INIT_PNG;
+    if(!(IMG_Init(imgFlags) & imgFlags))
+    {
+     	printf("SDL_image could not initialize, SDL_image Error: %s\n", IMG_GetError());
+        SDL_DestroyWindow(window);
+        return EXIT_FAILURE;
+    }
+    
 	gl_context = SDL_GL_CreateContext(window);
 
 	glewExperimental = GL_TRUE;
@@ -177,6 +195,8 @@ int main(/*int argc, char* argv[]*/)
 	SDL_GL_SetSwapInterval(1);
 	
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
     glDepthRange(0, 1);
     glDepthFunc(GL_LEQUAL);
@@ -188,17 +208,32 @@ int main(/*int argc, char* argv[]*/)
     const GLfloat FACTOR = 1.0;
         
     // VERTEX BUFFER OBJECT DATA
+//     GLfloat vertex_data[] = {
+//         -FACTOR,  FACTOR, 0.0f,  // Top Left
+//         -FACTOR, -FACTOR, 0.0f,  // Bottom Left 
+//          FACTOR, -FACTOR, 0.0f,  // Bottom Right
+//          FACTOR,  FACTOR, 0.0f,  // Top Right
+//     };
+
     GLfloat vertex_data[] = {
-        -FACTOR,  FACTOR, 0.0f,  // Top Left
-        -FACTOR, -FACTOR, 0.0f,  // Bottom Left 
-         FACTOR, -FACTOR, 0.0f,  // Bottom Right
-         FACTOR,  FACTOR, 0.0f,  // Top Right
+        // pos                   // uv coords                                  
+        -FACTOR,  FACTOR, 0.0f,  0.0f, 1.0f, // Top Left
+        -FACTOR, -FACTOR, 0.0f,  0.0f, 0.0f, // Bottom Left 
+         FACTOR, -FACTOR, 0.0f,  1.0f, 0.0f, // Bottom Right
+         FACTOR,  FACTOR, 0.0f,  1.0f, 1.0f, // Top Right
     };
     
     GLuint index_data[] = {
         0, 1, 2,
-        2, 3, 0
+        2, 3, 0,
     };
+    
+//     GLfloat uv_data[] = {
+//         0.0f, 1.0f,
+//         0.0f, 0.0f,
+//         1.0f, 0.0f,
+//         1.0f, 1.0f   
+//     };
     
     // VERTEX ARRAY OBJECT, VERTEX BUFFER OBJECT, ELEMENT BUFFER OBJECT
     
@@ -215,24 +250,86 @@ int main(/*int argc, char* argv[]*/)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_data), index_data, GL_STATIC_DRAW);
     
     // set attribute pointers for vertices
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
 //     glVertexAttribPointer(
-//         glGetAttribLocation(shader_program, "position"), 
-//         3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0
+//         glGetAttribLocation(shader_program, "position"), // if I wanted to search for the position
+//         3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0
 //     );
 
     glEnableVertexAttribArray(0);
+    
+    // set attribute pointers for uv coordinates
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
     
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     
     glBindVertexArray(0);
     
-    Shader prog_shader("shaders/basic_a.vrts", "shaders/basic_a.frgs");
+    Shader prog_shader("shaders/basic_f.vrts", "shaders/basic_f.frgs");
+    
+    if (!prog_shader.is_valid()) {
+        return EXIT_FAILURE;
+    }
     
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     
     printf("USING GL VERSION: %s\n", glGetString(GL_VERSION));
+    
+    ////////////////////////////////////////////////////////////////////////////
+    // TEXTURE
+    ////////////////////////////////////////////////////////////////////////////
+    
+    SDL_Surface* img = nullptr; 
+    // load image for texture
+    if (!(img = IMG_Load(IMG_PATH_1)))
+    {
+        printf("SDL_image could not be loaded %s, SDL_image Error: %s\n", 
+               IMG_PATH_1, IMG_GetError());
+        SDL_DestroyWindow(window);
+        return EXIT_FAILURE;
+    }
+    SDL_Surface* img_2 = nullptr;
+    if (!(img_2 = IMG_Load(IMG_PATH_2)))
+    {
+        printf("SDL_image could not be loaded %s, SDL_image Error: %s\n", 
+               IMG_PATH_2, IMG_GetError());
+        SDL_DestroyWindow(window);
+        return EXIT_FAILURE;
+    }
 
+    // load and create texture array
+    GLuint texture[2];
+    glGenTextures(2, texture);
+    // TEXTURE 0
+    glBindTexture(GL_TEXTURE_2D, texture[0]);
+        // texture wrapping
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        // texture filtering
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->w, img->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->pixels);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        // free the surface
+        SDL_FreeSurface(img);
+        // unbind
+    glBindTexture(GL_TEXTURE_2D, 0);
+    // TEXTURE 1
+    glBindTexture(GL_TEXTURE_2D, texture[1]);
+        // texture wrapping
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        // texture filtering
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img_2->w, img_2->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, img_2->pixels);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        // free the surface
+        SDL_FreeSurface(img_2);
+        // unbind
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
     // MAIN RUN LOOP
     bool keep_running = true;
     SDL_Event event;
@@ -246,12 +343,31 @@ int main(/*int argc, char* argv[]*/)
         
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // TEXTURE 0
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture[0]);
+        glUniform1i(glGetUniformLocation(prog_shader, "tex0"), 0);
+        // TEXTURE 1
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture[1]);
+        glUniform1i(glGetUniformLocation(prog_shader, "tex1"), 1);
         
         prog_shader.use();
         
+        // TIME UNIFORM
         GLfloat elapsed = (SDL_GetTicks() - start_time) / (GLfloat)TIME_UNIT_TO_SECONDS;
-        GLuint time_addr = glGetUniformLocation(prog_shader.program(), "u_time");
+        GLuint time_addr = glGetUniformLocation(prog_shader, "u_time");
         glUniform1f(time_addr, elapsed);
+        
+        // TRANSFORMATION MATRIX UNIFORM
+        
+        glm::mat4 tform_mat;
+        tform_mat = glm::translate(tform_mat, glm::vec3(0.5f, -0.5f, 0.0f));
+        tform_mat = glm::rotate(tform_mat, elapsed, glm::vec3(0.0, 0.0, 1.0));
+        tform_mat = glm::scale(tform_mat, glm::vec3(0.5, 0.5, 0.5));
+        
+        GLuint tform_mat_loc = glGetUniformLocation(prog_shader, "transform");
+        glUniformMatrix4fv(tform_mat_loc, 1, GL_FALSE, glm::value_ptr(tform_mat));
         
         glBindVertexArray(g_VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -263,10 +379,11 @@ int main(/*int argc, char* argv[]*/)
     glDeleteVertexArrays(1, &g_VAO);
     glDeleteBuffers(1, &g_VBO);
     glDeleteBuffers(1, &g_EBO);
-    glDeleteProgram(shader_program);
+    glDeleteTextures(2, texture);
     
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
+    IMG_Quit();
     SDL_Quit();
 
     return EXIT_SUCCESS;

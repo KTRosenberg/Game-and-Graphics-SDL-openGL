@@ -1,0 +1,12 @@
+#version 330 core
+precision highp float;
+in vec3 v_pos;
+in vec2 v_uv;
+out vec4 color;
+uniform float u_time;
+uniform sampler2D _texture;
+
+void main(void)
+{
+    color = texture(_texture, vec2(v_uv.x, (1.0 - v_uv.y) + u_time)) * max(sin(vec4(u_time, v_pos.x, u_time, 1.0f)),.7);
+}

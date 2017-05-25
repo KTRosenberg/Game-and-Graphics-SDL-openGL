@@ -1,28 +1,28 @@
 #include "shader.hpp"
 
+Shader::Shader(const std::string vertex_src, const std::string fragment_src)    
+{
+    this->_is_valid = this->init_program(
+        vertex_src.c_str(), 
+        fragment_src.c_str()
+    );   
+}
+
 Shader::Shader(const GLchar* vertex_path, const GLchar* fragment_path)
-{   
-    std::string vertex_src_obj;
-    std::string fragment_src_obj;
-    
-    try {
-        FileHandle file_vs(vertex_path, "r");
-        FileHandle file_fs(fragment_path, "r");
-        
-        if (!(file_vs.is_valid() & file_fs.is_valid())) {
-            throw std::exception();
-        }
-        
-        vertex_src_obj = file_vs.read();
-        fragment_src_obj = file_fs.read();        
-    } catch (std::exception& ex) {
-        std::cout << "ERROR::SHADER_SOURCE_CANNOT_BE_FOUND" << std::endl;
-        throw std::exception();
-    }
-    
-    const GLchar* vertex_src = vertex_src_obj.c_str();
-    const GLchar* fragment_src = fragment_src_obj.c_str();
-    
+{             
+    this->_is_valid = this->init_program(
+        Shader::retrieve_src_from_file(vertex_path).c_str(), 
+        Shader::retrieve_src_from_file(fragment_path).c_str()
+    );      
+}
+
+Shader::~Shader(void)
+{
+    glDeleteProgram(this->_program);
+}
+
+bool Shader::init_program(const GLchar* vertex_src, const GLchar* fragment_src)
+{	
     // for error checking:
     GLchar info_log[512];
     GLint success = GL_FALSE;
@@ -41,7 +41,7 @@ Shader::Shader(const GLchar* vertex_path, const GLchar* fragment_path)
         glGetShaderInfoLog(vertex_shader, 512, NULL, info_log);
         std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" 
                   << info_log << std::endl;
-        throw std::exception();
+        return false;
     } else {
         std::cout << "SHADER::VERTEX::COMPILATION_SUCCEEDED" << std::endl;
     }
@@ -62,7 +62,7 @@ Shader::Shader(const GLchar* vertex_path, const GLchar* fragment_path)
         glGetShaderInfoLog(fragment_shader, 512, NULL, info_log);
         std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" 
                   << info_log << std::endl;
-        throw std::exception();
+        return false;
     } else {
         std::cout << "SHADER::FRAGMENT::COMPILATION_SUCCEEDED" << std::endl;
     }
@@ -82,13 +82,27 @@ Shader::Shader(const GLchar* vertex_path, const GLchar* fragment_path)
         glGetProgramInfoLog(this->_program, 512, NULL, info_log);
         std::cout << "ERROR::SHADER::PROGRAM::LINK_FAILED\n" 
                   << info_log << std::endl;
-        throw std::exception();
+        return false;
     } else {
         std::cout << "SHADER::PROGRAM::LINK_SUCCEEDED" << std::endl;
     }
     
+    glDetachShader(this->_program, vertex_shader);
+    glDetachShader(this->_program, fragment_shader);
+    
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
+    
+    return true;  
+}
+
+std::string Shader::retrieve_src_from_file(const GLchar* path)
+{
+    FileHandle shader_file(path, "r");
+    if (!shader_file.is_valid()) {
+        return "";
+    }
+    return std::move(shader_file.read());        
 }
 
 GLuint Shader::program(void) const
@@ -96,7 +110,18 @@ GLuint Shader::program(void) const
     return this->_program;
 }
     
-void Shader::use(void)
+void Shader::use(void) const
 {
     glUseProgram(this->_program);
 }
+
+void Shader::stop_using(void) const
+{
+    glUseProgram(0);
+}
+
+bool Shader::is_valid(void) const
+{
+    return this->_is_valid;
+}
+
