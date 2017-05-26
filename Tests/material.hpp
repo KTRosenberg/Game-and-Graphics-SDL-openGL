@@ -10,7 +10,7 @@
 
 class Material {
 private:
-    Shader shader;
+    Shader* shader;
     GLuint* textures;
     size_t _num_textures;
     Material(void) = delete;

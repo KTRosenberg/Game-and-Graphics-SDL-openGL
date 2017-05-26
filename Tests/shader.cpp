@@ -1,24 +1,71 @@
 #include "shader.hpp"
 
-Shader::Shader(const std::string vertex_src, const std::string fragment_src)    
+Shader::Shader(void)
+    :
+        _is_valid(false)
 {
-    this->_is_valid = this->init_program(
-        vertex_src.c_str(), 
-        fragment_src.c_str()
-    );   
 }
 
-Shader::Shader(const GLchar* vertex_path, const GLchar* fragment_path)
-{             
-    this->_is_valid = this->init_program(
-        Shader::retrieve_src_from_file(vertex_path).c_str(), 
-        Shader::retrieve_src_from_file(fragment_path).c_str()
-    );      
+// Shader::~Shader(void)
+// {
+//     glDeleteProgram(this->_program);
+// }
+
+void Shader::remove_program(void)
+{
+    this->_is_valid = false;
+    glDeleteProgram(this->_program);    
 }
 
-Shader::~Shader(void)
+
+bool Shader::load_from_file(const std::string& vertex_path, const std::string& fragment_path,
+                        const std::string& vert_addons,
+                        const std::string& frag_addons) 
 {
-    glDeleteProgram(this->_program);
+    if (this->_is_valid) {
+        return false;
+    }
+    
+    return this->load_from_src(
+        Shader::retrieve_src_from_file(vertex_path.c_str()),
+        Shader::retrieve_src_from_file(fragment_path.c_str()),
+        vert_addons,
+        frag_addons
+    );
+}
+
+bool Shader::load_from_src(const std::string& vertex_src, const std::string& fragment_src,
+                        const std::string& vert_addons,
+                        const std::string& frag_addons)
+{
+    if (this->_is_valid) {
+        return false;
+    }
+    
+    std::string vertex_combined;
+    std::string fragment_combined;
+    
+    if (vert_addons.length() > 0) {
+        vertex_combined = vertex_src;
+        std::string::size_type main_idx = vertex_combined.find("void main(");
+        if (main_idx == std::string::npos) {
+            return this->_is_valid = false;
+        }
+        vertex_combined.insert(main_idx, vert_addons);
+    }
+    if (frag_addons.length() > 0) {
+        fragment_combined = fragment_src;
+        std::string::size_type main_idx = fragment_combined.find("void main(");
+        if (main_idx == std::string::npos) {
+            return this->_is_valid = false;
+        }
+        fragment_combined.insert(main_idx, frag_addons);
+    }
+        
+    return this->_is_valid = this->init_program(
+        (vertex_combined.length() > 0) ? vertex_combined.c_str() : vertex_src.c_str(), 
+        (fragment_combined.length() > 0) ? fragment_combined.c_str() : fragment_src.c_str()
+    );
 }
 
 bool Shader::init_program(const GLchar* vertex_src, const GLchar* fragment_src)

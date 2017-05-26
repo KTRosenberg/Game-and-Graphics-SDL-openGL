@@ -1,0 +1,18 @@
+#version 330 core
+layout (location = 0) in vec3 a_pos;
+layout (location = 1) in vec2 a_uv;
+out vec3 v_pos;
+out vec2 v_uv;
+
+uniform float u_time;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+uniform mat4 model_view_projection;
+
+void main(void) {
+   gl_Position = model_view_projection * vec4(a_pos, 1.0);
+   //gl_Position = model_view_projection * vec4(vec3(a_pos - noise(a_pos + u_time)), 1.0);
+   v_pos = a_pos;
+   v_uv = vec2(a_uv.x, a_uv.y);
+}

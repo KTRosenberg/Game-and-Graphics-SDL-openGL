@@ -2,14 +2,14 @@
 
 Material::Material(const std::string vertex_src, const std::string fragment_src)
     :
-        shader(vertex_src, fragment_src),
+        shader(nullptr),
         _num_textures(0)
 {
 }
 
 Material::Material(const GLchar* vertex_path, const GLchar* fragment_path)
     :
-        shader(vertex_path, fragment_path),
+        shader(nullptr),
         _num_textures(0)
 {
 }
@@ -21,7 +21,7 @@ Material::~Material(void)
 
 const Shader* Material::get_program(void) const
 {
-    return &(this->shader);
+    return this->shader;
 }
 
 void Material::init_textures(size_t num_textures)

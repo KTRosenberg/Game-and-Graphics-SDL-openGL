@@ -1,0 +1,23 @@
+#version 330 core
+layout (location = 0) in vec3 a_pos;
+layout (location = 1) in vec2 a_uv;
+out vec3 v_pos;
+out vec2 v_uv;
+
+uniform float u_time;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+uniform mat4 model_view_projection;
+
+void main(void) {
+    vec2 uv_loc = a_uv;
+    float p_noise = 10.0 * -.10 * turbulence(vec3(.5) + u_time);
+    float b = 5.0 * noise(0.05 * a_pos + vec3(2.0 * u_time) + vec3(100.));
+    float displacement = -p_noise + b;
+    
+    vec3 new_pos = a_pos + displacement;
+    gl_Position = model_view_projection * vec4(new_pos, 1.0);
+    v_pos = a_pos;
+    v_uv = vec2(uv_loc.x, -uv_loc.y);
+}
