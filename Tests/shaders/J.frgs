@@ -18,5 +18,4 @@ void main(void)
 //         texture(tex1, offset), 
 //         (sin(u_time) + 1.) / 2.0
 //     );
-
 }
