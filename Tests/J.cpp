@@ -98,35 +98,80 @@ std::vector<GLfloat> SphereFunction::operator() (GLfloat u, GLfloat v)
     const double PI = glm::pi<double>();
     const double theta = 2 * PI * u;
     const double phi = PI * (v - 0.5);
-    double z = glm::sin(phi);
     
     double c = glm::cos(theta) * glm::cos(phi);
     double s = glm::sin(theta) * glm::cos(phi);
+    double z = glm::sin(phi);
+    
+    GLfloat pos_x = static_cast<GLfloat>(c);
+    GLfloat pos_y = static_cast<GLfloat>(s);
+    GLfloat pos_z = static_cast<GLfloat>(z);   
 
     return {
-        static_cast<GLfloat>(c), 
-        static_cast<GLfloat>(s), 
-        static_cast<GLfloat>(z), 
-        u, 
-        v
+        pos_x, pos_y, pos_z, // pos
+        //pos_x, pos_y, pos_z // norm
+        u, v // uv
     };       
 }
 
-struct GeometryGenerator {
-    static void add_mesh_vertices(std::vector<GLfloat>& V, GLint m, GLint n, ParametricFunction* func);
+struct TorusFunction : public ParametricFunction {
+    virtual std::vector<GLfloat> operator() (GLfloat u, GLfloat v);
+};
+std::vector<GLfloat> TorusFunction::operator() (GLfloat u, GLfloat v)
+{
+    const double PI = glm::pi<double>();
+    const double theta = 2 * PI * u;
+    const double phi = 2 * PI * v;
+    
+    double r = 0.3;
+    
+
+    double c = glm::cos(theta) * (1 + r * glm::cos(phi));
+    double s = glm::sin(theta) * (1 + r * glm::cos(phi));
+    double z = r * glm::sin(phi);
+    
+    GLfloat pos_x = static_cast<GLfloat>(c);
+    GLfloat pos_y = static_cast<GLfloat>(s);
+    GLfloat pos_z = static_cast<GLfloat>(z);
+    
+    double nor_x_hp = r * glm::cos(phi) * glm::cos(theta);
+    double nor_y_hp = r * glm::cos(phi) * glm::sin(theta);
+    double nor_z_hp = r * glm::sin(phi);
+    
+    GLfloat nor_x = static_cast<GLfloat>(nor_x_hp);
+    GLfloat nor_y = static_cast<GLfloat>(nor_y_hp);
+    GLfloat nor_z = static_cast<GLfloat>(nor_z_hp);
+
+    return {
+        pos_x, pos_y, pos_z, // pos
+        //nor_x, nor_y, nor_z, // norm
+        u, v // uv
+    };       
+}
+
+struct MeshGenerator {
+    static void add_mesh_vertices(std::vector<GLfloat>& V, GLint m, GLint n, ParametricFunction& func);
     static std::vector<GLfloat> sphere(GLint n);
+    static std::vector<GLfloat> torus(GLint n);
 };
 
-std::vector<GLfloat> GeometryGenerator::sphere(GLint n)
+std::vector<GLfloat> MeshGenerator::sphere(GLint n)
 {
     std::vector<GLfloat> V;
     SphereFunction f;
-    GeometryGenerator::add_mesh_vertices(V, n, n, &f);
-    std::cout << V[0] << std::endl;
-    return std::move(V);       
+    MeshGenerator::add_mesh_vertices(V, n, n, f);
+    return V;     
 }
 
-void GeometryGenerator::add_mesh_vertices(std::vector<GLfloat>& V, GLint m, GLint n, ParametricFunction* func)
+std::vector<GLfloat> MeshGenerator::torus(GLint n)
+{
+    std::vector<GLfloat> V;
+    TorusFunction f;
+    MeshGenerator::add_mesh_vertices(V, n, n, f);
+    return V;   
+}
+
+void MeshGenerator::add_mesh_vertices(std::vector<GLfloat>& V, GLint m, GLint n, ParametricFunction& func)
 {
     auto append = [&V](std::vector<GLfloat>& A) mutable
     {
@@ -137,10 +182,10 @@ void GeometryGenerator::add_mesh_vertices(std::vector<GLfloat>& V, GLint m, GLin
     
     for (GLint j = 0; j < n; j++) {
         for (GLint i = 0; i < m; i++) {
-            std::vector<GLfloat> A = (*func)(i / (GLfloat)m, j / (GLfloat)n);
-            std::vector<GLfloat> B = (*func)((i + 1) / (GLfloat)m, j / (GLfloat)n);
-            std::vector<GLfloat> C = (*func)(i / (GLfloat)m, (j + 1) / (GLfloat)n);
-            std::vector<GLfloat> D = (*func)((i + 1) / (GLfloat)m, (j + 1) / (GLfloat)n);
+            std::vector<GLfloat> A = func(i / (GLfloat)m, j / (GLfloat)n);
+            std::vector<GLfloat> B = func((i + 1) / (GLfloat)m, j / (GLfloat)n);
+            std::vector<GLfloat> C = func(i / (GLfloat)m, (j + 1) / (GLfloat)n);
+            std::vector<GLfloat> D = func((i + 1) / (GLfloat)m, (j + 1) / (GLfloat)n);
             append(A); append(B); append(D);
             append(D); append(C); append(A);
         }
@@ -296,20 +341,21 @@ int main(/*int argc, char* argv[]*/)
         glm::vec3(-1.3f,  1.0f, -1.5f)  
     };
     
-    std::vector<GLfloat> vertex_data = GeometryGenerator::sphere(100);
+    std::vector<GLfloat> vertex_data = MeshGenerator::torus(100);
     GLuint* index_data = new GLuint[vertex_data.size() / 5];
     for (GLuint i = 0; i < vertex_data.size() / 5; i++) {
         index_data[i] = i;
     }
     
-    std::cout << vertex_data.size() / 5 << std::endl;
-    for (size_t i = 0; i < vertex_data.size() / 5; i++) {
-        std::cout << "[";
-        for (size_t j = 0; j < 5; j++) {
-            std::cout << vertex_data[(i * 5) + j] << ",";
-        }
-        std::cout << "]" << std::endl;
-    }
+//     std::cout << vertex_data.size() / 5 << " points, not necessarily unique" << std::endl;
+//     for (size_t i = 0; i < vertex_data.size() / 5; i++) {
+//         std::cout << "P" << i << "[";
+//         for (size_t j = 0; j < 5; j++) {
+//             std::cout << vertex_data[(i * 5) + j] << ",";
+//         }
+//         std::cout << "]" << std::endl;
+//     }
+    
 //     
 // 
 //     for (size_t i = 0; i < vertex_data.size(); i++) {
@@ -325,11 +371,11 @@ int main(/*int argc, char* argv[]*/)
     
     // copy vertices buffer
     glBindBuffer(GL_ARRAY_BUFFER, g_VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertex_data.size(), &(vertex_data[0]), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertex_data.size() * sizeof(GLfloat), &(vertex_data[0]), GL_STATIC_DRAW);
     
     // copy element buffer
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, vertex_data.size() / 5, index_data, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (vertex_data.size() * sizeof(GLfloat)) / 5, index_data, GL_STATIC_DRAW);
     delete[] index_data;
     // ATTRIBUTES //
     
@@ -350,13 +396,13 @@ int main(/*int argc, char* argv[]*/)
     
     Shader prog_shader;
     std::string p_noise = Shader::retrieve_src_from_file("shaders/perlin_noise.shader");
-    prog_shader.load_from_file("shaders/basic_j.vrts", "shaders/basic_i.frgs", p_noise, p_noise);
+    prog_shader.load_from_file("shaders/J.vrts", "shaders/J.frgs", p_noise, p_noise);
     
     if (!prog_shader.is_valid()) {
         return EXIT_FAILURE;
     }
     
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     
     printf("USING GL VERSION: %s\n", glGetString(GL_VERSION));
     
@@ -406,7 +452,7 @@ int main(/*int argc, char* argv[]*/)
         scene.m_model = ident_mat;
         scene.m_view = ident_mat;
         scene.m_view = glm::translate(scene.m_view, glm::vec3(0.0f, 0.0f, -5.0f));
-        scene.m_view = glm::rotate(scene.m_view, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        scene.m_view = glm::rotate(scene.m_view, glm::radians(100.f * elapsed), glm::vec3(0.0f, 1.0f, 0.0f));
         
         GLuint model_loc = glGetUniformLocation(prog_shader, "model");
         GLuint view_loc = glGetUniformLocation(prog_shader, "view");
@@ -427,8 +473,9 @@ int main(/*int argc, char* argv[]*/)
         glUniformMatrix4fv(projection_loc, 1, GL_FALSE, glm::value_ptr(scene.m_projection));
  
         glBindVertexArray(g_VAO);
+        for (GLuint i = 0; i < 1 ; i++) {
             scene.m_model = ident_mat;
-            scene.m_model = glm::translate(scene.m_model, shape_translations[0]);      
+            scene.m_model = glm::translate(scene.m_model, shape_translations[i]);      
             
             // set more uniforms
             // model
@@ -436,6 +483,7 @@ int main(/*int argc, char* argv[]*/)
             // model_view_projection
             glUniformMatrix4fv(model_view_projection_loc, 1, GL_FALSE, glm::value_ptr(scene.m_projection * scene.m_view * scene.m_model));
             glDrawElements(GL_TRIANGLES, vertex_data.size() / 5, GL_UNSIGNED_INT, 0);
+        }
         glBindVertexArray(0);
                 
         SDL_GL_SwapWindow(window);

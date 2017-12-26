@@ -9,12 +9,12 @@
 
 #include "file_handle.hpp"
 
-class Shader {
+class GLShader {
     GLuint _program;
     bool _is_valid;
     bool init_program(const GLchar* vertex_src, const GLchar* fragment_src);
 public:
-    Shader(void);
+    GLShader(void);
     
     bool load_from_file(const std::string& vertex_path, const std::string& fragment_path,
                             const std::string& vert_addons="",
@@ -38,5 +38,7 @@ public:
         return this->_program;
     }
 };
+
+typedef GLShader Shader;
 
 #endif // SHADER_HPP

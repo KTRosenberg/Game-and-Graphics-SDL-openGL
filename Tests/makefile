@@ -4,9 +4,9 @@ LDFLAGS     = -framework OpenGL -lGLEW -lSDL2 -lSDL2_image
 SDLCFLAGS   = $(shell sdl2-config --cflags)
 SDLLIBFLAGS = $(shell sdl2-config --libs)
 
-SOURCES   = K.cpp file_handle.cpp shader.cpp texture.cpp material.cpp camera.cpp
+SOURCES   = M.cpp file_handle.cpp shader.cpp texture.cpp material.cpp camera.cpp mesh_generator.cpp
 OBJECTS   = $(SOURCES:.cpp=.o)
-EXECNAME  = g
+EXECNAME  = prog
 
 all: $(EXECNAME)
 

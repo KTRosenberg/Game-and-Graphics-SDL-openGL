@@ -193,8 +193,7 @@ int main(/*int argc, char* argv[]*/)
 
 	glewExperimental = GL_TRUE;
     glewInit();
-	
-	SDL_GL_SetSwapInterval(1);
+    glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
@@ -204,6 +203,8 @@ int main(/*int argc, char* argv[]*/)
 
     glDepthRange(0, 1);
     glDepthFunc(GL_LEQUAL);
+    
+    SDL_GL_SetSwapInterval(1);
 	
 	//gl_init();
 	
