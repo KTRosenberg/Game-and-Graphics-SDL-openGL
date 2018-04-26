@@ -9,12 +9,36 @@
 
 #include "file_handle.hpp"
 
-class GLShader {
+// #ifdef __cplusplus 
+// extern "C" {
+// #endif
+//     bool create_shader(const GLchar* vertex_src, const GLchar* fragment_src)
+//     {
+//         return false;
+//     }
+
+//     bool destroy_shader(void) 
+//     {
+//         return false;
+//     }
+
+//     std::string retrieve_src_from_file(const GLchar* path);
+
+
+//     typedef struct _ShaderData {
+
+//     } ShaderData;
+
+// #ifdef __cplusplus 
+// }
+// #endif
+
+struct Shader {
     GLuint _program;
     bool _is_valid;
     bool init_program(const GLchar* vertex_src, const GLchar* fragment_src);
-public:
-    GLShader(void);
+
+    Shader(void);
     
     bool load_from_file(const std::string& vertex_path, const std::string& fragment_path,
                             const std::string& vert_addons="",
@@ -39,6 +63,6 @@ public:
     }
 };
 
-typedef GLShader Shader;
+typedef Shader Shader;
 
 #endif // SHADER_HPP

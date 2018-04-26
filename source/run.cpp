@@ -20,6 +20,7 @@
 #include "shader.hpp"
 #include "texture.hpp"
 #include "camera.hpp"
+#include "mesh_generator.hpp"
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
@@ -29,18 +30,35 @@
 #define IMG_PATH_2 "textures/brick.png"
 #define IMG_PATH_3 "textures/lavatile.jpg"
 
-// #define FREE_CAM
+//#define DEBUG_PRINT
+
+void debug_print(std::string in);
+void debug_print(std::string in) 
+{
+    #ifdef DEBUG_PRINT
+    std::cout << in << std::endl;
+    #endif
+}
+
 #define FP_CAM
+// #define FREE_CAM
 
 #define MOUSE_ON
 
+#define CUBES
+//#define SPHERES
+//#define TORI
 
 SDL_Window* window = nullptr;
 
 // based on tutorial at 
 // http://headerphile.com/sdl2/opengl-part-1-sdl-opengl-awesome/
 
-SDL_GLContext gl_context;
+typedef struct _GLData {
+    SDL_GLContext ctx;
+} GLData;
+
+GLData gl_data; 
 
 int ignore_mouse_movement(void* unused, SDL_Event* event)
 {
@@ -86,59 +104,6 @@ struct {
     glm::mat4 m_projection;
 } scene;
 
-// struct ParametricFunction {
-//     virtual std::vector<GLfloat> operator() (GLfloat u, GLfloat v) = 0;
-// };
-// 
-// struct SphereFunction : public ParametricFunction {
-//     virtual std::vector<GLfloat> operator() (GLfloat u, GLfloat v);
-// };
-// std::vector<GLfloat> SphereFunction::operator() (GLfloat u, GLfloat v)
-// {
-//     double PI = glm::pi<double>();
-//     double theta = 2 * PI * u;
-//     double phi = PI * (v - 0.5);
-//     double z = glm::sin(phi);
-//     
-//     double c = glm::cos(theta) * glm::cos(phi);
-//     double s = glm::sin(theta) * glm::cos(phi);
-//     return {static_cast<GLfloat>(c), static_cast<GLfloat>(s), static_cast<GLfloat>(z), u, v};       
-// }
-// 
-// struct GeometryGenerator {
-//     static void add_mesh_vertices(std::vector<GLfloat>& V, GLint m, GLint n, ParametricFunction* func);
-//     static std::vector<GLfloat> sphere(GLint n);
-// };
-// 
-// std::vector<GLfloat> GeometryGenerator::sphere(GLint n)
-// {
-//     std::vector<GLfloat> V;
-//     SphereFunction f;
-//     GeometryGenerator::add_mesh_vertices(V, n, n, &f);
-//     return std::move(V);       
-// }
-// 
-// void GeometryGenerator::add_mesh_vertices(std::vector<GLfloat>& V, GLint m, GLint n, ParametricFunction* func)
-// {
-//     auto append = [V](std::vector<GLfloat>& A) mutable
-//     {
-//         for (GLuint i = 0; i < A.size(); i++) {
-//             V.push_back(A[i]);
-//         }
-//     };
-//     
-//     for (GLint j = 0; j < n; j++) {
-//         for (GLint i = 0; i < m; i++) {
-//             std::vector<GLfloat> A = (*func)(i / (GLfloat)m, j / (GLfloat)n);
-//             std::vector<GLfloat> B = (*func)((i + 1) / (GLfloat)m, j / (GLfloat)n);
-//             std::vector<GLfloat> C = (*func)(i / (GLfloat)m, (j + 1) / (GLfloat)n);
-//             std::vector<GLfloat> D = (*func)((i + 1) / (GLfloat)m, (j + 1) / (GLfloat)n);
-//             append(A); append(B); append(D);
-//             append(D); append(C); append(A);
-//         }
-//     }
-// }
-
 // glm::vec3 light_pos(1.2f, 1.0f, 2.0f);
 // glm::light_color(1.0f, 1.0f, 1.0f);
 // glm::toy_color(1.0f, 0.5f, 0.31f);
@@ -148,7 +113,7 @@ int main(/*int argc, char* argv[]*/)
 {
     // initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        std::cout << "SDL could not initialize" << std::endl;
+        puts("SDL could not initialize");
         return EXIT_FAILURE;
     }
     
@@ -181,14 +146,13 @@ int main(/*int argc, char* argv[]*/)
     }
     
     int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
-    if(!(IMG_Init(imgFlags) & imgFlags))
-    {
+    if(!(IMG_Init(imgFlags) & imgFlags)) {
      	printf("SDL_image could not initialize, SDL_image Error: %s\n", IMG_GetError());
         SDL_DestroyWindow(window);
         return EXIT_FAILURE;
     }
     
-	gl_context = SDL_GL_CreateContext(window);
+	gl_data.ctx = SDL_GL_CreateContext(window);
 
 	glewExperimental = GL_TRUE;
     glewInit();
@@ -207,82 +171,27 @@ int main(/*int argc, char* argv[]*/)
 	
 	//gl_init();
 	
-    // VERTICES ////////////////////////////////////////////////////////////////
-
-    const GLfloat FACTOR = 0.5;
-        
-    // VERTEX BUFFER OBJECT DATA
-
-//     GLfloat vertex_data[] = {
-//         // pos                   // uv coords                                  
-//         -FACTOR,  FACTOR, 0.0f,  0.0f, 1.0f, // Top Left
-//         -FACTOR, -FACTOR, 0.0f,  0.0f, 0.0f, // Bottom Left 
-//          FACTOR, -FACTOR, 0.0f,  1.0f, 0.0f, // Bottom Right
-//          FACTOR,  FACTOR, 0.0f,  1.0f, 1.0f, // Top Right
-//     };
-//     
-//     GLuint index_data[] = {
-//         0, 1, 2,
-//         2, 3, 0,
-//     };
-
-    // front, right, back, left, top, bottom
-    GLfloat vertex_data[] = {
-        // pos                      // normals            // uv coords                                  
-        -FACTOR,  FACTOR,  FACTOR,  0.0f, 0.0f, 1.0f,  0.0f, 1.0f, // Top Left
-        -FACTOR, -FACTOR,  FACTOR,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f, // Bottom Left 
-         FACTOR, -FACTOR,  FACTOR,  0.0f, 0.0f, 1.0f,  1.0f, 0.0f, // Bottom Right
-         FACTOR,  FACTOR,  FACTOR,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f, // Top Right
-         
-         FACTOR,  FACTOR,  FACTOR,  1.0f, 0.0f, 0.0f,  0.0f, 1.0f, // Top Left
-         FACTOR, -FACTOR,  FACTOR,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f, // Bottom Left 
-         FACTOR, -FACTOR, -FACTOR,  1.0f, 0.0f, 0.0f,  1.0f, 0.0f, // Bottom Right
-         FACTOR,  FACTOR, -FACTOR,  1.0f, 0.0f, 0.0f,  1.0f, 1.0f, // Top Right
-         
-         FACTOR,  FACTOR, -FACTOR,  0.0f, 0.0f,-1.0f,  0.0f, 1.0f, // Top Left
-         FACTOR, -FACTOR, -FACTOR,  0.0f, 0.0f,-1.0f,  0.0f, 0.0f, // Bottom Left 
-        -FACTOR, -FACTOR, -FACTOR,  0.0f, 0.0f,-1.0f,  1.0f, 0.0f, // Bottom Right
-        -FACTOR,  FACTOR, -FACTOR,  0.0f, 0.0f,-1.0f,  1.0f, 1.0f, // Top Right
-        
-        -FACTOR,  FACTOR, -FACTOR, -1.0f, 0.0f, 0.0f,  0.0f, 1.0f, // Top Left
-        -FACTOR, -FACTOR, -FACTOR, -1.0f, 0.0f, 0.0f,  0.0f, 0.0f, // Bottom Left 
-        -FACTOR, -FACTOR,  FACTOR, -1.0f, 0.0f, 0.0f,  1.0f, 0.0f, // Bottom Right
-        -FACTOR,  FACTOR,  FACTOR, -1.0f, 0.0f, 0.0f,  1.0f, 1.0f, // Top Right
-        
-        -FACTOR,  FACTOR, -FACTOR,  0.0f, 1.0f, 0.0f,  0.0f, 1.0f, // Top Left
-        -FACTOR,  FACTOR,  FACTOR,  0.0f, 1.0f, 0.0f,  0.0f, 0.0f, // Bottom Left 
-         FACTOR,  FACTOR,  FACTOR,  0.0f, 1.0f, 0.0f,  1.0f, 0.0f, // Bottom Right
-         FACTOR,  FACTOR, -FACTOR,  0.0f, 1.0f, 0.0f,  1.0f, 1.0f, // Top Right
-         
-        -FACTOR, -FACTOR,  FACTOR,  0.0f,-1.0f, 0.0f,  0.0f, 1.0f, // Top Left
-        -FACTOR, -FACTOR, -FACTOR,  0.0f,-1.0f, 0.0f,  0.0f, 0.0f, // Bottom Left 
-         FACTOR, -FACTOR, -FACTOR,  0.0f,-1.0f, 0.0f,  1.0f, 0.0f, // Bottom Right
-         FACTOR, -FACTOR,  FACTOR,  0.0f,-1.0f, 0.0f,  1.0f, 1.0f, // Top Right
-    };
+    // SHAPE DATA ////////////////////////////////////////////////////////////////
+   
+    gl_mesh::MeshData* mesh;
+#ifdef CUBES
+    gl_mesh::platonic_solid::Cube shape_mesh;
+#elif defined SPHERES
+    gl_mesh::parametric::Sphere shape_mesh(100);
+#elif defined TORI
+    gl_mesh::parametric::Torus shape_mesh(100);
+#else
+    #error SHAPE UNDEFINED
+#endif
+    mesh = &shape_mesh;
+    const GLuint size_vertex_data = mesh->num_vertices() * 8 * sizeof(GLfloat);
+    const GLuint num_indices = mesh->num_indices(); 
+    const GLuint size_index_data = num_indices * sizeof(GLuint);  
+    const GLfloat* vertex_data = mesh->vertex_data();
+    const GLuint* index_data = mesh->index_data();
+    const GLuint num_vertices = mesh->num_vertices();
     
-    GLuint index_data[] = {
-        0, 1, 2,
-        2, 3, 0,
-                0, 1, 2,
-                2, 3, 0,
-                
-                0, 1, 2,
-                2, 3, 0,
-                
-                0, 1, 2,
-                2, 3, 0,
-                
-                0, 1, 2,
-                2, 3, 0,
-                
-                0, 1, 2,
-                2, 3, 0,
-    };
-    for (GLuint i = 0; i < 6; i++) {
-        for (GLuint j = 0; j < 6; j++) {
-            index_data[(i * 6) + j] += (4 * i);
-        }
-    }
+    std::cout << size_vertex_data << std::endl;
     
     glm::vec3 shape_translations[] = {
         glm::vec3( 0.0f,  0.0f,  0.0f), 
@@ -311,10 +220,10 @@ int main(/*int argc, char* argv[]*/)
     
     // copy vertices buffer
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, size_vertex_data, vertex_data, GL_STATIC_DRAW);
     // copy element buffer
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_data), index_data, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_index_data, index_data, GL_STATIC_DRAW);
     
     // ATTRIBUTES //
     
@@ -347,12 +256,12 @@ int main(/*int argc, char* argv[]*/)
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
     
-    std::string p_noise = Shader::retrieve_src_from_file("shaders/perlin_noise.shader");
+    std::string p_noise = Shader::retrieve_src_from_file("shaders/perlin_noise.glsl");
     Shader prog_shader;
-    prog_shader.load_from_file("shaders/light_a.vrts", "shaders/light_a.frgs", p_noise, p_noise);
+    prog_shader.load_from_file("shaders/tests/light_a.vrts", "shaders/tests/light_a.frgs", p_noise, p_noise);
     
     Shader lamp_shader;
-    lamp_shader.load_from_file("shaders/lamp_a.vrts", "shaders/lamp_a.frgs", p_noise, p_noise);
+    lamp_shader.load_from_file("shaders/tests/lamp_a.vrts", "shaders/tests/lamp_a.frgs", p_noise, p_noise);
     
     if (!prog_shader.is_valid()) {
         std::cout << "ERROR: LIGHT_A" << std::endl;
@@ -459,25 +368,25 @@ int main(/*int argc, char* argv[]*/)
         #ifdef FP_CAM			
 		if (up) {
 			main_cam.process_directional_movement(Camera_Movement::FORWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * up_acc);
-			//std::cout << "FOR" << std::endl;	
+			debug_print("FORWARD");	
 			up_acc *= 1.06;		
 		} else {
 		    up_acc = 1.0;
 		}
 		if (down) {
 			main_cam.process_directional_movement(Camera_Movement::BACKWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * down_acc);
-			//std::cout << "BACK" << std::endl;					
+			debug_print("BACKWARD");	
 		    down_acc *= 1.06;
 		} else {
 		    down_acc = 1.0;
 		}
 		if (left) {
 			main_cam.process_directional_movement(Camera_Movement::LEFTWARDS, delta_time / (GLfloat)TIME_UNIT_TO_SECONDS);
-			//std::cout << "LEFT" << std::endl;		
+			debug_print("LEFTWARD");	
 		}
 		if (right) {
 			main_cam.process_directional_movement(Camera_Movement::RIGHTWARDS, delta_time / (GLfloat)TIME_UNIT_TO_SECONDS);
-			//std::cout << "RIGHT" << std::endl;		
+			debug_print("RIGHTWARD");	
 		}
 		
 		#ifdef MOUSE_ON
@@ -533,11 +442,12 @@ int main(/*int argc, char* argv[]*/)
         glm::mat3 m_norm;
  
         glBindVertexArray(VAO);
-        for (GLuint i = 0; i < 1; i++) { 
+        for (GLuint i = 0; i < 7; i++) { 
             scene.m_model = ident_mat;
             
             // 
             scene.m_model = glm::translate(scene.m_model, shape_translations[i] + 5.0f * glm::vec3(0.0f, 0.0f, glm::sin((GLfloat)curr_time / 1000.0f)));
+            //scene.m_model = glm::scale(scene.m_model, glm::vec3(0.5f, 0.5f, 0.5f));
 //             if (i % 2 == 0) {
 //                 scene.m_model = glm::rotate(scene.m_model, elapsed + glm::radians(20.0f * i), glm::vec3(1.0f, 0.3f, 0.5f));
 //             }         
@@ -551,7 +461,8 @@ int main(/*int argc, char* argv[]*/)
                         
             // model_view_projection
             glUniformMatrix4fv(model_view_projection_loc, 1, GL_FALSE, glm::value_ptr(scene.m_projection * scene.m_view * scene.m_model));
-            glDrawElements(GL_TRIANGLES, 6 * 6, GL_UNSIGNED_INT, 0); // cubes
+            //glDrawElements(GL_TRIANGLES, 6 * 6, GL_UNSIGNED_INT, 0); // cubes
+            glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, 0);
         }
         glBindVertexArray(0);
         
@@ -572,6 +483,7 @@ int main(/*int argc, char* argv[]*/)
         //
         scene.m_model = glm::translate(scene.m_model, glm::vec3(1.0f + glm::sin(curr_time / 1000.0) * 2.0f, glm::sin(curr_time / (1000.0 * 2.0f)) * 1.0f, 0.0f));
         scene.m_model = glm::scale(scene.m_model, glm::vec3(0.2f));
+        scene.m_model = glm::scale(scene.m_model, glm::vec3(0.5f, 0.5f, 0.5f));
         
         glUniform1f(time_addr, elapsed);
         glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(scene.m_model));
@@ -586,7 +498,7 @@ int main(/*int argc, char* argv[]*/)
         glUniform3f(light_pos_loc, light_pos_vec.x, light_pos_vec.y, light_pos_vec.z);
 
         glBindVertexArray(VAO_Light);
-        glDrawElements(GL_TRIANGLES, 6 * 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
                 
         SDL_GL_SwapWindow(window);
@@ -596,9 +508,8 @@ int main(/*int argc, char* argv[]*/)
     glDeleteVertexArrays(1, &VAO_Light);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
-    //glDeleteTextures(2, texture);
     
-    SDL_GL_DeleteContext(gl_context);
+    SDL_GL_DeleteContext(gl_data.ctx);
     SDL_DestroyWindow(window);
     IMG_Quit();
     SDL_Quit();

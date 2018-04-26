@@ -1,6 +1,6 @@
 #include "shader.hpp"
 
-GLShader::GLShader(void)
+Shader::Shader(void)
     :
         _is_valid(false)
 {
@@ -11,14 +11,14 @@ GLShader::GLShader(void)
 //     glDeleteProgram(this->_program);
 // }
 
-void GLShader::remove_program(void)
+void Shader::remove_program(void)
 {
     this->_is_valid = false;
     glDeleteProgram(this->_program);    
 }
 
 
-bool GLShader::load_from_file(const std::string& vertex_path, const std::string& fragment_path,
+bool Shader::load_from_file(const std::string& vertex_path, const std::string& fragment_path,
                         const std::string& vert_addons,
                         const std::string& frag_addons) 
 {
@@ -27,14 +27,14 @@ bool GLShader::load_from_file(const std::string& vertex_path, const std::string&
     }
     
     return this->load_from_src(
-        GLShader::retrieve_src_from_file(vertex_path.c_str()),
-        GLShader::retrieve_src_from_file(fragment_path.c_str()),
+        Shader::retrieve_src_from_file(vertex_path.c_str()),
+        Shader::retrieve_src_from_file(fragment_path.c_str()),
         vert_addons,
         frag_addons
     );
 }
 
-bool GLShader::load_from_src(const std::string& vertex_src, const std::string& fragment_src,
+bool Shader::load_from_src(const std::string& vertex_src, const std::string& fragment_src,
                         const std::string& vert_addons,
                         const std::string& frag_addons)
 {
@@ -69,7 +69,7 @@ bool GLShader::load_from_src(const std::string& vertex_src, const std::string& f
     );
 }
 
-bool GLShader::init_program(const GLchar* vertex_src, const GLchar* fragment_src)
+bool Shader::init_program(const GLchar* vertex_src, const GLchar* fragment_src)
 {	
     // for error checking:
     GLchar info_log[512];
@@ -144,7 +144,7 @@ bool GLShader::init_program(const GLchar* vertex_src, const GLchar* fragment_src
     return true;  
 }
 
-std::string GLShader::retrieve_src_from_file(const GLchar* path)
+std::string Shader::retrieve_src_from_file(const GLchar* path)
 {
     FileHandle shader_file(path, "r");
     if (!shader_file.is_valid()) {
@@ -153,22 +153,22 @@ std::string GLShader::retrieve_src_from_file(const GLchar* path)
     return std::move(shader_file.read());        
 }
 
-GLuint GLShader::program(void) const
+GLuint Shader::program(void) const
 {
     return this->_program;
 }
     
-void GLShader::use(void) const
+void Shader::use(void) const
 {
     glUseProgram(this->_program);
 }
 
-void GLShader::stop_using(void) const
+void Shader::stop_using(void) const
 {
     glUseProgram(0);
 }
 
-bool GLShader::is_valid(void) const
+bool Shader::is_valid(void) const
 {
     return this->_is_valid;
 }

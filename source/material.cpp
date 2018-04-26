@@ -19,7 +19,7 @@ Material::~Material(void)
     delete[] this->textures;
 }
 
-const GLShader* Material::get_program(void) const
+const Shader* Material::get_program(void) const
 {
     return this->shader;
 }

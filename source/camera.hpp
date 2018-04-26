@@ -29,8 +29,7 @@ namespace camera_defaults {
     const GLfloat ZOOM = 45.0f;
 }
 
-class Camera {
-public:
+struct Camera {
     // attributes
     glm::vec3 pos;
     glm::vec3 front;
@@ -71,10 +70,10 @@ private:
 };
 
 // by Laurie Bradshaw, from comment in https://learnopengl.com/#!Getting-started/Camera
-class FreeCamera {
+struct FreeCamera {
 	glm::vec3 m_pos;
 	glm::quat m_orient;
-public:
+
 	FreeCamera (void) = default;
 	FreeCamera (const FreeCamera &) = default;
 
