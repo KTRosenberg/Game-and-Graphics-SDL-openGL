@@ -99,11 +99,10 @@ bool Shader::init_program(const GLchar* vertex_src, const GLchar* fragment_src)
     glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
     if (success != GL_TRUE) {
         glGetShaderInfoLog(vertex_shader, 512, NULL, info_log);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" 
-                  << info_log << std::endl;
+        fprintf(stderr, "%s %s\n", "ERROR::SHADER::VERTEX::COMPILATION_FAILED", info_log);
         return false;
     } else {
-        std::cout << "SHADER::VERTEX::COMPILATION_SUCCEEDED" << std::endl;
+        puts("SHADER::VERTEX::COMPILATION_SUCCEEDED");
     }
 
     
@@ -120,11 +119,10 @@ bool Shader::init_program(const GLchar* vertex_src, const GLchar* fragment_src)
     glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
     if (success != GL_TRUE) {
         glGetShaderInfoLog(fragment_shader, 512, NULL, info_log);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" 
-                  << info_log << std::endl;
+        fprintf(stderr, "%s %s\n", "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED", info_log);
         return false;
     } else {
-        std::cout << "SHADER::FRAGMENT::COMPILATION_SUCCEEDED" << std::endl;
+        puts("SHADER::FRAGMENT::COMPILATION_SUCCEEDED");
     }
        
     // create shader program
@@ -140,11 +138,10 @@ bool Shader::init_program(const GLchar* vertex_src, const GLchar* fragment_src)
     glGetProgramiv(this->_program, GL_LINK_STATUS, &success);
     if (success != GL_TRUE) {
         glGetProgramInfoLog(this->_program, 512, NULL, info_log);
-        std::cout << "ERROR::SHADER::PROGRAM::LINK_FAILED\n" 
-                  << info_log << std::endl;
+        fprintf(stderr, "%s %s\n", "ERROR::SHADER::PROGRAM::LINK_FAILED", info_log);
         return false;
     } else {
-        std::cout << "SHADER::PROGRAM::LINK_SUCCEEDED" << std::endl;
+        puts("SHADER::PROGRAM::LINK_SUCCEEDED");
     }
     
     // glDetachShader(this->_program, vertex_shader);

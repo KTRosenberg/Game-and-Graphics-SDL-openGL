@@ -301,12 +301,6 @@ int main(/*int argc, char* argv[]*/)
     Uint64 dt = 0;
 
     while (keep_running) {
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                keep_running = false;
-            }
-        }
-
         curr_time = SDL_GetTicks();
         // frame-rate independence?
         dt = (Uint64)(curr_time - prev_time);
@@ -321,7 +315,11 @@ int main(/*int argc, char* argv[]*/)
         } while (dt >= INTERVAL);
         prev_time = curr_time;
 
-
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                keep_running = false;
+            }
+        }
 
         Texture* texture = gl_data.textures.ids;
                 
