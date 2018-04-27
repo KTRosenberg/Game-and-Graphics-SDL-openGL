@@ -5,8 +5,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <cerrno>
-#include <pthread.h>
-#include <sys/file.h>
 
 #include <string>
 

@@ -5,8 +5,10 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/ext.hpp>
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
+#ifdef _WIN32
+#   define SDL_MAIN_HANDLED
+#endif
+#include "sdl.hpp"
 
 #include <iostream>
 #include <string>
@@ -397,7 +399,7 @@ int main(/*int argc, char* argv[]*/)
         // TRANSFORMATION MATRICES
         
         // transformations
-        glm::mat4 ident_mat;
+        glm::mat4 ident_mat(1.0);
         scene.m_model = ident_mat;
         
         #ifdef FREE_CAM

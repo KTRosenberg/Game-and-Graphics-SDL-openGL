@@ -1,7 +1,11 @@
 #ifndef MATERIAL_HPP
 #define MATERIAL_HPP
 
-#include <GL/glew.h>
+#ifdef _WIN32
+#   include <glew.h>
+#else // __APPLE__
+#   include <GL/glew.h>
+#endif
 
 #include <vector>
 

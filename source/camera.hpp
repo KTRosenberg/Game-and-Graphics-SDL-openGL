@@ -1,7 +1,12 @@
 #ifndef CAMERA_HPP
 #define CAMERA_HPP
 
-#include <GL/glew.h>
+#ifdef _WIN32
+#   include <glew.h>
+#else // __APPLE__
+#   include <GL/glew.h>
+#endif
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
