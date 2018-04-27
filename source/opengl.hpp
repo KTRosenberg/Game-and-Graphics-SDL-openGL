@@ -1,10 +1,10 @@
 #ifndef OPEN_GL_HPP
 
 #ifdef _WIN32
-#   include <glew.h>
+#   include <GL\glew.h>
 #   include <SDL_opengl.h>
 #   include <gl\glu.h>
-#else // __APPLE__
+#else // __APPLE_
 #   define GL3_PROTOTYPES 1
 #   define GLEW_STATIC
 #   include <GL/glew.h>

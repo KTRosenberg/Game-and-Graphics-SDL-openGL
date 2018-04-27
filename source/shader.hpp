@@ -1,11 +1,7 @@
 #ifndef SHADER_HPP
 #define SHADER_HPP
 
-#ifdef _WIN32
-#   include <glew.h>
-#else // __APPLE__
-#   include <GL/glew.h>
-#endif
+#include <GL/glew.h>
 
 #include <string>
 #include <iostream>
