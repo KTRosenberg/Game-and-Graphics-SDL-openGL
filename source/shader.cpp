@@ -165,7 +165,7 @@ std::string Shader::retrieve_src_from_file(const GLchar* path, bool* is_valid)
 
     std::string out = read_file(shader_fd);
 
-    if (ferror(shader_fd) == 0) {
+    if (ferror(shader_fd) == 0 || errno != 0) {
         *is_valid = true;
         flush_and_close_file(shader_fd);
     } else {
