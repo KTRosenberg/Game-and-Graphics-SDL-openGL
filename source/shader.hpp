@@ -7,7 +7,7 @@
 #include <iostream>
 #include <vector>
 
-#include "file_handle.hpp"
+#include "file_io.hpp"
 
 // #ifdef __cplusplus 
 // extern "C" {
@@ -50,7 +50,7 @@ struct Shader {
     //~Shader(void);
     void remove_program(void);
     
-    static std::string retrieve_src_from_file(const GLchar* path);
+    static std::string retrieve_src_from_file(const GLchar* path, bool* is_valid);
     
     GLuint program(void) const;
     void use(void) const;

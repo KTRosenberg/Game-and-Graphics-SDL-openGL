@@ -1,9 +1,4 @@
-#define GL3_PROTOTYPES 1
-#define GLEW_STATIC
-#include <GL/glew.h>
-#include <OpenGL/glu.h>
-#include <OpenGL/gl.h>
-//#include <OpenGL/gl3.h>
+#include "opengl.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -15,6 +10,7 @@
 
 #include <iostream>
 #include <string>
+#include <array>
 #include <vector>
 
 #include "shader.hpp"
@@ -22,21 +18,31 @@
 #include "camera.hpp"
 #include "mesh_generator.hpp"
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
+#define WINDOW_HEADER ("")
+
+#define SCREEN_WIDTH  720
+#define SCREEN_HEIGHT 480
 #define TIME_UNIT_TO_SECONDS 1000
+#define FRAMES_PER_SECOND 60
+
+//#define DISPLAY_FPS
 
 #define IMG_PATH_1 "textures/final_rush_walkway_2.png"
 #define IMG_PATH_2 "textures/brick.png"
 #define IMG_PATH_3 "textures/lavatile.jpg"
 
-//#define DEBUG_PRINT
+int ignore_mouse_movement(void* unused, SDL_Event* event)
+{
+    return (event->type == SDL_MOUSEMOTION) ? 0 : 1;
+}
+
+#define DEBUG_PRINT
 
 void debug_print(std::string in);
 void debug_print(std::string in) 
 {
     #ifdef DEBUG_PRINT
-    std::cout << in << std::endl;
+    puts(in.c_str());
     #endif
 }
 
@@ -49,54 +55,24 @@ void debug_print(std::string in)
 //#define SPHERES
 //#define TORI
 
-SDL_Window* window = nullptr;
+SDL_Window* window = NULL;
 
 // based on tutorial at 
 // http://headerphile.com/sdl2/opengl-part-1-sdl-opengl-awesome/
 
+using namespace GL;
+
+typedef struct _TextureData {
+    Texture* ids;
+    size_t count;
+} TextureData;
+
 typedef struct _GLData {
-    SDL_GLContext ctx;
+    SDL_GLContext context;
+    TextureData textures;
 } GLData;
 
 GLData gl_data; 
-
-int ignore_mouse_movement(void* unused, SDL_Event* event)
-{
-	return (event->type == SDL_MOUSEMOTION) ? 0 : 1;
-}
-
-GLuint load_texture(std::string path, GLboolean alpha=GL_TRUE);
-GLuint load_texture(std::string path, GLboolean alpha)
-{
-    // load image
-    SDL_Surface* img = nullptr; 
-    if (!(img = IMG_Load(path.c_str()))) {
-        printf("SDL_image could not be loaded %s, SDL_image Error: %s\n", 
-               path.c_str(), IMG_GetError());
-        return (GLuint)0;
-    }
-    
-    GLuint texture_id = 0;
-    glGenTextures(1, &texture_id);
-
-    glBindTexture(GL_TEXTURE_2D, texture_id);
-    // image assignment
-    GLuint format = (alpha) ? GL_RGBA : GL_RGB;
-    glTexImage2D(GL_TEXTURE_2D, 0, format, img->w, img->h, 0, format, GL_UNSIGNED_BYTE, img->pixels);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    // wrapping behavior
-    GLuint alpha_behavior = (alpha && false) ? GL_CLAMP_TO_EDGE : GL_REPEAT;
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, alpha_behavior);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, alpha_behavior);
-    // texture filtering
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    // free the surface
-    SDL_FreeSurface(img);
-    
-    return texture_id;
-}
 
 struct {
     glm::mat4 m_model;
@@ -135,24 +111,25 @@ int main(/*int argc, char* argv[]*/)
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
 
     // create the window
-    if (!(window = SDL_CreateWindow("openGL TEST",
-                                    SDL_WINDOWPOS_UNDEFINED,
-                                    SDL_WINDOWPOS_UNDEFINED,
-                                    SCREEN_WIDTH, SCREEN_HEIGHT,
-                                    SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN /*| SDL_WINDOW_ALLOW_HIGHDPI*/)))
+    if (NULL == (window = SDL_CreateWindow(
+        WINDOW_HEADER,
+        SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED,
+        SCREEN_WIDTH, SCREEN_HEIGHT,
+        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI)))
     {
-        std::cout << "Window could not be created" << std::endl;
+        fprintf(stderr, "Window could not be created\n");
         return EXIT_FAILURE;
     }
     
     int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
     if(!(IMG_Init(imgFlags) & imgFlags)) {
-     	printf("SDL_image could not initialize, SDL_image Error: %s\n", IMG_GetError());
+     	fprintf(stderr, "SDL_image could not initialize, SDL_image Error: %s\n", IMG_GetError());
         SDL_DestroyWindow(window);
         return EXIT_FAILURE;
     }
     
-	gl_data.ctx = SDL_GL_CreateContext(window);
+	gl_data.context = SDL_GL_CreateContext(window);
 
 	glewExperimental = GL_TRUE;
     glewInit();
@@ -207,11 +184,11 @@ int main(/*int argc, char* argv[]*/)
     };
     
     // VERTEX ARRAY OBJECT, VERTEX BUFFER OBJECT, ELEMENT BUFFER OBJECT
-    GLuint VAO = 0;
-    GLuint VBO = 0;
-    GLuint EBO = 0;
+    VaoBuffer VAO = 0;
+    VboBuffer VBO = 0;
+    EboBuffer EBO = 0;
     
-    GLuint VAO_Light = 0;
+    VaoBuffer VAO_Light = 0;
     
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -256,19 +233,18 @@ int main(/*int argc, char* argv[]*/)
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
     
-    std::string p_noise = Shader::retrieve_src_from_file("shaders/perlin_noise.glsl");
+    bool status = false;
+    std::string p_noise = Shader::retrieve_src_from_file("shaders/perlin_noise.glsl", &status);
+    if (status == false) {
+        fprintf(stderr, "%s\n", "shader could not be loaded from file");
+    }
+
     Shader prog_shader;
-    prog_shader.load_from_file("shaders/tests/light_a.vrts", "shaders/tests/light_a.frgs", p_noise, p_noise);
+    prog_shader.load_from_file("shaders/tests/light_a.vrts", "shaders/tests/J.frgs", p_noise, p_noise);
     
-    Shader lamp_shader;
-    lamp_shader.load_from_file("shaders/tests/lamp_a.vrts", "shaders/tests/lamp_a.frgs", p_noise, p_noise);
     
     if (!prog_shader.is_valid()) {
-        std::cout << "ERROR: LIGHT_A" << std::endl;
-        return EXIT_FAILURE;
-    }
-    if (!lamp_shader.is_valid()) {
-        std::cout << "ERROR: LAMP_A" << std::endl;
+        fprintf(stderr, "ERROR: LIGHT_A\n");
         return EXIT_FAILURE;
     }
     
@@ -281,18 +257,20 @@ int main(/*int argc, char* argv[]*/)
     ////////////////////////////////////////////////////////////////////////////
 
     // load and create texture array
-    Texture texture[2];
+    Texture texture_ids[2];
+    gl_data.textures.ids = texture_ids;
+    gl_data.textures.count = 2;
 //     texture[0].load(IMG_PATH_1, GL_TRUE);
 //     texture[1].load(IMG_PATH_2, GL_TRUE);
-    texture[0].load(IMG_PATH_3, GL_FALSE);
-    texture[1].load(IMG_PATH_3, GL_FALSE);
+    load_texture(&gl_data.textures.ids[0], IMG_PATH_1, GL_TRUE);
+    load_texture(&gl_data.textures.ids[1], IMG_PATH_2, GL_TRUE);
     
     #ifdef FP_CAM
     Camera main_cam(glm::vec3(0.0f, 0.0f, 10.0f));
     #endif
     // MAIN RUN LOOP
     
-	const Uint8* key_states = SDL_GetKeyboardState(nullptr);
+	const Uint8* key_states = SDL_GetKeyboardState(NULL);
 
 	const Uint8& up         = key_states[SDL_SCANCODE_W];
 	const Uint8& down       = key_states[SDL_SCANCODE_S];
@@ -305,17 +283,22 @@ int main(/*int argc, char* argv[]*/)
 // 	const Uint8& down_right = key_states[SDL_SCANCODE_X];
 // 	const Uint8& down_left  = key_states[SDL_SCANCODE_Z];
 
-    double up_acc = 1.0;
-	double down_acc = 1.0;
-    bool keep_running = true;
-    SDL_Event event;
-    Uint32 start_time = SDL_GetTicks();
-    Uint32 prev_time = start_time;
-    
     glm::vec3 light_pos_vec(1.2f, 1.0f, 2.0f);
     
     GLfloat prev_x = SCREEN_WIDTH / 2;
     GLfloat prev_y = SCREEN_HEIGHT / 2;
+
+    double up_acc = 1.0;
+	double down_acc = 1.0;
+    bool keep_running = true;
+    SDL_Event event;
+
+    const Uint32 INTERVAL = TIME_UNIT_TO_SECONDS / FRAMES_PER_SECOND;
+    Uint32 start_time = SDL_GetTicks();
+    Uint32 prev_time = start_time;
+    Uint32 curr_time = start_time;
+    Uint64 delta_time = 0;
+    Uint64 dt = 0;
 
     while (keep_running) {
         while (SDL_PollEvent(&event)) {
@@ -323,35 +306,49 @@ int main(/*int argc, char* argv[]*/)
                 keep_running = false;
             }
         }
+
+        curr_time = SDL_GetTicks();
+        // frame-rate independence?
+        dt = (Uint64)(curr_time - prev_time);
+        delta_time = dt;
+
+        if (dt < INTERVAL) {
+            continue;
+        }
+
+        do {
+            dt -= INTERVAL;
+        } while (dt >= INTERVAL);
+        prev_time = curr_time;
+
+
+
+        Texture* texture = gl_data.textures.ids;
                 
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
         // TEXTURE 0
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture[0]);
         glUniform1i(glGetUniformLocation(prog_shader, "tex0"), 0);
-        //
-        glUniform1i(glGetUniformLocation(prog_shader, "tex0"), 0);
+
         // TEXTURE 1
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture[1]);
-        glUniform1i(glGetUniformLocation(lamp_shader, "tex1"), 1);
-        //
-        glUniform1i(glGetUniformLocation(lamp_shader, "tex1"), 1);
+        glUniform1i(glGetUniformLocation(prog_shader, "tex1"), 1);
         
-        // LIGHTING SHADER (first)
         prog_shader.use();
         
         // TIME INFORMATION
-        Uint32 curr_time = SDL_GetTicks();
         GLfloat elapsed = (curr_time - start_time) / (GLfloat)TIME_UNIT_TO_SECONDS;
-        GLuint time_addr = glGetUniformLocation(prog_shader, "u_time");
+        UniformLocation time_addr = glGetUniformLocation(prog_shader, "u_time");
         glUniform1f(time_addr, elapsed);
         
         // COLOR and LIGHT UNIFORMS
-        GLint object_color_loc = glGetUniformLocation(prog_shader, "object_color");
-        GLint light_color_loc = glGetUniformLocation(prog_shader, "light_color");
-        GLint light_pos_loc = glGetUniformLocation(prog_shader, "light_pos");
+        UniformLocation object_color_loc = glGetUniformLocation(prog_shader, "object_color");
+        UniformLocation light_color_loc = glGetUniformLocation(prog_shader, "light_color");
+        UniformLocation light_pos_loc = glGetUniformLocation(prog_shader, "light_pos");
         glUniform3f(object_color_loc, 1.0f, 0.5f, 0.31f);
         glUniform3f(light_color_loc, 1.0f, 1.0f, 1.0f);
         
@@ -361,10 +358,8 @@ int main(/*int argc, char* argv[]*/)
 //         rot = glm::rotate(rot, (GLfloat)curr_time / 1000.0f, glm::vec3(0.0f, 1.0f, 0.0f));
 //         light_pos_vec = glm::mat3(rot) * light_pos_vec;
         glUniform3f(light_pos_loc, light_pos_vec.x, light_pos_vec.y, light_pos_vec.z);
-        
-        const Uint32 delta_time = curr_time - prev_time;
-        prev_time = curr_time; 
-        
+
+
         #ifdef FP_CAM			
 		if (up) {
 			main_cam.process_directional_movement(Camera_Movement::FORWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * up_acc);
@@ -418,12 +413,12 @@ int main(/*int argc, char* argv[]*/)
         
         //scene.m_view = glm::rotate(scene.m_view, elapsed, glm::vec3(0.0f, 1.0f, 0.0f));
         
-        GLuint model_loc = glGetUniformLocation(prog_shader, "model");
-        GLuint view_loc = glGetUniformLocation(prog_shader, "view");
-        GLuint projection_loc = glGetUniformLocation(prog_shader, "projection");
-        GLuint model_view_projection_loc = glGetUniformLocation(prog_shader, "model_view_projection");
+        UniformLocation model_loc = glGetUniformLocation(prog_shader, "model");
+        UniformLocation view_loc = glGetUniformLocation(prog_shader, "view");
+        UniformLocation projection_loc = glGetUniformLocation(prog_shader, "projection");
+        UniformLocation model_view_projection_loc = glGetUniformLocation(prog_shader, "model_view_projection");
         
-        GLuint mat_norm_loc = glGetUniformLocation(prog_shader, "mat_norm");
+        UniformLocation mat_norm_loc = glGetUniformLocation(prog_shader, "mat_norm");
         
         //scene.m_model = glm::scale(scene.m_model, glm::vec3(SCREEN_HEIGHT/4, SCREEN_HEIGHT/4, 1.0f));
         //scene.m_view = glm::translate(scene.m_view, glm::vec3(0.0f, 0.0f, -10.0f));
@@ -465,43 +460,12 @@ int main(/*int argc, char* argv[]*/)
             glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, 0);
         }
         glBindVertexArray(0);
-        
-        // LAMP SHADER (second)
-        lamp_shader.use();
-        time_addr = glGetUniformLocation(lamp_shader, "u_time");
-        model_loc = glGetUniformLocation(lamp_shader, "model");
-        view_loc = glGetUniformLocation(lamp_shader, "view");
-        projection_loc = glGetUniformLocation(lamp_shader, "projection");
-        model_view_projection_loc = glGetUniformLocation(lamp_shader, "model_view_projection");
-        light_pos_loc = glGetUniformLocation(lamp_shader, "light_pos");
-        mat_norm_loc = glGetUniformLocation(lamp_shader, "mat_norm");
-
-        
-        scene.m_model = ident_mat;
-        glm::vec3 light_pos(1.2f, 1.0f, 2.0f);
-        scene.m_model = glm::translate(scene.m_model, light_pos);
-        //
-        scene.m_model = glm::translate(scene.m_model, glm::vec3(1.0f + glm::sin(curr_time / 1000.0) * 2.0f, glm::sin(curr_time / (1000.0 * 2.0f)) * 1.0f, 0.0f));
-        scene.m_model = glm::scale(scene.m_model, glm::vec3(0.2f));
-        scene.m_model = glm::scale(scene.m_model, glm::vec3(0.5f, 0.5f, 0.5f));
-        
-        glUniform1f(time_addr, elapsed);
-        glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(scene.m_model));
-        
-        // NORMAL MATRIX (using view space)
-        m_norm = glm::transpose(glm::inverse(scene.m_model * scene.m_view));
-        glUniformMatrix3fv(mat_norm_loc, 1, GL_FALSE, glm::value_ptr(m_norm));
-          
-        glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm::value_ptr(scene.m_view));
-        glUniformMatrix4fv(projection_loc, 1, GL_FALSE, glm::value_ptr(scene.m_projection));
-        glUniformMatrix4fv(model_view_projection_loc, 1, GL_FALSE, glm::value_ptr(scene.m_projection * scene.m_view * scene.m_model));
-        glUniform3f(light_pos_loc, light_pos_vec.x, light_pos_vec.y, light_pos_vec.z);
-
-        glBindVertexArray(VAO_Light);
-        glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
                 
         SDL_GL_SwapWindow(window);
+    }
+
+    for (size_t i = 0; i < gl_data.textures.count; ++i) {
+        glDeleteTextures(1, &gl_data.textures.ids[i]);
     }
     
     glDeleteVertexArrays(1, &VAO);
@@ -509,7 +473,7 @@ int main(/*int argc, char* argv[]*/)
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
     
-    SDL_GL_DeleteContext(gl_data.ctx);
+    SDL_GL_DeleteContext(gl_data.context);
     SDL_DestroyWindow(window);
     IMG_Quit();
     SDL_Quit();

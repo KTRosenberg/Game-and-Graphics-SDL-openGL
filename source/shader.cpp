@@ -1,5 +1,7 @@
 #include "shader.hpp"
 
+using namespace file_io;
+
 Shader::Shader(void)
     :
         _is_valid(false)
@@ -25,10 +27,20 @@ bool Shader::load_from_file(const std::string& vertex_path, const std::string& f
     if (this->_is_valid) {
         return false;
     }
+
+    bool status = false;
+    std::string vs = Shader::retrieve_src_from_file(vertex_path.c_str(), &status);
+    if (!status) {
+        return false;
+    }
+    std::string fs = Shader::retrieve_src_from_file(fragment_path.c_str(), &status);
+    if (!status) {
+        return false;
+    } 
     
     return this->load_from_src(
-        Shader::retrieve_src_from_file(vertex_path.c_str()),
-        Shader::retrieve_src_from_file(fragment_path.c_str()),
+        vs,
+        fs,
         vert_addons,
         frag_addons
     );
@@ -135,22 +147,27 @@ bool Shader::init_program(const GLchar* vertex_src, const GLchar* fragment_src)
         std::cout << "SHADER::PROGRAM::LINK_SUCCEEDED" << std::endl;
     }
     
-    glDetachShader(this->_program, vertex_shader);
-    glDetachShader(this->_program, fragment_shader);
+    // glDetachShader(this->_program, vertex_shader);
+    // glDetachShader(this->_program, fragment_shader);
     
-    glDeleteShader(vertex_shader);
-    glDeleteShader(fragment_shader);
+    // glDeleteShader(vertex_shader);
+    // glDeleteShader(fragment_shader); // TODO clean-up later
     
     return true;  
 }
 
-std::string Shader::retrieve_src_from_file(const GLchar* path)
+std::string Shader::retrieve_src_from_file(const GLchar* path, bool* is_valid)
 {
-    FileHandle shader_file(path, "r");
-    if (!shader_file.is_valid()) {
+    FILE* shader_file = fopen(path, "r");
+    if (shader_file == NULL) {
         return "";
     }
-    return std::move(shader_file.read());        
+
+    std::string out = read_file(shader_file);
+
+    *is_valid = (ferror(shader_file) == 0) ? true : false;
+
+    return out;
 }
 
 GLuint Shader::program(void) const
