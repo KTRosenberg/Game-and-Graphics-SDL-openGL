@@ -158,14 +158,19 @@ bool Shader::init_program(const GLchar* vertex_src, const GLchar* fragment_src)
 
 std::string Shader::retrieve_src_from_file(const GLchar* path, bool* is_valid)
 {
-    FILE* shader_file = fopen(path, "r");
-    if (shader_file == NULL) {
+    FILE* shader_fd = fopen(path, "r");
+    if (shader_fd == NULL) {
         return "";
     }
 
-    std::string out = read_file(shader_file);
+    std::string out = read_file(shader_fd);
 
-    *is_valid = (ferror(shader_file) == 0) ? true : false;
+    if (ferror(shader_fd) == 0) {
+        *is_valid = true;
+        flush_and_close_file(shader_fd);
+    } else {
+        *is_valid = false;
+    }
 
     return out;
 }
