@@ -5,8 +5,10 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/ext.hpp>
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
+#ifdef _WIN32
+#   define SDL_MAIN_HANDLED
+#endif
+#include "sdl.hpp"
 
 #include <iostream>
 #include <string>
@@ -85,11 +87,11 @@ struct {
 // glm::toy_color(1.0f, 0.5f, 0.31f);
 // glm::result = light_color * toy_color;
 
-int main(/*int argc, char* argv[]*/)
+int main(int argc, char* argv[])
 {
     // initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        puts("SDL could not initialize");
+        fprintf(stderr, "%s\n", "SDL could not initialize");
         return EXIT_FAILURE;
     }
     
@@ -103,8 +105,13 @@ int main(/*int argc, char* argv[]*/)
     #endif
     // openGL initialization ///////////////////////////////////////////////////
     
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    if (argc >= 3) {
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, atoi(argv[1]));
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, atoi(argv[2]));
+    } else {
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);        
+    }
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
@@ -262,8 +269,14 @@ int main(/*int argc, char* argv[]*/)
     gl_data.textures.count = 2;
 //     texture[0].load(IMG_PATH_1, GL_TRUE);
 //     texture[1].load(IMG_PATH_2, GL_TRUE);
-    load_texture(&gl_data.textures.ids[0], IMG_PATH_1, GL_TRUE);
-    load_texture(&gl_data.textures.ids[1], IMG_PATH_2, GL_TRUE);
+    if (load_texture(&gl_data.textures.ids[0], IMG_PATH_1, GL_TRUE) != GL_TRUE) {
+        fprintf(stderr, "%s\n", "ERROR: TEXTURE LOAD UNSUCCESSFUL");
+        return EXIT_FAILURE;
+    }
+    if (load_texture(&gl_data.textures.ids[1], IMG_PATH_2, GL_TRUE) != GL_TRUE) {
+        fprintf(stderr, "%s\n", "ERROR: TEXTURE LOAD UNSUCCESSFUL");
+        return EXIT_FAILURE;
+    }
     
     #ifdef FP_CAM
     Camera main_cam(glm::vec3(0.0f, 0.0f, 10.0f));
@@ -397,7 +410,7 @@ int main(/*int argc, char* argv[]*/)
         // TRANSFORMATION MATRICES
         
         // transformations
-        glm::mat4 ident_mat;
+        glm::mat4 ident_mat(1.0);
         scene.m_model = ident_mat;
         
         #ifdef FREE_CAM
