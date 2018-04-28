@@ -2,7 +2,7 @@
 
 namespace GL {
 
-    GLboolean load_texture(Texture* texture_id, std::string path, GLboolean alpha)
+    GLboolean texture_load(Texture* texture_id, std::string path, GLboolean alpha)
     {
         // load image
         SDL_Surface* img = nullptr; 

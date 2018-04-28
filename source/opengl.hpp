@@ -16,6 +16,7 @@ namespace GL {
    typedef GLuint VaoBuffer;
    typedef GLuint VboBuffer;
    typedef GLuint EboBuffer;
+   typedef GLuint GLSLShader;
 }
 
 

@@ -10,7 +10,7 @@
 #include <iostream>
 
 namespace GL {
-    GLboolean load_texture(Texture* texture_id, std::string path, GLboolean alpha=GL_TRUE);
+    GLboolean texture_load(Texture* texture_id, std::string path, GLboolean alpha=GL_TRUE);
 }
 
 #endif // TEXTURE_HPP

@@ -32,6 +32,17 @@
 // #ifdef __cplusplus 
 // }
 // #endif
+bool shader_load_from_file(
+    const std::string& vertex_path, const std::string& fragment_path,
+    const std::string& vert_addons="",
+    const std::string& frag_addons=""
+);
+
+bool shader_load_from_src(
+    const std::string& vertex_src, const std::string& fragment_src,
+    const std::string& vert_addons="",
+    const std::string& frag_addons=""
+);
 
 struct Shader {
     GLuint _program;
