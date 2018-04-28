@@ -6,7 +6,7 @@ SDLLIBFLAGS = -L C:/dev_libs/SDL2/lib -L C:/dev_libs/SDL2_image/lib -L C:/dev_li
 
 SOURCES   = run.cpp file_io.cpp shader.cpp texture.cpp material.cpp camera.cpp mesh_generator.cpp
 OBJECTS   = $(SOURCES:.cpp=.o)
-EXECNAME  = prog
+EXECNAME  = run
 
 all: $(EXECNAME)
 
