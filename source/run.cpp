@@ -285,16 +285,17 @@ int main(int argc, char* argv[])
     
 	const Uint8* key_states = SDL_GetKeyboardState(NULL);
 
-	const Uint8& up         = key_states[SDL_SCANCODE_W];
-	const Uint8& down       = key_states[SDL_SCANCODE_S];
-	const Uint8& left       = key_states[SDL_SCANCODE_A];
-	const Uint8& right      = key_states[SDL_SCANCODE_D];
-	const Uint8& rot_r      = key_states[SDL_SCANCODE_RIGHT];
-	const Uint8& rot_l      = key_states[SDL_SCANCODE_LEFT];
+	const Uint8* up         = &key_states[SDL_SCANCODE_W];
+	const Uint8* down       = &key_states[SDL_SCANCODE_S];
+	const Uint8* left       = &key_states[SDL_SCANCODE_A];
+	const Uint8* right      = &key_states[SDL_SCANCODE_D];
+	const Uint8* rot_r      = &key_states[SDL_SCANCODE_RIGHT];
+	const Uint8* rot_l      = &key_states[SDL_SCANCODE_LEFT];
 // 	const Uint8& up_right   = key_states[SDL_SCANCODE_E];
 // 	const Uint8& up_left    = key_states[SDL_SCANCODE_Q];
 // 	const Uint8& down_right = key_states[SDL_SCANCODE_X];
 // 	const Uint8& down_left  = key_states[SDL_SCANCODE_Z];
+    const Uint8* reset = &key_states[SDL_SCANCODE_0];
 
     glm::vec3 light_pos_vec(1.2f, 1.0f, 2.0f);
     
@@ -374,47 +375,52 @@ int main(int argc, char* argv[])
         glUniform3f(light_pos_loc, light_pos_vec.x, light_pos_vec.y, light_pos_vec.z);
 
         const double POS_ACC = 1.06;
-        const double NEG_ACC = 100 / 106;
+        const double NEG_ACC = 100.0 / 106.0;
+        const double CHANGE = (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS);
 
         #ifdef FP_CAM			
-		if (up) {
-			main_cam.process_directional_movement(Camera_Movement::UPWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * up_acc);
+		if (*up) {
+			main_cam.process_directional_movement(Camera_Movement::UPWARDS, CHANGE * up_acc);
 			up_acc *= POS_ACC;
 		} else {
-            up_acc = glm::max(1.0, up_acc * NEG_ACC);
             if (up_acc > 1.0) {
-                main_cam.process_directional_movement(Camera_Movement::UPWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * up_acc);
-            }       
+                main_cam.process_directional_movement(Camera_Movement::UPWARDS, CHANGE * up_acc);
+            }
+            up_acc = glm::max(1.0, up_acc * NEG_ACC);    
         }
 
-        if (down) {
-            main_cam.process_directional_movement(Camera_Movement::DOWNWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * down_acc);
+        if (*down) {
+            main_cam.process_directional_movement(Camera_Movement::DOWNWARDS, CHANGE * down_acc);
             down_acc *= POS_ACC;
         } else {
-            down_acc = glm::max(1.0, down_acc * NEG_ACC);
             if (down_acc > 1.0) {
-                main_cam.process_directional_movement(Camera_Movement::DOWNWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * down_acc);
-            }   
+                main_cam.process_directional_movement(Camera_Movement::DOWNWARDS, CHANGE * down_acc);
+            } 
+            down_acc = glm::max(1.0, down_acc * NEG_ACC);  
         }
 
-		if (left) {
-			main_cam.process_directional_movement(Camera_Movement::LEFTWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * left_acc);
+		if (*left) {
+			main_cam.process_directional_movement(Camera_Movement::LEFTWARDS, CHANGE * left_acc);
             left_acc *= POS_ACC;
 		} else {
-            left_acc = glm::max(1.0, left_acc * NEG_ACC);
             if (left_acc > 1.0) {
-                main_cam.process_directional_movement(Camera_Movement::LEFTWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * left_acc);
-            }  
+                main_cam.process_directional_movement(Camera_Movement::LEFTWARDS, CHANGE * left_acc);
+            }
+            left_acc = glm::max(1.0, left_acc * NEG_ACC);
         }
 
-        if (right) {
-            main_cam.process_directional_movement(Camera_Movement::RIGHTWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * right_acc);
+        if (*right) {
+            main_cam.process_directional_movement(Camera_Movement::RIGHTWARDS, CHANGE * right_acc);
             right_acc *= POS_ACC;
         } else {
-            right_acc = glm::max(1.0, right_acc * NEG_ACC);
             if (right_acc > 1.0) {
-                main_cam.process_directional_movement(Camera_Movement::RIGHTWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * right_acc);
+                main_cam.process_directional_movement(Camera_Movement::RIGHTWARDS, CHANGE * right_acc);
             }
+            right_acc = glm::max(1.0, right_acc * NEG_ACC);
+        }
+
+        if (*reset) {
+            main_cam.pos = glm::vec3(0.0, 0.0, 10.0);
         }
 
 		
@@ -498,9 +504,7 @@ int main(int argc, char* argv[])
         SDL_GL_SwapWindow(window);
     }
 
-    for (size_t i = 0; i < gl_data.textures.count; ++i) {
-        glDeleteTextures(1, &gl_data.textures.ids[i]);
-    }
+    glDeleteTextures(2, gl_data.textures.ids);
     
     glDeleteVertexArrays(1, &VAO);
     glDeleteVertexArrays(1, &VAO_Light);
