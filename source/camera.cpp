@@ -39,18 +39,27 @@ glm::mat4 Camera::get_view_matrix(void)
 
 void Camera::process_directional_movement(Camera_Movement direction, GLfloat delta_time)
 {
-    GLfloat velocity = this->movement_speed * delta_time;
-    if (direction == Camera_Movement::FORWARDS) {
+    const GLfloat velocity = this->movement_speed * delta_time;
+    
+    switch (direction) {
+    case Camera_Movement::FORWARDS:
         this->pos += this->front * velocity;
-    }
-    if (direction == Camera_Movement::BACKWARDS) {
+        break;
+    case Camera_Movement::BACKWARDS:
         this->pos -= this->front * velocity;
-    }
-    if (direction == Camera_Movement::LEFTWARDS) {
+        break;
+    case Camera_Movement::LEFTWARDS:
         this->pos -= this->right * velocity;
-    }
-    if (direction == Camera_Movement::RIGHTWARDS) {
+        break;
+    case Camera_Movement::RIGHTWARDS:
         this->pos += this->right * velocity;
+        break;
+    case Camera_Movement::UPWARDS:
+        this->pos += this->up * velocity;
+        break;
+    case Camera_Movement::DOWNWARDS:
+        this->pos -= this->up * velocity;
+        break;
     }   
 }
 void Camera::process_mouse_movement(GLfloat x_offset, GLfloat y_offset, GLboolean constrain_pitch)

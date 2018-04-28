@@ -2,17 +2,16 @@
 
 namespace GL {
 
-    GLboolean load_texture(Texture* texture_id, std::string path, GLboolean alpha)
+    GLboolean texture_load(Texture* texture_id, const char* const path, const GLboolean alpha)
     {
         // load image
         SDL_Surface* img = nullptr; 
-        if (!(img = IMG_Load(path.c_str()))) {
+        if (!(img = IMG_Load(path))) {
             fprintf(stderr, "SDL_image could not be loaded %s, SDL_image Error: %s\n", 
-                   path.c_str(), IMG_GetError());
+                   path, IMG_GetError());
             return GL_FALSE;
         }
         
-        glGenTextures(1, texture_id);
 
         glBindTexture(GL_TEXTURE_2D, *texture_id);
         // image assignment
@@ -33,4 +32,9 @@ namespace GL {
         return GL_TRUE;
     }
 
+    GLboolean texture_gen_and_load_1(Texture* texture_id, const char* const path, const GLboolean alpha)
+    {
+        glGenTextures(1, texture_id);
+        return texture_load(texture_id, path, alpha);   
+    }
 }

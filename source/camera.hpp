@@ -7,8 +7,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <vector>
-
 #define MAX_BOUND 89.0f
 #define MIN_BOUND -89.0f
 #define MIN_MOUSE_ZOOM 1.0f
@@ -19,7 +17,9 @@ enum class Camera_Movement : unsigned char
     FORWARDS,
     BACKWARDS,
     LEFTWARDS,
-    RIGHTWARDS
+    RIGHTWARDS,
+    UPWARDS,
+    DOWNWARDS
 };
 
 namespace camera_defaults {

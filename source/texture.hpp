@@ -6,10 +6,10 @@
 #include "sdl.hpp"
 
 #include <string>
-#include <iostream>
 
 namespace GL {
-    GLboolean load_texture(Texture* texture_id, std::string path, GLboolean alpha=GL_TRUE);
+    GLboolean texture_load(Texture* texture_id, const char* const path, const GLboolean alpha);
+    GLboolean texture_gen_and_load_1(Texture* texture_id, const char* const path, const GLboolean alpha);
 }
 
 #endif // TEXTURE_HPP

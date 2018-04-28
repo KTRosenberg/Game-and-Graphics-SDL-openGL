@@ -40,18 +40,18 @@ int ignore_mouse_movement(void* unused, SDL_Event* event)
 
 #define DEBUG_PRINT
 
-void debug_print(std::string in);
-void debug_print(std::string in) 
+void debug_print(const char* const in);
+void debug_print(const char* const in) 
 {
     #ifdef DEBUG_PRINT
-    puts(in.c_str());
+    puts(in);
     #endif
 }
 
 #define FP_CAM
 // #define FREE_CAM
 
-#define MOUSE_ON
+//#define MOUSE_ON
 
 #define CUBES
 //#define SPHERES
@@ -69,18 +69,18 @@ typedef struct _TextureData {
     size_t count;
 } TextureData;
 
+struct _sceneData {
+    glm::mat4 m_model;
+    glm::mat4 m_view;
+    glm::mat4 m_projection;
+} scene;
+
 typedef struct _GLData {
     SDL_GLContext context;
     TextureData textures;
 } GLData;
 
 GLData gl_data; 
-
-struct {
-    glm::mat4 m_model;
-    glm::mat4 m_view;
-    glm::mat4 m_projection;
-} scene;
 
 // glm::vec3 light_pos(1.2f, 1.0f, 2.0f);
 // glm::light_color(1.0f, 1.0f, 1.0f);
@@ -174,9 +174,7 @@ int main(int argc, char* argv[])
     const GLfloat* vertex_data = mesh->vertex_data();
     const GLuint* index_data = mesh->index_data();
     const GLuint num_vertices = mesh->num_vertices();
-    
-    std::cout << size_vertex_data << std::endl;
-    
+        
     glm::vec3 shape_translations[] = {
         glm::vec3( 0.0f,  0.0f,  0.0f), 
         glm::vec3( 2.0f,  5.0f, -15.0f), 
@@ -267,13 +265,15 @@ int main(int argc, char* argv[])
     Texture texture_ids[2];
     gl_data.textures.ids = texture_ids;
     gl_data.textures.count = 2;
+
+    glGenTextures(2, texture_ids);
 //     texture[0].load(IMG_PATH_1, GL_TRUE);
 //     texture[1].load(IMG_PATH_2, GL_TRUE);
-    if (load_texture(&gl_data.textures.ids[0], IMG_PATH_1, GL_TRUE) != GL_TRUE) {
+    if (texture_load(&gl_data.textures.ids[0], IMG_PATH_1, GL_TRUE) != GL_TRUE) {
         fprintf(stderr, "%s\n", "ERROR: TEXTURE LOAD UNSUCCESSFUL");
         return EXIT_FAILURE;
     }
-    if (load_texture(&gl_data.textures.ids[1], IMG_PATH_2, GL_TRUE) != GL_TRUE) {
+    if (texture_load(&gl_data.textures.ids[1], IMG_PATH_2, GL_TRUE) != GL_TRUE) {
         fprintf(stderr, "%s\n", "ERROR: TEXTURE LOAD UNSUCCESSFUL");
         return EXIT_FAILURE;
     }
@@ -289,8 +289,8 @@ int main(int argc, char* argv[])
 	const Uint8& down       = key_states[SDL_SCANCODE_S];
 	const Uint8& left       = key_states[SDL_SCANCODE_A];
 	const Uint8& right      = key_states[SDL_SCANCODE_D];
-	const Uint8& rot_r = key_states[SDL_SCANCODE_RIGHT];
-	const Uint8& rot_l = key_states[SDL_SCANCODE_LEFT];
+	const Uint8& rot_r      = key_states[SDL_SCANCODE_RIGHT];
+	const Uint8& rot_l      = key_states[SDL_SCANCODE_LEFT];
 // 	const Uint8& up_right   = key_states[SDL_SCANCODE_E];
 // 	const Uint8& up_left    = key_states[SDL_SCANCODE_Q];
 // 	const Uint8& down_right = key_states[SDL_SCANCODE_X];
@@ -303,6 +303,9 @@ int main(int argc, char* argv[])
 
     double up_acc = 1.0;
 	double down_acc = 1.0;
+    double left_acc = 1.0;
+    double right_acc = 1.0;
+
     bool keep_running = true;
     SDL_Event event;
 
@@ -370,30 +373,50 @@ int main(int argc, char* argv[])
 //         light_pos_vec = glm::mat3(rot) * light_pos_vec;
         glUniform3f(light_pos_loc, light_pos_vec.x, light_pos_vec.y, light_pos_vec.z);
 
+        const double POS_ACC = 1.06;
+        const double NEG_ACC = 100 / 106;
 
         #ifdef FP_CAM			
 		if (up) {
-			main_cam.process_directional_movement(Camera_Movement::FORWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * up_acc);
-			debug_print("FORWARD");	
-			up_acc *= 1.06;		
+			main_cam.process_directional_movement(Camera_Movement::UPWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * up_acc);
+			up_acc *= POS_ACC;
 		} else {
-		    up_acc = 1.0;
-		}
-		if (down) {
-			main_cam.process_directional_movement(Camera_Movement::BACKWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * down_acc);
-			debug_print("BACKWARD");	
-		    down_acc *= 1.06;
-		} else {
-		    down_acc = 1.0;
-		}
+            up_acc = glm::max(1.0, up_acc * NEG_ACC);
+            if (up_acc > 1.0) {
+                main_cam.process_directional_movement(Camera_Movement::UPWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * up_acc);
+            }       
+        }
+
+        if (down) {
+            main_cam.process_directional_movement(Camera_Movement::DOWNWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * down_acc);
+            down_acc *= POS_ACC;
+        } else {
+            down_acc = glm::max(1.0, down_acc * NEG_ACC);
+            if (down_acc > 1.0) {
+                main_cam.process_directional_movement(Camera_Movement::DOWNWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * down_acc);
+            }   
+        }
+
 		if (left) {
-			main_cam.process_directional_movement(Camera_Movement::LEFTWARDS, delta_time / (GLfloat)TIME_UNIT_TO_SECONDS);
-			debug_print("LEFTWARD");	
-		}
-		if (right) {
-			main_cam.process_directional_movement(Camera_Movement::RIGHTWARDS, delta_time / (GLfloat)TIME_UNIT_TO_SECONDS);
-			debug_print("RIGHTWARD");	
-		}
+			main_cam.process_directional_movement(Camera_Movement::LEFTWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * left_acc);
+            left_acc *= POS_ACC;
+		} else {
+            left_acc = glm::max(1.0, left_acc * NEG_ACC);
+            if (left_acc > 1.0) {
+                main_cam.process_directional_movement(Camera_Movement::LEFTWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * left_acc);
+            }  
+        }
+
+        if (right) {
+            main_cam.process_directional_movement(Camera_Movement::RIGHTWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * right_acc);
+            right_acc *= POS_ACC;
+        } else {
+            right_acc = glm::max(1.0, right_acc * NEG_ACC);
+            if (right_acc > 1.0) {
+                main_cam.process_directional_movement(Camera_Movement::RIGHTWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * right_acc);
+            }
+        }
+
 		
 		#ifdef MOUSE_ON
 		int x = 0;
