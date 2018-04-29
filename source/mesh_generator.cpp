@@ -131,19 +131,19 @@ parametric::Sphere::Sphere(GLint m, GLint n)
     this->_num_indices = this->_index_data.size();
 }
 
-GLuint parametric::Sphere::num_vertices(void) const
+GLuint parametric::Sphere::num_vertices(void)
 {
     return this->_num_vertices;
 }
-GLuint parametric::Sphere::num_indices(void) const
+GLuint parametric::Sphere::num_indices(void)
 {
     return this->_num_indices;
 }
-const GLfloat* parametric::Sphere::vertex_data(void) const
+GLfloat* parametric::Sphere::vertex_data(void)
 {
     return &(this->_vertex_data[0]);
 }
-const GLuint* parametric::Sphere::index_data(void) const
+GLuint* parametric::Sphere::index_data(void)
 {
     return &(this->_index_data[0]);
 }
@@ -161,29 +161,29 @@ parametric::Torus::Torus(GLint m, GLint n)
     this->_num_indices = this->_index_data.size();
 }
 
-GLuint parametric::Torus::num_vertices(void) const
+GLuint parametric::Torus::num_vertices(void)
 {
     return this->_num_vertices;
 }
-GLuint parametric::Torus::num_indices(void) const
+GLuint parametric::Torus::num_indices(void)
 {
     return this->_num_indices;
 }
-const GLfloat* parametric::Torus::vertex_data(void) const
+GLfloat* parametric::Torus::vertex_data(void)
 {
     return &(this->_vertex_data[0]);
 }
-const GLuint* parametric::Torus::index_data(void) const
+GLuint* parametric::Torus::index_data(void)
 {
     return &(this->_index_data[0]);
 }
 
 // PLATONIC SOLIDS
 
-const GLuint platonic_solid::Cube::_num_vertices = 24;
-const GLuint platonic_solid::Cube::_num_indices = 36;
+GLuint platonic_solid::Cube::_num_vertices = 24;
+GLuint platonic_solid::Cube::_num_indices = 36;
 // front, right, back, left, top, bottom
-const GLfloat platonic_solid::Cube::_vertex_data[192] = {
+GLfloat platonic_solid::Cube::_vertex_data[192] = {
     // pos                // normals         // uv coords                                  
     -1.0f,  1.0f,  1.0f,  0.0f, 0.0f, 1.0f,  0.0f, 1.0f, // Top Left
     -1.0f, -1.0f,  1.0f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f, // Bottom Left 
@@ -215,7 +215,7 @@ const GLfloat platonic_solid::Cube::_vertex_data[192] = {
      1.0f, -1.0f, -1.0f,  0.0f,-1.0f, 0.0f,  1.0f, 0.0f, // Bottom Right
      1.0f, -1.0f,  1.0f,  0.0f,-1.0f, 0.0f,  1.0f, 1.0f  // Top Right
 };
-const GLuint platonic_solid::Cube::_index_data[36] = {
+GLuint platonic_solid::Cube::_index_data[36] = {
     0, 1, 2,
     2, 3, 0,
     
@@ -235,22 +235,22 @@ const GLuint platonic_solid::Cube::_index_data[36] = {
     22, 23, 20
 };
 
-GLuint platonic_solid::Cube::num_vertices(void) const
+GLuint platonic_solid::Cube::num_vertices(void)
 {
     return platonic_solid::Cube::_num_vertices;
 }
 
-GLuint platonic_solid::Cube::num_indices(void) const
+GLuint platonic_solid::Cube::num_indices(void)
 {
     return platonic_solid::Cube::_num_indices;
 }
 
-const GLfloat* platonic_solid::Cube::vertex_data(void) const
+GLfloat* platonic_solid::Cube::vertex_data(void)
 {
     return &(platonic_solid::Cube::_vertex_data[0]);
 }
 
-const GLuint* platonic_solid::Cube::index_data(void) const
+GLuint* platonic_solid::Cube::index_data(void)
 {
     return &(platonic_solid::Cube::_index_data[0]);
 }

@@ -18,9 +18,13 @@
 namespace GL {
    typedef GLuint UniformLocation;
    typedef GLuint Texture;
-   typedef GLuint VaoBuffer;
-   typedef GLuint VboBuffer;
-   typedef GLuint EboBuffer;
+   typedef GLuint VertexArray;
+   typedef VertexArray Vao;
+   typedef GLuint VertexBuffer;
+   typedef VertexBuffer Vbo; 
+   typedef GLuint ElementBuffer;
+   typedef ElementBuffer Ebo;
+   typedef GLuint GLBuffer;
 }
 
 #endif // OPEN_GL_HPP

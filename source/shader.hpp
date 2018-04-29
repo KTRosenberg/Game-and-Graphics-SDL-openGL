@@ -17,7 +17,7 @@
 //         return false;
 //     }
 
-//     bool destroy_shader(void) 
+//     bool delete_shader(void) 
 //     {
 //         return false;
 //     }

@@ -12,10 +12,10 @@
 namespace gl_mesh {
 
 struct MeshData {
-    virtual GLuint num_vertices(void) const = 0;
-    virtual GLuint num_indices(void) const = 0;
-    virtual const GLfloat* vertex_data(void) const = 0;
-    virtual const GLuint* index_data(void) const = 0;
+    virtual GLuint num_vertices(void) = 0;
+    virtual GLuint num_indices(void) = 0;
+    virtual GLfloat* vertex_data(void) = 0;
+    virtual GLuint* index_data(void) = 0;
     
     static std::vector<GLuint> create_linear_indices(GLuint n);
 };
@@ -55,10 +55,10 @@ struct parametric {
         Sphere(GLint m, GLint n);
         Sphere(GLint m);
         
-        virtual GLuint num_vertices(void) const;
-        virtual GLuint num_indices(void) const;
-        virtual const GLfloat* vertex_data(void) const;
-        virtual const GLuint* index_data(void) const;
+        virtual GLuint num_vertices(void);
+        virtual GLuint num_indices(void);
+        virtual GLfloat* vertex_data(void);
+        virtual GLuint* index_data(void);
     };
     
     struct Torus : public MeshData {
@@ -73,25 +73,25 @@ struct parametric {
         Torus(GLint m, GLint n);
         Torus(GLint m);
         
-        virtual GLuint num_vertices(void) const;
-        virtual GLuint num_indices(void) const;
-        virtual const GLfloat* vertex_data(void) const;
-        virtual const GLuint* index_data(void) const;
+        virtual GLuint num_vertices(void);
+        virtual GLuint num_indices(void);
+        virtual GLfloat* vertex_data(void);
+        virtual GLuint* index_data(void);
     }; 
 };
 
 struct platonic_solid {
     struct Cube : public MeshData {
     private:
-        static const GLuint _num_vertices;
-        static const GLuint _num_indices;
-        static const GLfloat _vertex_data[192];
-        static const GLuint _index_data[36];
+        static GLuint _num_vertices;
+        static GLuint _num_indices;
+        static GLfloat _vertex_data[192];
+        static GLuint _index_data[36];
     public:
-        virtual GLuint num_vertices(void) const;
-        virtual GLuint num_indices(void) const;
-        virtual const GLfloat* vertex_data(void) const;
-        virtual const GLuint* index_data(void) const; 
+        virtual GLuint num_vertices(void);
+        virtual GLuint num_indices(void);
+        virtual GLfloat* vertex_data(void);
+        virtual GLuint* index_data(void);
     };
 };
 

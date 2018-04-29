@@ -51,7 +51,7 @@ void debug_print(const char* const in)
 #define FP_CAM
 // #define FREE_CAM
 
-//#define MOUSE_ON
+#define MOUSE_ON
 
 #define CUBES
 //#define SPHERES
@@ -64,10 +64,46 @@ SDL_Window* window = NULL;
 
 using namespace GL;
 
+void* xmalloc(size_t bytes);
+void* xmalloc(size_t bytes)
+{
+    void* mem = malloc(bytes);
+    if (mem == NULL) {
+        abort();
+    }
+
+    return mem;
+}
+
+// TEXTURES, GEOMETRY
 typedef struct _TextureData {
     Texture* ids;
     size_t count;
 } TextureData;
+
+void create_TextureData(TextureData* t, const size_t id_count) 
+{
+    t->ids = (Texture*)xmalloc(id_count * sizeof(t->ids));
+    t->count = id_count;
+    glGenTextures(t->count, t->ids);
+}
+
+void create_static_TextureData(TextureData* t, const size_t id_count, Texture* buffer)
+{
+    t->ids = buffer;
+    t->count = id_count;
+    glGenTextures(id_count, t->ids);
+}
+
+void delete_TextureData(TextureData* t)
+{
+    glDeleteTextures(t->count, t->ids);
+    free(t);
+}
+void delete_static_TextureData(TextureData* t)
+{
+    glDeleteTextures(t->count, t->ids);
+}
 
 struct _sceneData {
     glm::mat4 m_model;
@@ -75,12 +111,154 @@ struct _sceneData {
     glm::mat4 m_projection;
 } scene;
 
+// ATTRIBUTES AND VERTEX ARRAYS
+
+typedef struct _AttributeData {
+    GLuint index;
+    GLint size;
+    GLenum type;
+    GLboolean normalized;
+    GLsizei stride;
+    GLvoid* pointer;
+    GLchar* name;
+} AttributeData;
+
+void create_AttributeData(
+    AttributeData* a,
+    GLuint index,
+    GLint size,
+    GLenum type,
+    GLboolean normalized,
+    GLsizei stride,
+    GLvoid* pointer,
+    GLchar* name    
+) {
+    a->index = index;
+    a->size = size;
+    a->type = type;
+    a->normalized = normalized;
+    a->stride = stride;
+    a->pointer = pointer;
+    a->name = name;
+}
+
+// #define VAO_ATTRIBUTE_MAIN_TEST_COUNT 3
+// typedef struct _VertexArrayData {
+//     VertexArray vao;
+//     size_t attribute_count;
+//     AttributeData attributes[VAO_ATTRIBUTE_MAIN_TEST_COUNT];
+// } VertexArrayData;
+
+// #define VAO_ATTRIBUTE_LIGHT_DAT_COUNT 3
+// typedef struct _VertexArrayData {
+//     VertexArray vao;
+//     size_t attribute_count;
+//     AttributeData attributes[VAO_ATTRIBUTE_MAIN_TEST_COUNT];
+// } VertexArrayData;
+
+void create_VertexArray(VertexArray* vao) 
+{
+    glGenVertexArrays(1, vao);
+}
+void delete_VertexArray(VertexArray* vao) 
+{
+    glDeleteVertexArrays(1, vao);
+}
+
+// VERTEX BUFFERS
+
+typedef struct _VertexBufferData {
+    VertexBuffer vbo;
+    ElementBuffer ebo;
+    size_t    v_count;
+    size_t    i_count;
+    GLfloat*  vertices;
+    GLuint*   indices;
+} VertexBufferData;
+
+void create_VertexData(
+    VertexBufferData* g,
+    const size_t v_count,
+    const size_t i_count
+) {
+    glGenBuffers(2, (GLBuffer*)&g->vbo);
+
+    g->v_count = v_count;
+    g->i_count = i_count;
+
+    g->vertices = (GLfloat*)xmalloc(sizeof(*g->vertices) * g->v_count);
+    g->indices  = (GLuint*)xmalloc(sizeof(*g->indices) * g->i_count);
+}
+
+void create_static_VertexBufferData(
+    VertexBufferData* g,
+    const size_t v_count,
+    GLfloat* vertices,
+    const size_t i_count,
+    GLuint* indices
+) {
+    glGenBuffers(2, (GLBuffer*)&g->vbo);
+
+    g->v_count = v_count;
+    g->i_count = i_count;
+
+    g->vertices = vertices;
+    g->indices  = indices;
+}
+
+void delete_VertexBufferData(VertexBufferData* g)
+{
+    glDeleteBuffers(2, (GLBuffer*)&g->vbo);
+    free(g->vertices);
+    free(g->indices);
+}
+void delete_static_VertexBufferData(VertexBufferData* g)
+{
+    glDeleteBuffers(2, (GLBuffer*)&g->vbo);
+}
+
+
+// COLLISION INFO
+typedef struct _CollisionStatus {
+    bool      collided;
+    glm::vec3 point;
+} CollisionStatus;
+
+void create_CollisionStatus(CollisionStatus* cs, const bool collided, glm::vec3 point)
+{
+    cs->collided = collided;
+    cs->point = point;
+}
+
+typedef CollisionStatus (*Fn_CollisionHandler)(glm::vec3 incoming);
+
+typedef struct _Collider {
+    glm::vec3 a;
+    glm::vec3 b;
+    Fn_CollisionHandler handler;
+} Collider; 
+
+// WORLD STATE
+typedef struct _Room {
+    VertexBufferData  geometry;
+    Collider* collision_data;
+    glm::mat4 matrix;
+} Room;
+
+typedef struct {
+    Room* rooms;
+    glm::mat4 m_view;
+    glm::mat4 m_projection;
+} world;
+
 typedef struct _GLData {
     SDL_GLContext context;
     TextureData textures;
 } GLData;
 
-GLData gl_data; 
+GLData gl_data;
+
+
 
 // glm::vec3 light_pos(1.2f, 1.0f, 2.0f);
 // glm::light_color(1.0f, 1.0f, 1.0f);
@@ -171,8 +349,8 @@ int main(int argc, char* argv[])
     const GLuint size_vertex_data = mesh->num_vertices() * 8 * sizeof(GLfloat);
     const GLuint num_indices = mesh->num_indices(); 
     const GLuint size_index_data = num_indices * sizeof(GLuint);  
-    const GLfloat* vertex_data = mesh->vertex_data();
-    const GLuint* index_data = mesh->index_data();
+    GLfloat* vertex_data = mesh->vertex_data();
+    GLuint* index_data = mesh->index_data();
     const GLuint num_vertices = mesh->num_vertices();
         
     glm::vec3 shape_translations[] = {
@@ -187,69 +365,166 @@ int main(int argc, char* argv[])
         glm::vec3( 1.5f,  0.2f, -1.5f), 
         glm::vec3(-1.3f,  1.0f, -1.5f)  
     };
-    
-    // VERTEX ARRAY OBJECT, VERTEX BUFFER OBJECT, ELEMENT BUFFER OBJECT
-    VaoBuffer VAO = 0;
-    VboBuffer VBO = 0;
-    EboBuffer EBO = 0;
-    
-    VaoBuffer VAO_Light = 0;
-    
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    glBindVertexArray(VAO);
-    
-    // copy vertices buffer
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, size_vertex_data, vertex_data, GL_STATIC_DRAW);
-    // copy element buffer
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_index_data, index_data, GL_STATIC_DRAW);
-    
-    // ATTRIBUTES //
-    
-    // set attribute pointers for VERTEX vectors
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
-//     glVertexAttribPointer(
-//         glGetAttribLocation(shader_program, "position"), // if I wanted to search for the position
-//         3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0
-//     );
-    glEnableVertexAttribArray(0);
-    
-    // set attribute pointers for NORMAL vectors
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(1);    
-    // set attribute pointers for UV coordinates
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(2);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    
+
+    // CUBES
+    VertexArray   VAO = 0;
+    create_VertexArray(&VAO);
+    VertexBuffer  VBO = 0;
+    ElementBuffer EBO = 0;
+    VertexBufferData geo;
+    {
+        // VERTEX ARRAY OBJECT, VERTEX BUFFER OBJECT, ELEMENT BUFFER OBJECT
+        create_static_VertexBufferData(&geo, size_vertex_data, vertex_data, size_index_data, index_data);
+
+        VBO = geo.vbo;
+        EBO = geo.ebo;
+        
+        glBindVertexArray(VAO);
+        
+        // copy vertices buffer
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, geo.v_count * 8 * sizeof(GLfloat), vertex_data, GL_STATIC_DRAW);
+        // copy element buffer
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, geo.i_count * 8 * sizeof(GLuint), index_data, GL_STATIC_DRAW);
+        
+        // ATTRIBUTES //
+        
+        // set attribute pointers for VERTEX vectors
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+    //     glVertexAttribPointer(
+    //         glGetAttribLocation(shader_program, "position"), // if I wanted to search for the position
+    //         3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0
+    //     );
+        glEnableVertexAttribArray(0);
+        
+        // set attribute pointers for NORMAL vectors
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+        glEnableVertexAttribArray(1);    
+        // set attribute pointers for UV coordinates
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
+        glEnableVertexAttribArray(2);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
+        glBindVertexArray(0);
+        
+    }
+
+    // DRAW2D
+    const size_t STRIDE = 7;
+    const size_t BATCH_COUNT = 1024;
+    const size_t GUESS_VERTS_PER_DRAW = 4;
+    const size_t BATCH_SIZE = BATCH_COUNT * GUESS_VERTS_PER_DRAW * STRIDE;
+    const size_t BATCH_SIZE_FL = BATCH_SIZE * sizeof(GLfloat);
+    const size_t BATCH_SIZE_UI = BATCH_SIZE * sizeof(GLuint);
+
+    GL::VertexArray vao_2d;
+    create_VertexArray(&vao_2d);
+    glBindVertexArray(vao_2d);
+
+        VertexBufferData lines_2d;
+        GLfloat lines_VBO_data[BATCH_SIZE_FL];
+        GLuint  lines_EBO_data[BATCH_SIZE_UI];
+
+
+
+        // const size_t COUNT_LINES = 1;
+        // const size_t POINTS_PER_LINE = 2;
+        // const size_t len_vertices_draw_2d = STRIDE * COUNT_LINES * POINTS_PER_LINE;
+        // const size_t len_indices_draw_2d = COUNT_LINES * POINTS_PER_LINE;
+
+        // GLfloat L [len_vertices_draw_2d] = {
+        //     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+        //     SCREEN_WIDTH, SCREEN_HEIGHT, 0.0, 0.0, 0.0, 1.0
+        // };
+
+        // GLuint LI [len_indices_draw_2d] = {
+        //     0, 1
+        // };
+        const size_t COUNT_LINES = 1;
+        const size_t POINTS_PER_LINE = 4;
+        const size_t len_vertices_draw_2d = STRIDE * COUNT_LINES * POINTS_PER_LINE;
+        const size_t len_indices_draw_2d = 6;
+
+        GLfloat L [len_vertices_draw_2d] = {
+            0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+            0.0, SCREEN_HEIGHT, 0.0, 1.0, 0.0, 0.0, 1.0,
+            SCREEN_WIDTH, SCREEN_HEIGHT, 0.0, 1.0, 0.0, 0.0, 1.0,
+            SCREEN_WIDTH, 0.0, 1.0, 0.0, 0.0, 1.0
+        };
+
+        GLuint LI [len_indices_draw_2d] = {
+            0, 1, 2, 2, 3, 0
+        };
+
+        for (size_t i = 0; i < len_vertices_draw_2d; ++i) {
+            lines_VBO_data[i] = L[i];
+        }
+        for (size_t i = 0; i < len_indices_draw_2d; ++i) {
+            lines_EBO_data[i] = LI[i];
+        }
+
+        for (size_t i = 0; i < len_vertices_draw_2d; ++i) {
+            std::cout << lines_VBO_data[i] << ",";
+        }
+        puts("\n");
+        for (size_t i = 0; i < len_indices_draw_2d; ++i) {
+            std::cout << lines_EBO_data[i] << ",";
+        }
+        puts("\n");
+
+        create_static_VertexBufferData(
+            &lines_2d, 
+            BATCH_SIZE_FL,
+            lines_VBO_data,
+            BATCH_SIZE_UI, 
+            lines_EBO_data
+        );
+
+
+        glBindBuffer(GL_ARRAY_BUFFER, lines_2d.vbo);
+        //glBufferSubData(GL_ARRAY_BUFFER, 0, BATCH_SIZE_FL, lines_2d.vertices);
+        glBufferData(GL_ARRAY_BUFFER, BATCH_SIZE_FL, lines_2d.vertices, GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lines_2d.ebo);
+        //glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, BATCH_SIZE_UI, lines_2d.indices);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, BATCH_SIZE_UI, lines_2d.indices, GL_STATIC_DRAW);
+
+        // POSITION
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, STRIDE * sizeof(GLfloat), (GLvoid*)0);
+        glEnableVertexAttribArray(0);
+        // COLOR
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, STRIDE * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+        glEnableVertexAttribArray(1);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
     glBindVertexArray(0);
     
-    // LAMP
-    glGenVertexArrays(1, &VAO_Light);
-    glBindVertexArray(VAO_Light);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // copy element buffer
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
-    glEnableVertexAttribArray(0);
-    glBindVertexArray(0);
-    
+
     bool status = false;
     std::string p_noise = Shader::retrieve_src_from_file("shaders/perlin_noise.glsl", &status);
     if (status == false) {
         fprintf(stderr, "%s\n", "shader could not be loaded from file");
     }
 
+    // OLD TESTING SHADER
     Shader prog_shader;
     prog_shader.load_from_file("shaders/tests/light_a.vrts", "shaders/tests/J.frgs", p_noise, p_noise);
-    
-    
     if (!prog_shader.is_valid()) {
         fprintf(stderr, "ERROR: LIGHT_A\n");
+        return EXIT_FAILURE;
+    }
+
+    Shader shader_2d;
+    shader_2d.load_from_file(
+        "shaders/default_2d/default_2d.vrts",
+        "shaders/default_2d/default_2d.frgs"
+    );
+    if (!shader_2d.is_valid()) {
+        fprintf(stderr, "ERROR: shader_2d\n");
         return EXIT_FAILURE;
     }
     
@@ -263,10 +538,8 @@ int main(int argc, char* argv[])
 
     // load and create texture array
     Texture texture_ids[2];
-    gl_data.textures.ids = texture_ids;
-    gl_data.textures.count = 2;
+    create_static_TextureData(&gl_data.textures, 2, texture_ids);
 
-    glGenTextures(2, texture_ids);
 //     texture[0].load(IMG_PATH_1, GL_TRUE);
 //     texture[1].load(IMG_PATH_2, GL_TRUE);
     if (texture_load(&gl_data.textures.ids[0], IMG_PATH_1, GL_TRUE) != GL_TRUE) {
@@ -279,7 +552,7 @@ int main(int argc, char* argv[])
     }
     
     #ifdef FP_CAM
-    Camera main_cam(glm::vec3(0.0f, 0.0f, 10.0f));
+    Camera main_cam(glm::vec3(0.0f, 0.0f, 0.0f));
     #endif
     // MAIN RUN LOOP
     
@@ -342,6 +615,8 @@ int main(int argc, char* argv[])
                 
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        prog_shader.use();
         
         // TEXTURE 0
         glActiveTexture(GL_TEXTURE0);
@@ -352,8 +627,6 @@ int main(int argc, char* argv[])
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture[1]);
         glUniform1i(glGetUniformLocation(prog_shader, "tex1"), 1);
-        
-        prog_shader.use();
         
         // TIME INFORMATION
         GLfloat elapsed = (curr_time - start_time) / (GLfloat)TIME_UNIT_TO_SECONDS;
@@ -374,8 +647,8 @@ int main(int argc, char* argv[])
 //         light_pos_vec = glm::mat3(rot) * light_pos_vec;
         glUniform3f(light_pos_loc, light_pos_vec.x, light_pos_vec.y, light_pos_vec.z);
 
-        const double POS_ACC = 1.06;
-        const double NEG_ACC = 100.0 / 106.0;
+        const double POS_ACC = 1.02;
+        const double NEG_ACC = 1.0 / POS_ACC;
         const double CHANGE = (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS);
 
         #ifdef FP_CAM			
@@ -421,6 +694,10 @@ int main(int argc, char* argv[])
 
         if (*reset) {
             main_cam.pos = glm::vec3(0.0, 0.0, 10.0);
+            up_acc = 1.0;
+            down_acc = 1.0;
+            left_acc = 1.0;
+            right_acc = 1.0;
         }
 
 		
@@ -441,7 +718,7 @@ int main(int argc, char* argv[])
         // transformations
         glm::mat4 ident_mat(1.0);
         scene.m_model = ident_mat;
-        
+    {   
         #ifdef FREE_CAM
         FreeCamera main_cam(glm::vec3(0.0f, 0.0f, 0.0f));
         main_cam.rotate(elapsed, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -497,19 +774,41 @@ int main(int argc, char* argv[])
             // model_view_projection
             glUniformMatrix4fv(model_view_projection_loc, 1, GL_FALSE, glm::value_ptr(scene.m_projection * scene.m_view * scene.m_model));
             //glDrawElements(GL_TRIANGLES, 6 * 6, GL_UNSIGNED_INT, 0); // cubes
-            glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, 0);
+            //glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, 0);
         }
         glBindVertexArray(0);
+
+        prog_shader.stop_using();
+
+    }
+
+        //////////////////////////////////////////////////////////////////
+        shader_2d.use();
+        //glClear(GL_DEPTH_BUFFER_BIT);
+        glBindVertexArray(vao_2d);
+
+            UniformLocation MAT_LOC = glGetUniformLocation(prog_shader, "u_matrix");
+
+            glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(scene.m_projection * ident_mat));
+        
+            glDrawElements(GL_TRIANGLES, len_indices_draw_2d, GL_UNSIGNED_INT, 0);
+
+        //glBindVertexArray(0);
+
+        shader_2d.stop_using();
+        // 2d drawing
+        //
                 
         SDL_GL_SwapWindow(window);
     }
 
-    glDeleteTextures(2, gl_data.textures.ids);
-    
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteVertexArrays(1, &VAO_Light);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
+    delete_static_TextureData(&gl_data.textures);
+    delete_VertexArray(&VAO);
+
+
+    delete_VertexArray(&vao_2d);
+    delete_static_VertexBufferData(&geo);
+    delete_static_VertexBufferData(&lines_2d);
     
     SDL_GL_DeleteContext(gl_data.context);
     SDL_DestroyWindow(window);
