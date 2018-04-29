@@ -544,6 +544,8 @@ int main(int argc, char* argv[])
         SDL_GL_SwapWindow(window);
     }
     
+    delete_static_VertexBufferData(&lines_data);
+    delete_VertexArray(&vao_2d);
     SDL_GL_DeleteContext(gl_data.context);
     SDL_DestroyWindow(window);
     IMG_Quit();
