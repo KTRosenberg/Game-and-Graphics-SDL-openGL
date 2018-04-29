@@ -250,7 +250,7 @@ typedef struct _Collider {
 
 // WORLD STATE
 typedef struct _Room {
-    VertexBufferData  geometry;
+    VertexBufferData  lines_datametry;
     Collider* collision_data;
     glm::mat4 matrix;
 } Room;
@@ -336,14 +336,6 @@ int main(int argc, char* argv[])
 	glewExperimental = GL_TRUE;
     glewInit();
 
-
-
-
-
-
-
-
-
     // SHADERS
     Shader shader_2d;
     shader_2d.load_from_file(
@@ -373,43 +365,110 @@ int main(int argc, char* argv[])
     create_VertexArray(&vao_2d);
     glBindVertexArray(vao_2d);
 
-    VertexBufferData geo;
-    create_static_VertexBufferData(
-        &geo, 
-        sizeof(vertices) / sizeof(GLfloat),
-        sizeof(GLfloat),
-        vertices,
-        sizeof(indices) / sizeof(GLuint),
-        sizeof(GLuint),
-        indices
-    );
+        VertexBufferData lines_data;
 
-    const size_t STRIDE = 7;
+        const size_t STRIDE = 7;
+        const size_t BATCH_COUNT = 1024;
+        const size_t GUESS_VERTS_PER_DRAW = 4;
+        const size_t BATCH_SIZE = BATCH_COUNT * GUESS_VERTS_PER_DRAW * STRIDE;
+        const size_t BATCH_SIZE_FL = BATCH_SIZE * sizeof(GLfloat);
+        const size_t BATCH_SIZE_UI = BATCH_SIZE * sizeof(GLuint);
 
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-    glBindVertexArray(vao_2d);
+        GLfloat lines_VBO_data[BATCH_SIZE_FL];
+        GLuint lines_EBO_data[BATCH_SIZE_UI];
 
-    glBindBuffer(GL_ARRAY_BUFFER, geo.vbo);
-    glBufferData(GL_ARRAY_BUFFER, geo.v_count * geo.v_size_element, geo.vertices, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geo.ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, geo.i_count * geo.i_size_element, geo.indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, STRIDE * geo.v_size_element, (void*)0);
-    glEnableVertexAttribArray(0);
+        create_static_VertexBufferData(
+            &lines_data, 
+            BATCH_SIZE,
+            sizeof(GLfloat),
+            lines_VBO_data,
+            BATCH_SIZE,
+            sizeof(GLuint), 
+            lines_EBO_data
+        );
+
+        const size_t COUNT_LINES = 1;
+        const size_t POINTS_PER_LINE = 2;
+        const size_t len_vertices_draw_2d = STRIDE * COUNT_LINES * POINTS_PER_LINE;
+        const size_t len_indices_draw_2d = 2;
+
+        GLfloat L [len_vertices_draw_2d] = {
+             1.0f,  1.0f, 0.0f, 1.0, 0.0, 0.0, 1.0,  // top right
+            -1.0f, -1.0f, 0.0f, 0.0, 0.0, 1.0, 1.0, // bottom left
+        };
+
+        GLuint LI [len_indices_draw_2d] = {
+            0, 1
+        };
+
+        for (size_t i = 0; i < len_vertices_draw_2d; ++i) {
+            lines_VBO_data[i] = L[i];
+        }
+        for (size_t i = 0; i < len_indices_draw_2d; ++i) {
+            lines_EBO_data[i] = LI[i];
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, lines_data.vbo);
+        //glBufferSubData(GL_ARRAY_BUFFER, 0, BATCH_SIZE_FL, lines_data.vertices);
+        glBufferData(GL_ARRAY_BUFFER, BATCH_SIZE_FL, lines_data.vertices, GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lines_data.ebo);
+        //glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, BATCH_SIZE_UI, lines_data.indices);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, BATCH_SIZE_UI, lines_data.indices, GL_STATIC_DRAW);
+
+        // POSITION
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, STRIDE * lines_data.v_size_element, (void*)0);
+        glEnableVertexAttribArray(0);
+        // COLOR
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, STRIDE * lines_data.v_size_element, (void*)(3 * lines_data.v_size_element));
+        glEnableVertexAttribArray(1);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glBindVertexArray(0);
+
+
+    // create_static_VertexBufferData(
+    //     &lines_data, 
+    //     sizeof(vertices) / sizeof(GLfloat),
+    //     sizeof(GLfloat),
+    //     vertices,
+    //     sizeof(indices) / sizeof(GLuint),
+    //     sizeof(GLuint),
+    //     indices
+    // );
+
+
+
+
+    // const size_t STRIDE = 7;
+
+    // // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+    // glBindVertexArray(vao_2d);
+
+    // glBindBuffer(GL_ARRAY_BUFFER, lines_data.vbo);
+    // glBufferData(GL_ARRAY_BUFFER, lines_data.v_count * lines_data.v_size_element, lines_data.vertices, GL_STATIC_DRAW);
+
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lines_data.ebo);
+    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, lines_data.i_count * lines_data.i_size_element, lines_data.indices, GL_STATIC_DRAW);
+
+    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, STRIDE * lines_data.v_size_element, (void*)0);
+    // glEnableVertexAttribArray(0);
     
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, STRIDE * geo.v_size_element, (void*)(3 * geo.v_size_element));
-    glEnableVertexAttribArray(1);
+    // glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, STRIDE * lines_data.v_size_element, (void*)(3 * lines_data.v_size_element));
+    // glEnableVertexAttribArray(1);
 
-    // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+    // glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    // // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
+    // //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-    // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-    // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-    glBindVertexArray(0); 
+    // // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+    // // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
+    // glBindVertexArray(0); 
 
 
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -458,12 +517,12 @@ int main(int argc, char* argv[])
             }
         }
                 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shader_2d.use();
         glBindVertexArray(vao_2d);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_LINES, len_indices_draw_2d, GL_UNSIGNED_INT, 0);
 
         //////////////////////////////////////////////////////////////////
         // shader_2d.use();
