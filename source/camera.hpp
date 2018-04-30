@@ -7,19 +7,63 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <vector>
+#include <iostream>
+
+#include <limits>
 
 #define MAX_BOUND 89.0f
 #define MIN_BOUND -89.0f
 #define MIN_MOUSE_ZOOM 1.0f
 #define MAX_MOUSE_ZOOM 45.0f
 
+enum class Movement_Direction : unsigned char 
+{
+    FORWARDS,
+    BACKWARDS,
+    LEFTWARDS,
+    RIGHTWARDS,
+    UPWARDS,
+    DOWNWARDS
+};
+
+static const GLfloat ViewCamera_default_speed = 4.0f;
+
+typedef struct ViewCamera {
+    glm::vec3 position;
+    GLfloat   speed;
+    glm::mat4 matrix;
+    GLfloat   min_x;
+    GLfloat   max_x;
+    GLfloat   min_y;
+    GLfloat   max_y;
+    GLfloat   min_z;
+    GLfloat   max_z;
+} ViewCamera;
+
+void ViewCamera_create(
+    ViewCamera* view,
+    glm::vec3 position_start,
+    GLfloat speed,
+    GLfloat min_z = -std::numeric_limits<double>::infinity(),
+    GLfloat max_z = std::numeric_limits<double>::infinity(),
+    GLfloat min_x = 0.0f,
+    GLfloat max_x = std::numeric_limits<double>::infinity(),
+    GLfloat min_y = 0.0f,
+    GLfloat max_y = std::numeric_limits<double>::infinity()
+);
+
+void ViewCamera_process_directional_movement(ViewCamera* view, Movement_Direction direction, GLfloat delta_time);
+glm::mat4 ViewCamera_calc_view_matrix(ViewCamera* view);
+////////////////////////////////////////////////////////////////////////////////////////////
+
 enum class Camera_Movement : unsigned char 
 {
     FORWARDS,
     BACKWARDS,
     LEFTWARDS,
-    RIGHTWARDS
+    RIGHTWARDS,
+    UPWARDS,
+    DOWNWARDS
 };
 
 namespace camera_defaults {
@@ -44,6 +88,9 @@ struct Camera {
     GLfloat movement_speed;
     GLfloat mouse_sensitivity;
     GLfloat zoom;
+
+    GLfloat minZ;
+    GLfloat maxZ;
     
     // constructor (vector values)
     Camera(

@@ -40,11 +40,11 @@ int ignore_mouse_movement(void* unused, SDL_Event* event)
 
 #define DEBUG_PRINT
 
-void debug_print(std::string in);
-void debug_print(std::string in) 
+void debug_print(const char* const in);
+void debug_print(const char* const in) 
 {
     #ifdef DEBUG_PRINT
-    puts(in.c_str());
+    puts(in);
     #endif
 }
 
@@ -62,33 +62,282 @@ SDL_Window* window = NULL;
 // based on tutorial at 
 // http://headerphile.com/sdl2/opengl-part-1-sdl-opengl-awesome/
 
-using namespace GL;
+void* xmalloc(size_t bytes);
+void* xmalloc(size_t bytes)
+{
+    void* mem = malloc(bytes);
+    if (mem == NULL) {
+        abort();
+    }
 
-typedef struct _TextureData {
+    return mem;
+}
+
+// TEXTURES, GEOMETRY
+typedef struct TextureData {
     Texture* ids;
     size_t count;
 } TextureData;
 
-typedef struct _GLData {
-    SDL_GLContext context;
-    TextureData textures;
-} GLData;
+void create_TextureData(TextureData* t, const size_t id_count) 
+{
+    t->ids = (Texture*)xmalloc(id_count * sizeof(t->ids));
+    t->count = id_count;
+    glGenTextures(t->count, t->ids);
+}
 
-GLData gl_data; 
+void create_static_TextureData(TextureData* t, const size_t id_count, Texture* buffer)
+{
+    t->ids = buffer;
+    t->count = id_count;
+    glGenTextures(id_count, t->ids);
+}
 
-struct {
+void delete_TextureData(TextureData* t)
+{
+    glDeleteTextures(t->count, t->ids);
+    free(t);
+}
+void delete_static_TextureData(TextureData* t)
+{
+    glDeleteTextures(t->count, t->ids);
+}
+
+struct sceneData {
     glm::mat4 m_model;
     glm::mat4 m_view;
     glm::mat4 m_projection;
 } scene;
+
+struct CappedArray {
+    size_t cap;
+    size_t count;
+    void*  array;
+
+    operator void*()
+    {
+        return this->array;
+    }
+};
+
+// ATTRIBUTES AND VERTEX ARRAYS
+
+typedef struct AttributeData {
+    GLuint    index;
+    GLint     size;
+    GLenum    type;
+    GLboolean normalized;
+    GLsizei   stride;
+    GLvoid*   pointer;
+    GLchar*   name;
+} AttributeData;
+
+void create_AttributeData(
+    AttributeData* a,
+    GLuint index,
+    GLint size,
+    GLenum type,
+    GLboolean normalized,
+    GLsizei stride,
+    GLvoid* pointer,
+    GLchar* name    
+) {
+    a->index = index;
+    a->size = size;
+    a->type = type;
+    a->normalized = normalized;
+    a->stride = stride;
+    a->pointer = pointer;
+    a->name = name;
+}
+
+// #define VAO_ATTRIBUTE_MAIN_TEST_COUNT 3
+// typedef struct _VertexArrayData {
+//     VertexArray vao;
+//     size_t attribute_count;
+//     AttributeData attributes[VAO_ATTRIBUTE_MAIN_TEST_COUNT];
+// } VertexArrayData;
+
+// #define VAO_ATTRIBUTE_LIGHT_DAT_COUNT 3
+// typedef struct _VertexArrayData {
+//     VertexArray vao;
+//     size_t attribute_count;
+//     AttributeData attributes[VAO_ATTRIBUTE_MAIN_TEST_COUNT];
+// } VertexArrayData;
+
+// VERTEX BUFFERS
+
+typedef struct VertexBufferData {
+    VertexBuffer vbo;
+    ElementBuffer ebo;
+    size_t    v_cap;
+    size_t    v_count;
+    size_t    i_cap;
+    size_t    i_count;
+    GLfloat*  vertices;
+    GLuint*   indices;
+} VertexBufferData;
+
+
+
+struct VertexBufferDataAlt {
+    VertexBuffer vbo;
+    ElementBuffer ebo;
+    std::vector<GLfloat> vertices;
+    std::vector<GLuint>  indices;
+} VertexBufferDataAlt;
+
+typedef VertexBufferData VBData;
+
+
+
+typedef void* (*Fn_MemoryAllocator)(size_t bytes);
+
+void create_VertexBufferData(
+    VertexBufferData* g,
+    const size_t v_cap,
+    const size_t i_cap,
+    Fn_MemoryAllocator alloc
+) {
+    glGenBuffers(2, (GLBuffer*)&g->vbo);
+
+    g->v_cap = v_cap;
+    g->i_cap = i_cap;
+
+    g->vertices = (GLfloat*)alloc(sizeof(GLfloat) * g->v_cap);
+    g->indices  = (GLuint*)alloc(sizeof(GLuint) * g->i_cap);
+
+    g->v_count = 0;
+    g->i_count = 0;
+}
+
+void create_static_VertexBufferData(
+    VertexBufferData* g,
+    const size_t v_cap,
+    GLfloat* vertices,
+    const size_t i_cap,
+    GLuint* indices
+) {
+    glGenBuffers(2, (GLBuffer*)&g->vbo);
+
+    g->v_cap = v_cap;
+    g->i_cap = i_cap;
+
+    g->vertices = vertices;
+    g->indices  = indices;
+
+    g->v_count = 0;
+    g->i_count = 0;
+}
+
+void delete_VertexBufferData(VertexBufferData* g)
+{
+    glDeleteBuffers(2, (GLBuffer*)&g->vbo);
+    free(g->vertices);
+    free(g->indices);
+}
+void delete_static_VertexBufferData(VertexBufferData* g)
+{
+    glDeleteBuffers(2, (GLBuffer*)&g->vbo);
+}
+
+
+typedef struct VertexAttributeArray {
+    VertexArray vao;
+    size_t stride;
+} VertexAttributeArray;
+
+typedef VertexAttributeArray VAttribArr;
+
+inline void create_VertexAttributeArray(VertexAttributeArray* vao, size_t stride) 
+{
+    glGenVertexArrays(1, &vao->vao);
+    vao->stride = stride;
+}
+inline void delete_VertexAttributeArray(VertexAttributeArray* vao) 
+{
+    glDeleteVertexArrays(1, &vao->vao);
+}
+inline void* attribute_offsetof(size_t offset)
+{
+    return (void*)(offset * sizeof(GLfloat));
+}
+inline size_t attribute_sizeof(VertexAttributeArray* vao) 
+{
+    return vao->stride * sizeof(GLfloat);
+}
+
+inline void gl_set_and_enable_vertex_attrib_ptr(GLuint index, GLint size, GLenum type, GLboolean normalized, size_t offset, VertexAttributeArray* va)
+{
+    glVertexAttribPointer(index, size, type, normalized, attribute_sizeof(va), attribute_offsetof(offset));            
+    glEnableVertexAttribArray(index);
+}
+
+inline void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, size_t v_cap, size_t i_cap, GLenum usage)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
+    glBufferData(GL_ARRAY_BUFFER, v_cap * sizeof(GLfloat), vbd->vertices, usage);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbd->ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, i_cap * sizeof(GLuint), vbd->indices, usage);            
+}
+
+
+// COLLISION INFO
+typedef struct CollisionStatus {
+    bool      collided;
+    glm::vec3 point;
+} CollisionStatus;
+
+void create_CollisionStatus(CollisionStatus* cs, const bool collided, glm::vec3 point)
+{
+    cs->collided = collided;
+    cs->point = point;
+}
+
+typedef CollisionStatus (*Fn_CollisionHandler)(glm::vec3 incoming);
+
+typedef struct Collider {
+    glm::vec3 a;
+    glm::vec3 b;
+    Fn_CollisionHandler handler;
+} Collider; 
+
+// WORLD STATE
+typedef struct Room {
+    VertexBufferData  geometry;
+    Collider* collision_data;
+    glm::mat4 matrix;
+} Room;
+
+typedef struct {
+    Room* rooms;
+    glm::mat4 m_view;
+    glm::mat4 m_projection;
+} World;
+
+typedef struct GLData {
+    SDL_GLContext context;
+    TextureData textures;
+} GLData;
+
+GLData gl_data;
+
+
 
 // glm::vec3 light_pos(1.2f, 1.0f, 2.0f);
 // glm::light_color(1.0f, 1.0f, 1.0f);
 // glm::toy_color(1.0f, 0.5f, 0.31f);
 // glm::result = light_color * toy_color;
 
+
+//////////////
+
+
 int main(int argc, char* argv[])
 {
+    std::cout << std::boolalpha << std::is_pod<CappedArray>::value  << std::endl;
+
     // initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "%s\n", "SDL could not initialize");
@@ -140,6 +389,154 @@ int main(int argc, char* argv[])
 
 	glewExperimental = GL_TRUE;
     glewInit();
+
+    // SHADERS
+    Shader shader_2d;
+    shader_2d.load_from_file(
+        "shaders/default_2d/default_2d.vrts",
+        "shaders/default_2d/default_2d.frgs"
+    );
+    if (!shader_2d.is_valid()) {
+        fprintf(stderr, "ERROR: shader_2d\n");
+        return EXIT_FAILURE;
+    }
+///////////////
+
+    const size_t STRIDE = 7;
+
+// LINES
+    const size_t COUNT_LINES = 1;
+    const size_t POINTS_PER_LINE = 2;
+    const size_t len_v_lines = STRIDE * COUNT_LINES * POINTS_PER_LINE;
+    const size_t len_i_lines = 2;
+
+    GLfloat wf = (GLfloat)SCREEN_WIDTH;
+    GLfloat hf = (GLfloat)SCREEN_HEIGHT;
+
+    GLfloat L[len_v_lines] = {
+        wf,   0.0f, 0.0f, 1.0, 0.0, 0.0, 1.0,  // top right
+        0.0f, hf,   0.0f, 0.0, 0.0, 1.0, 1.0, // bottom left
+    };
+
+    GLuint LI[len_i_lines] = {
+        0, 1
+    };
+
+// QUADS
+    const size_t COUNT_QUADS = 2;
+    const size_t POINTS_PER_QUAD = 4;
+    const size_t POINTS_PER_TRI = 3;
+    const size_t TRIS_PER_QUAD = 2;
+    const size_t len_v_tris = STRIDE * COUNT_QUADS * POINTS_PER_QUAD;
+    const size_t len_i_tris = COUNT_QUADS * TRIS_PER_QUAD * POINTS_PER_TRI;
+
+    GLfloat T[] = {
+        0.0f,  0.0f,  100.0f, 0.0, 0.0, 1.0, 1.0,  // top left
+        0.0f,  hf,    100.0f, 0.0, 0.0, 1.0, 1.0,  // bottom left
+        wf,    hf,    -100.0f, 0.0, 0.0, 1.0, 1.0,  // bottom right
+        wf,    0.0,   -100.0f, 0.0, 0.0, 1.0, 1.0,  // top right
+
+        0.0f,  0.0f, -100.0f, 1.0, 0.0, 0.0, 1.0,  // top left
+        0.0f,  hf,   -100.0f, 1.0, 0.0, 0.0, 1.0, // bottom left
+        wf,    hf,   100.0f, 1.0, 0.0, 0.0, 1.0, // bottom right
+        wf,    0.0,  100.0f, 1.0, 0.0, 0.0, 1.0, // top right
+    };
+    GLuint TI[] = {  // note that we start from 0!
+        0, 1, 2,  // first Triangle
+        2, 3, 0,   // second Triangle
+
+        4, 5, 6,
+        6, 7, 4,
+    };
+
+// TOTAL ALLOCATION
+    const size_t BATCH_COUNT = 1024;
+    const size_t GUESS_VERTS_PER_DRAW = 4;
+    const size_t BATCH_COUNT_EXTRA = BATCH_COUNT * GUESS_VERTS_PER_DRAW * STRIDE;
+
+// R1 ////////////////////////////////////////////////
+
+    VertexAttributeArray vao_2d;
+    VertexBufferData lines_data;
+
+    create_VertexAttributeArray(&vao_2d, 7);
+
+    glBindVertexArray(vao_2d.vao);
+
+
+        GLfloat lines_VBO_data[BATCH_COUNT_EXTRA * sizeof(GLfloat)];
+        GLuint lines_EBO_data[BATCH_COUNT_EXTRA * sizeof(GLuint)];
+
+        create_static_VertexBufferData(
+            &lines_data, 
+            BATCH_COUNT_EXTRA,
+            lines_VBO_data,
+            BATCH_COUNT_EXTRA,
+            lines_EBO_data
+        );
+        lines_data.v_count = len_v_lines;
+        lines_data.i_count = len_i_lines;
+
+
+        for (size_t i = 0; i < len_v_lines; ++i) {
+            lines_VBO_data[i] = L[i];
+        }
+        for (size_t i = 0; i < len_i_lines; ++i) {
+            lines_EBO_data[i] = LI[i];
+        }
+
+        
+        gl_bind_buffers_and_upload_data(&lines_data, BATCH_COUNT_EXTRA, BATCH_COUNT_EXTRA, GL_STATIC_DRAW);
+        // POSITION
+        gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &vao_2d);
+        // COLOR
+        gl_set_and_enable_vertex_attrib_ptr(1, 4, GL_FLOAT, GL_FALSE, 3, &vao_2d);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glBindVertexArray(0);
+
+// R2 ////////////////////////////////////////////////
+
+    VertexAttributeArray vao_2d2;
+    VertexBufferData tri_data;
+
+    create_VertexAttributeArray(&vao_2d2, 7);
+
+    glBindVertexArray(vao_2d2.vao);
+
+        GLfloat tris_VBO_data[BATCH_COUNT_EXTRA * sizeof(GLfloat)];
+        GLuint  tris_EBO_data[BATCH_COUNT_EXTRA * sizeof(GLuint)];
+
+        create_static_VertexBufferData(
+            &tri_data, 
+            BATCH_COUNT_EXTRA,
+            tris_VBO_data,
+            BATCH_COUNT_EXTRA,
+            tris_EBO_data
+        );
+        tri_data.i_count = len_i_tris;
+
+        for (size_t i = 0; i < len_v_tris; ++i) {
+            tris_VBO_data[i] = T[i];
+        }
+        for (size_t i = 0; i < len_i_tris; ++i) {
+            tris_EBO_data[i] = TI[i];
+        }
+
+        
+        gl_bind_buffers_and_upload_data(&tri_data, BATCH_COUNT_EXTRA, BATCH_COUNT_EXTRA, GL_STATIC_DRAW);
+        // POSITION
+        gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &vao_2d2);
+        // COLOR
+        gl_set_and_enable_vertex_attrib_ptr(1, 4, GL_FLOAT, GL_FALSE, 3, &vao_2d2);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glBindVertexArray(0);
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	
 	glEnable(GL_DEPTH_TEST);
@@ -152,157 +549,14 @@ int main(int argc, char* argv[])
     glDepthFunc(GL_LEQUAL);
     
     SDL_GL_SetSwapInterval(1);
-	
-	//gl_init();
-	
-    // SHAPE DATA ////////////////////////////////////////////////////////////////
-   
-    gl_mesh::MeshData* mesh;
-#ifdef CUBES
-    gl_mesh::platonic_solid::Cube shape_mesh;
-#elif defined SPHERES
-    gl_mesh::parametric::Sphere shape_mesh(100);
-#elif defined TORI
-    gl_mesh::parametric::Torus shape_mesh(100);
-#else
-    #error SHAPE UNDEFINED
-#endif
-    mesh = &shape_mesh;
-    const GLuint size_vertex_data = mesh->num_vertices() * 8 * sizeof(GLfloat);
-    const GLuint num_indices = mesh->num_indices(); 
-    const GLuint size_index_data = num_indices * sizeof(GLuint);  
-    const GLfloat* vertex_data = mesh->vertex_data();
-    const GLuint* index_data = mesh->index_data();
-    const GLuint num_vertices = mesh->num_vertices();
-    
-    std::cout << size_vertex_data << std::endl;
-    
-    glm::vec3 shape_translations[] = {
-        glm::vec3( 0.0f,  0.0f,  0.0f), 
-        glm::vec3( 2.0f,  5.0f, -15.0f), 
-        glm::vec3(-1.5f, -2.2f, -2.5f),  
-        glm::vec3(-3.8f, -2.0f, -12.3f),  
-        glm::vec3( 2.4f, -0.4f, -3.5f),  
-        glm::vec3(-1.7f,  3.0f, -7.5f),  
-        glm::vec3( 1.3f, -2.0f, -2.5f),  
-        glm::vec3( 1.5f,  2.0f, -2.5f), 
-        glm::vec3( 1.5f,  0.2f, -1.5f), 
-        glm::vec3(-1.3f,  1.0f, -1.5f)  
-    };
-    
-    // VERTEX ARRAY OBJECT, VERTEX BUFFER OBJECT, ELEMENT BUFFER OBJECT
-    VaoBuffer VAO = 0;
-    VboBuffer VBO = 0;
-    EboBuffer EBO = 0;
-    
-    VaoBuffer VAO_Light = 0;
-    
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    glBindVertexArray(VAO);
-    
-    // copy vertices buffer
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, size_vertex_data, vertex_data, GL_STATIC_DRAW);
-    // copy element buffer
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_index_data, index_data, GL_STATIC_DRAW);
-    
-    // ATTRIBUTES //
-    
-    // set attribute pointers for VERTEX vectors
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
-//     glVertexAttribPointer(
-//         glGetAttribLocation(shader_program, "position"), // if I wanted to search for the position
-//         3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0
-//     );
-    glEnableVertexAttribArray(0);
-    
-    // set attribute pointers for NORMAL vectors
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(1);    
-    // set attribute pointers for UV coordinates
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(2);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    
-    glBindVertexArray(0);
-    
-    // LAMP
-    glGenVertexArrays(1, &VAO_Light);
-    glBindVertexArray(VAO_Light);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // copy element buffer
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
-    glEnableVertexAttribArray(0);
-    glBindVertexArray(0);
-    
-    bool status = false;
-    std::string p_noise = Shader::retrieve_src_from_file("shaders/perlin_noise.glsl", &status);
-    if (status == false) {
-        fprintf(stderr, "%s\n", "shader could not be loaded from file");
-    }
-
-    Shader prog_shader;
-    prog_shader.load_from_file("shaders/tests/light_a.vrts", "shaders/tests/J.frgs", p_noise, p_noise);
-    
-    
-    if (!prog_shader.is_valid()) {
-        fprintf(stderr, "ERROR: LIGHT_A\n");
-        return EXIT_FAILURE;
-    }
-    
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     
     printf("USING GL VERSION: %s\n", glGetString(GL_VERSION));
-    
-    ////////////////////////////////////////////////////////////////////////////
-    // TEXTURE
-    ////////////////////////////////////////////////////////////////////////////
 
-    // load and create texture array
-    Texture texture_ids[2];
-    gl_data.textures.ids = texture_ids;
-    gl_data.textures.count = 2;
-//     texture[0].load(IMG_PATH_1, GL_TRUE);
-//     texture[1].load(IMG_PATH_2, GL_TRUE);
-    if (load_texture(&gl_data.textures.ids[0], IMG_PATH_1, GL_TRUE) != GL_TRUE) {
-        fprintf(stderr, "%s\n", "ERROR: TEXTURE LOAD UNSUCCESSFUL");
-        return EXIT_FAILURE;
-    }
-    if (load_texture(&gl_data.textures.ids[1], IMG_PATH_2, GL_TRUE) != GL_TRUE) {
-        fprintf(stderr, "%s\n", "ERROR: TEXTURE LOAD UNSUCCESSFUL");
-        return EXIT_FAILURE;
-    }
-    
-    #ifdef FP_CAM
-    Camera main_cam(glm::vec3(0.0f, 0.0f, 10.0f));
-    #endif
-    // MAIN RUN LOOP
-    
-	const Uint8* key_states = SDL_GetKeyboardState(NULL);
 
-	const Uint8& up         = key_states[SDL_SCANCODE_W];
-	const Uint8& down       = key_states[SDL_SCANCODE_S];
-	const Uint8& left       = key_states[SDL_SCANCODE_A];
-	const Uint8& right      = key_states[SDL_SCANCODE_D];
-	const Uint8& rot_r = key_states[SDL_SCANCODE_RIGHT];
-	const Uint8& rot_l = key_states[SDL_SCANCODE_LEFT];
-// 	const Uint8& up_right   = key_states[SDL_SCANCODE_E];
-// 	const Uint8& up_left    = key_states[SDL_SCANCODE_Q];
-// 	const Uint8& down_right = key_states[SDL_SCANCODE_X];
-// 	const Uint8& down_left  = key_states[SDL_SCANCODE_Z];
+    glm::mat4 mat_ident(1.0f);
+    glm::mat4 mat_projection = glm::ortho(0.0f, (GLfloat)SCREEN_WIDTH, (GLfloat)SCREEN_HEIGHT, 0.0f, -1000.0f, 1000.0f);
+    //glm::mat4 mat_projection = glm::perspective(glm::radians(45.0f), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
 
-    glm::vec3 light_pos_vec(1.2f, 1.0f, 2.0f);
-    
-    GLfloat prev_x = SCREEN_WIDTH / 2;
-    GLfloat prev_y = SCREEN_HEIGHT / 2;
-
-    double up_acc = 1.0;
-	double down_acc = 1.0;
     bool keep_running = true;
     SDL_Event event;
 
@@ -312,6 +566,57 @@ int main(int argc, char* argv[])
     Uint32 curr_time = start_time;
     Uint64 delta_time = 0;
     Uint64 dt = 0;
+
+//////////////////
+// TEST INPUT
+    glm::vec3 start_pos(0.0f, 0.0f, 200.0f);
+    
+    ViewCamera main_cam;
+    ViewCamera_create(
+        &main_cam,
+        start_pos,
+        ViewCamera_default_speed,
+        -1000.0f,
+        1000.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f
+    );
+    
+    const Uint8* key_states = SDL_GetKeyboardState(NULL);
+
+    const Uint8* up         = &key_states[SDL_SCANCODE_W];
+    const Uint8* down       = &key_states[SDL_SCANCODE_S];
+    const Uint8* left       = &key_states[SDL_SCANCODE_A];
+    const Uint8* right      = &key_states[SDL_SCANCODE_D];
+    const Uint8* rot_r      = &key_states[SDL_SCANCODE_RIGHT];
+    const Uint8* rot_l      = &key_states[SDL_SCANCODE_LEFT];
+//  const Uint8& up_right   = key_states[SDL_SCANCODE_E];
+//  const Uint8& up_left    = key_states[SDL_SCANCODE_Q];
+//  const Uint8& down_right = key_states[SDL_SCANCODE_X];
+//  const Uint8& down_left  = key_states[SDL_SCANCODE_Z];
+    const Uint8* forwards = &key_states[SDL_SCANCODE_UP];
+    const Uint8* backwards = &key_states[SDL_SCANCODE_DOWN];
+
+    const Uint8* reset = &key_states[SDL_SCANCODE_0];
+    const Uint8* toggle_projection = &key_states[SDL_SCANCODE_P];
+
+    bool projection_is_ortho = true;
+
+    const double POS_ACC = 1.06;
+    const double NEG_ACC = 1.0 / POS_ACC;
+
+    double up_acc = 1.0;
+    double down_acc = 1.0;
+    double left_acc = 1.0;
+    double right_acc = 1.0;
+    double forwards_acc = 1.0;
+    double backwards_acc = 1.0;
+
+
+/////////////////
+// MAIN LOOP
 
     while (keep_running) {
         curr_time = SDL_GetTicks();
@@ -334,156 +639,125 @@ int main(int argc, char* argv[])
             }
         }
 
-        Texture* texture = gl_data.textures.ids;
-                
-        glClearColor(0.0, 0.0, 0.0, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
-        // TEXTURE 0
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture[0]);
-        glUniform1i(glGetUniformLocation(prog_shader, "tex0"), 0);
+    //////////////////
+    // TEST INPUT
+        {
 
-        // TEXTURE 1
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture[1]);
-        glUniform1i(glGetUniformLocation(prog_shader, "tex1"), 1);
-        
-        prog_shader.use();
-        
-        // TIME INFORMATION
-        GLfloat elapsed = (curr_time - start_time) / (GLfloat)TIME_UNIT_TO_SECONDS;
-        UniformLocation time_addr = glGetUniformLocation(prog_shader, "u_time");
-        glUniform1f(time_addr, elapsed);
-        
-        // COLOR and LIGHT UNIFORMS
-        UniformLocation object_color_loc = glGetUniformLocation(prog_shader, "object_color");
-        UniformLocation light_color_loc = glGetUniformLocation(prog_shader, "light_color");
-        UniformLocation light_pos_loc = glGetUniformLocation(prog_shader, "light_pos");
-        glUniform3f(object_color_loc, 1.0f, 0.5f, 0.31f);
-        glUniform3f(light_color_loc, 1.0f, 1.0f, 1.0f);
-        
-        light_pos_vec.x = 1.0f + glm::sin(curr_time / 1000.0) * 2.0f;
-        light_pos_vec.y = glm::sin(curr_time / (1000.0 * 2.0f)) * 1.0f;
-//         glm::mat4 rot;
-//         rot = glm::rotate(rot, (GLfloat)curr_time / 1000.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-//         light_pos_vec = glm::mat3(rot) * light_pos_vec;
-        glUniform3f(light_pos_loc, light_pos_vec.x, light_pos_vec.y, light_pos_vec.z);
+            const double CHANGE = (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS);
 
+            if (*up) {
+                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
+                up_acc *= POS_ACC;
+            } else {
+                if (up_acc > 1.0) {
+                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
+                }
+                up_acc = glm::max(1.0, up_acc * NEG_ACC);
+            }
+            if (*down) {
+                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
+                down_acc *= POS_ACC;
+            } else {
+                if (down_acc > 1.0) {
+                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
+                } 
+                down_acc = glm::max(1.0, down_acc * NEG_ACC);  
+            }
 
-        #ifdef FP_CAM			
-		if (up) {
-			main_cam.process_directional_movement(Camera_Movement::FORWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * up_acc);
-			debug_print("FORWARD");	
-			up_acc *= 1.06;		
-		} else {
-		    up_acc = 1.0;
-		}
-		if (down) {
-			main_cam.process_directional_movement(Camera_Movement::BACKWARDS, (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS) * down_acc);
-			debug_print("BACKWARD");	
-		    down_acc *= 1.06;
-		} else {
-		    down_acc = 1.0;
-		}
-		if (left) {
-			main_cam.process_directional_movement(Camera_Movement::LEFTWARDS, delta_time / (GLfloat)TIME_UNIT_TO_SECONDS);
-			debug_print("LEFTWARD");	
-		}
-		if (right) {
-			main_cam.process_directional_movement(Camera_Movement::RIGHTWARDS, delta_time / (GLfloat)TIME_UNIT_TO_SECONDS);
-			debug_print("RIGHTWARD");	
-		}
-		
-		#ifdef MOUSE_ON
-		int x = 0;
-		int y = 0;
-		SDL_GetMouseState(&x, &y);
-		if (x && y) {
-		    main_cam.process_mouse_movement(x - prev_x, y - prev_y);
-		    prev_x = x;
-		    prev_y = y;
-		}
-		#endif
-		#endif
-        
-        // TRANSFORMATION MATRICES
-        
-        // transformations
-        glm::mat4 ident_mat(1.0);
-        scene.m_model = ident_mat;
-        
-        #ifdef FREE_CAM
-        FreeCamera main_cam(glm::vec3(0.0f, 0.0f, 0.0f));
-        main_cam.rotate(elapsed, glm::vec3(0.0f, 1.0f, 0.0f));
-        main_cam.translate(glm::vec3(0.0f, 0.0f, -10.0f));
+            if (*left) {
+                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
+                left_acc *= POS_ACC;
+            } else {
+                if (left_acc > 1.0) {
+                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
+                }
+                left_acc = glm::max(1.0, left_acc * NEG_ACC);
+            }
+
+            if (*right) {
+                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
+                right_acc *= POS_ACC;
+            } else {
+                if (right_acc > 1.0) {
+                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
+                }
+                right_acc = glm::max(1.0, right_acc * NEG_ACC);
+            }
+
+            if (*forwards) {
+                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
+                forwards_acc *= POS_ACC;
+            } else {
+                if (forwards_acc > 1.0) {
+                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
+                }
+                forwards_acc = glm::max(1.0, forwards_acc * NEG_ACC);
+            }
+            if (*backwards) {
+                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
+                backwards_acc *= POS_ACC;
+            } else {
+                if (backwards_acc > 1.0) {
+                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
+                } 
+                backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
+            }
+
+            if (*reset) {
+                ViewCamera_create(
+                    &main_cam,
+                    start_pos,
+                    ViewCamera_default_speed,
+                    -1000.0f,
+                    1000.0f,
+                    0.0f,
+                    0.0f,
+                    0.0f,
+                    0.0f
+                );
+
+                up_acc        = 1.0;
+                down_acc      = 1.0;
+                left_acc      = 1.0;
+                right_acc     = 1.0;
+                backwards_acc = 1.0;
+                forwards_acc  = 1.0;
+            }
+
+        #ifdef DEBUG_PRINT
+            glm::vec3* pos = &main_cam.position;
+            std::cout << "VIEW_POSITION{x : " << pos->x << ", y : " << pos->y << ", z: " << pos->z << "}" << std::endl;
         #endif
-        
-        scene.m_view = main_cam.get_view_matrix();
-
-        
-        //scene.m_view = glm::rotate(scene.m_view, elapsed, glm::vec3(0.0f, 1.0f, 0.0f));
-        
-        UniformLocation model_loc = glGetUniformLocation(prog_shader, "model");
-        UniformLocation view_loc = glGetUniformLocation(prog_shader, "view");
-        UniformLocation projection_loc = glGetUniformLocation(prog_shader, "projection");
-        UniformLocation model_view_projection_loc = glGetUniformLocation(prog_shader, "model_view_projection");
-        
-        UniformLocation mat_norm_loc = glGetUniformLocation(prog_shader, "mat_norm");
-        
-        //scene.m_model = glm::scale(scene.m_model, glm::vec3(SCREEN_HEIGHT/4, SCREEN_HEIGHT/4, 1.0f));
-        //scene.m_view = glm::translate(scene.m_view, glm::vec3(0.0f, 0.0f, -10.0f));
-        
-        // set uniforms
-        // view
-        glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm::value_ptr(scene.m_view));
-        
-        // projection
-        // left, right, bottom, top
-        //scene.m_projection = glm::ortho(-(float)SCREEN_WIDTH / 2.f, (float)SCREEN_WIDTH / 2.f, -(float)SCREEN_HEIGHT / 2.f, (float)SCREEN_HEIGHT / 2, 0.1f, 100.0f);
-        scene.m_projection = glm::perspective(glm::radians(45.0f), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-        glUniformMatrix4fv(projection_loc, 1, GL_FALSE, glm::value_ptr(scene.m_projection));
-        
-        // NORMAL MATRIX
-        glm::mat3 m_norm;
- 
-        glBindVertexArray(VAO);
-        for (GLuint i = 0; i < 7; i++) { 
-            scene.m_model = ident_mat;
-            
-            // 
-            scene.m_model = glm::translate(scene.m_model, shape_translations[i] + 5.0f * glm::vec3(0.0f, 0.0f, glm::sin((GLfloat)curr_time / 1000.0f)));
-            //scene.m_model = glm::scale(scene.m_model, glm::vec3(0.5f, 0.5f, 0.5f));
-//             if (i % 2 == 0) {
-//                 scene.m_model = glm::rotate(scene.m_model, elapsed + glm::radians(20.0f * i), glm::vec3(1.0f, 0.3f, 0.5f));
-//             }         
-            
-            // set more uniforms
-            // model
-            glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(scene.m_model));
-            // NORMAL MATRIX (using view space)
-            m_norm = glm::transpose(glm::inverse(scene.m_model * scene.m_view));
-            glUniformMatrix3fv(mat_norm_loc, 1, GL_FALSE, glm::value_ptr(m_norm));
-                        
-            // model_view_projection
-            glUniformMatrix4fv(model_view_projection_loc, 1, GL_FALSE, glm::value_ptr(scene.m_projection * scene.m_view * scene.m_model));
-            //glDrawElements(GL_TRIANGLES, 6 * 6, GL_UNSIGNED_INT, 0); // cubes
-            glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, 0);
         }
-        glBindVertexArray(0);
+    //////////////////
+    // DRAW
+
+                
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glUseProgram(shader_2d);
+
+        UniformLocation MAT_LOC = glGetUniformLocation(shader_2d, "u_matrix");
+        UniformLocation TIME_LOC = glGetUniformLocation(shader_2d, "u_time");
+
+        //glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(ViewCamera_calc_view_matrix(&main_cam) * mat_ident));
+        glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(mat_projection * ViewCamera_calc_view_matrix(&main_cam) * mat_ident));
+        glUniform1f(TIME_LOC, ((GLdouble)curr_time / TIME_UNIT_TO_SECONDS));
+
+        glBindVertexArray(vao_2d.vao);
+        glDrawElements(GL_LINES, lines_data.i_count, GL_UNSIGNED_INT, (void*)0);
+
+        glBindVertexArray(vao_2d2.vao);
+        glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, (void*)0);
                 
         SDL_GL_SwapWindow(window);
-    }
 
-    for (size_t i = 0; i < gl_data.textures.count; ++i) {
-        glDeleteTextures(1, &gl_data.textures.ids[i]);
+    //////////////////
     }
     
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteVertexArrays(1, &VAO_Light);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
-    
+    delete_static_VertexBufferData(&lines_data);
+    delete_VertexAttributeArray(&vao_2d);
     SDL_GL_DeleteContext(gl_data.context);
     SDL_DestroyWindow(window);
     IMG_Quit();
