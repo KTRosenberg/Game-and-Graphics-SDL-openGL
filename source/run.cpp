@@ -62,8 +62,6 @@ SDL_Window* window = NULL;
 // based on tutorial at 
 // http://headerphile.com/sdl2/opengl-part-1-sdl-opengl-awesome/
 
-using namespace GL;
-
 void* xmalloc(size_t bytes);
 void* xmalloc(size_t bytes)
 {
@@ -156,64 +154,72 @@ void create_AttributeData(
 //     AttributeData attributes[VAO_ATTRIBUTE_MAIN_TEST_COUNT];
 // } VertexArrayData;
 
-void create_VertexArray(VertexArray* vao) 
-{
-    glGenVertexArrays(1, vao);
-}
-void delete_VertexArray(VertexArray* vao) 
-{
-    glDeleteVertexArrays(1, vao);
-}
-
 // VERTEX BUFFERS
 
 typedef struct _VertexBufferData {
     VertexBuffer vbo;
     ElementBuffer ebo;
+    size_t    v_cap;
     size_t    v_count;
     size_t    v_size_element;
+    size_t    i_cap;
     size_t    i_count;
     size_t    i_size_element;
     GLfloat*  vertices;
     GLuint*   indices;
 } VertexBufferData;
 
-void create_VertexData(
+struct VertexBufferDataAlt {
+    VertexBuffer vbo;
+    ElementBuffer ebo;
+    std::vector<GLfloat>  vertices;
+    std::vector<GLuint>   indices;
+} VertexBufferDataAlt;
+
+typedef VertexBufferData VBData;
+
+void create_VertexBufferData(
     VertexBufferData* g,
-    const size_t v_count,
+    const size_t v_cap,
     const size_t v_size_element,
-    const size_t i_count,
+    const size_t i_cap,
     const size_t i_size_element
 ) {
     glGenBuffers(2, (GLBuffer*)&g->vbo);
 
-    g->v_count = v_count;
+    g->v_cap = v_cap;
     g->v_size_element  = v_size_element;
-    g->i_count = i_count;
+    g->i_cap = i_cap;
     g->i_size_element  = i_size_element;
 
-    g->vertices = (GLfloat*)xmalloc(g->v_size_element * g->v_count);
-    g->indices  = (GLuint*)xmalloc(g->v_size_element * g->i_count);
+    g->vertices = (GLfloat*)xmalloc(g->v_size_element * g->v_cap);
+    g->indices  = (GLuint*)xmalloc(g->i_size_element * g->i_cap);
+
+    g->v_count = 0;
+    g->i_count = 0;
 }
 
 void create_static_VertexBufferData(
     VertexBufferData* g,
-    const size_t v_count,
+    const size_t v_cap,
     const size_t v_size_element,
     GLfloat* vertices,
-    const size_t i_count,
+    const size_t i_cap,
     const size_t i_size_element,
     GLuint* indices
 ) {
     glGenBuffers(2, (GLBuffer*)&g->vbo);
 
-    g->v_count = v_count;
+    g->v_cap = v_cap;
     g->v_size_element  = v_size_element;
-    g->i_count = i_count;
+    g->i_cap = i_cap;
     g->i_size_element  = i_size_element;
 
     g->vertices = vertices;
     g->indices  = indices;
+
+    g->v_count = 0;
+    g->i_count = 0;
 }
 
 void delete_VertexBufferData(VertexBufferData* g)
@@ -225,6 +231,47 @@ void delete_VertexBufferData(VertexBufferData* g)
 void delete_static_VertexBufferData(VertexBufferData* g)
 {
     glDeleteBuffers(2, (GLBuffer*)&g->vbo);
+}
+
+
+typedef struct _vertexAttributeArray {
+    VertexArray vao;
+    size_t stride;
+} VertexAttributeArray;
+
+typedef VertexAttributeArray VAttribArr;
+
+inline void create_VertexAttributeArray(VertexAttributeArray* vao, size_t stride) 
+{
+    glGenVertexArrays(1, &vao->vao);
+    vao->stride = stride;
+}
+inline void delete_VertexAttributeArray(VertexAttributeArray* vao) 
+{
+    glDeleteVertexArrays(1, &vao->vao);
+}
+inline void* attribute_offsetof(VertexBufferData* vb, size_t offset)
+{
+    return (void*)(offset * vb->v_size_element);
+}
+inline size_t attribute_sizeof(VertexAttributeArray* vao, VertexBufferData* vb) 
+{
+    return vao->stride * vb->v_size_element;
+}
+
+inline void gl_set_and_enable_vertex_attrib_ptr(GLuint index, GLint size, GLenum type, GLboolean normalized, size_t offset, VertexAttributeArray* va, VertexBufferData* vb)
+{
+    glVertexAttribPointer(index, size, type, normalized, attribute_sizeof(va, vb), attribute_offsetof(vb, offset));            
+    glEnableVertexAttribArray(index);
+}
+
+inline void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, size_t v_cap, size_t i_cap, GLenum usage)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
+    glBufferData(GL_ARRAY_BUFFER, v_cap * vbd->v_size_element, vbd->vertices, usage);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbd->ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, i_cap * vbd->i_size_element, vbd->indices, usage);            
 }
 
 
@@ -250,7 +297,7 @@ typedef struct _Collider {
 
 // WORLD STATE
 typedef struct _Room {
-    VertexBufferData  lines_datametry;
+    VertexBufferData  geometry;
     Collider* collision_data;
     glm::mat4 matrix;
 } Room;
@@ -279,8 +326,6 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 //////////////
 
-
-    ///////////////////
 
 int main(int argc, char* argv[])
 {
@@ -346,130 +391,139 @@ int main(int argc, char* argv[])
         fprintf(stderr, "ERROR: shader_2d\n");
         return EXIT_FAILURE;
     }
-    ///////////////
+///////////////
 
+    const size_t STRIDE = 7;
 
-    GLfloat vertices[] = {
-         0.5f,  0.5f, 0.0f, 1.0, 0.0, 0.0, 1.0,  // top right
-         0.5f, -0.5f, 0.0f, 0.0, 1.0, 0.0, 1.0, // bottom right
-        -0.5f, -0.5f, 0.0f, 0.0, 0.0, 1.0, 1.0, // bottom left
-        -0.5f,  0.5f, 0.0f, 1.0, 0.0, 0.0, 1.0  // top left 
+// LINES
+    const size_t COUNT_LINES = 1;
+    const size_t POINTS_PER_LINE = 2;
+    const size_t len_v_lines = STRIDE * COUNT_LINES * POINTS_PER_LINE;
+    const size_t len_i_lines = 2;
+
+    GLfloat wf = (GLfloat)SCREEN_WIDTH;
+    GLfloat hf = (GLfloat)SCREEN_HEIGHT;
+
+    GLfloat L[len_v_lines] = {
+        wf,   0.0f, 0.0f, 1.0, 0.0, 0.0, 1.0,  // top right
+        0.0f, hf,   0.0f, 0.0, 0.0, 1.0, 1.0, // bottom left
     };
-    GLuint indices[] = {  // note that we start from 0!
+
+    GLuint LI[len_i_lines] = {
+        0, 1
+    };
+
+// QUADS
+    const size_t COUNT_QUADS = 1;
+    const size_t POINTS_PER_QUAD = 4;
+    const size_t POINTS_PER_TRI = 3;
+    const size_t TRIS_PER_QUAD = 2;
+    const size_t len_v_tris = STRIDE * COUNT_QUADS * POINTS_PER_QUAD;
+    const size_t len_i_tris = TRIS_PER_QUAD * POINTS_PER_TRI;
+
+    GLfloat T[] = {
+         wf,    0.0,  0.0f, 0.0, 0.0, 1.0, 0.5,  // top right
+         wf,    hf,   0.0f, 0.0, 0.0, 1.0, 0.5, // bottom right
+         0.0f,  hf,   0.0f, 0.0, 0.0, 1.0, 0.5, // bottom left
+         0.0f,  0.0f, 0.0f, 1.0, 0.0, 0.0, 0.5  // top left 
+    };
+    GLuint TI[] = {  // note that we start from 0!
         0, 1, 3,  // first Triangle
         1, 2, 3   // second Triangle
     };
 
+// TOTAL ALLOCATION
+    const size_t BATCH_COUNT = 1024;
+    const size_t GUESS_VERTS_PER_DRAW = 4;
+    const size_t BATCH_COUNT_EXTRA = BATCH_COUNT * GUESS_VERTS_PER_DRAW * STRIDE;
 
-    GL::VertexArray vao_2d;
-    create_VertexArray(&vao_2d);
-    glBindVertexArray(vao_2d);
+// R1 ////////////////////////////////////////////////
 
-        VertexBufferData lines_data;
+    VertexAttributeArray vao_2d;
+    VertexBufferData lines_data;
 
-        const size_t STRIDE = 7;
-        const size_t BATCH_COUNT = 1024;
-        const size_t GUESS_VERTS_PER_DRAW = 4;
-        const size_t BATCH_SIZE = BATCH_COUNT * GUESS_VERTS_PER_DRAW * STRIDE;
-        const size_t BATCH_SIZE_FL = BATCH_SIZE * sizeof(GLfloat);
-        const size_t BATCH_SIZE_UI = BATCH_SIZE * sizeof(GLuint);
+    create_VertexAttributeArray(&vao_2d, 7);
 
-        GLfloat lines_VBO_data[BATCH_SIZE_FL];
-        GLuint lines_EBO_data[BATCH_SIZE_UI];
+    glBindVertexArray(vao_2d.vao);
 
+
+        GLfloat lines_VBO_data[BATCH_COUNT_EXTRA * sizeof(GLfloat)];
+        GLuint lines_EBO_data[BATCH_COUNT_EXTRA * sizeof(GLuint)];
 
 
         create_static_VertexBufferData(
             &lines_data, 
-            BATCH_SIZE,
+            BATCH_COUNT_EXTRA,
             sizeof(GLfloat),
             lines_VBO_data,
-            BATCH_SIZE,
+            BATCH_COUNT_EXTRA,
             sizeof(GLuint), 
             lines_EBO_data
         );
+        lines_data.v_count = len_v_lines;
+        lines_data.i_count = len_i_lines;
 
-        const size_t COUNT_LINES = 1;
-        const size_t POINTS_PER_LINE = 2;
-        const size_t len_vertices_draw_2d = STRIDE * COUNT_LINES * POINTS_PER_LINE;
-        const size_t len_indices_draw_2d = 2;
 
-        GLfloat L [len_vertices_draw_2d] = {
-             1.0f,  1.0f, 0.0f, 1.0, 0.0, 0.0, 1.0,  // top right
-            -1.0f, -1.0f, 0.0f, 0.0, 0.0, 1.0, 1.0, // bottom left
-        };
-
-        GLuint LI [len_indices_draw_2d] = {
-            0, 1
-        };
-
-        for (size_t i = 0; i < len_vertices_draw_2d; ++i) {
+        for (size_t i = 0; i < len_v_lines; ++i) {
             lines_VBO_data[i] = L[i];
         }
-        for (size_t i = 0; i < len_indices_draw_2d; ++i) {
+        for (size_t i = 0; i < len_i_lines; ++i) {
             lines_EBO_data[i] = LI[i];
         }
 
-        glBindBuffer(GL_ARRAY_BUFFER, lines_data.vbo);
-        //glBufferSubData(GL_ARRAY_BUFFER, 0, BATCH_SIZE_FL, lines_data.vertices);
-        glBufferData(GL_ARRAY_BUFFER, BATCH_SIZE_FL, lines_data.vertices, GL_STATIC_DRAW);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lines_data.ebo);
-        //glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, BATCH_SIZE_UI, lines_data.indices);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, BATCH_SIZE_UI, lines_data.indices, GL_STATIC_DRAW);
-
+        
+        gl_bind_buffers_and_upload_data(&lines_data, BATCH_COUNT_EXTRA, BATCH_COUNT_EXTRA, GL_STATIC_DRAW);
         // POSITION
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, STRIDE * lines_data.v_size_element, (void*)0);
-        glEnableVertexAttribArray(0);
+        gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &vao_2d, &lines_data);
         // COLOR
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, STRIDE * lines_data.v_size_element, (void*)(3 * lines_data.v_size_element));
-        glEnableVertexAttribArray(1);
+        gl_set_and_enable_vertex_attrib_ptr(1, 4, GL_FLOAT, GL_FALSE, 3, &vao_2d, &lines_data);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     glBindVertexArray(0);
 
+// R2 ////////////////////////////////////////////////
 
-    // create_static_VertexBufferData(
-    //     &lines_data, 
-    //     sizeof(vertices) / sizeof(GLfloat),
-    //     sizeof(GLfloat),
-    //     vertices,
-    //     sizeof(indices) / sizeof(GLuint),
-    //     sizeof(GLuint),
-    //     indices
-    // );
+    VertexAttributeArray vao_2d2;
+    VertexBufferData tri_data;
 
+    create_VertexAttributeArray(&vao_2d2, 7);
 
+    glBindVertexArray(vao_2d2.vao);
 
+        GLfloat tris_VBO_data[BATCH_COUNT_EXTRA * sizeof(GLfloat)];
+        GLuint  tris_EBO_data[BATCH_COUNT_EXTRA * sizeof(GLuint)];
 
-    // const size_t STRIDE = 7;
+        create_static_VertexBufferData(
+            &tri_data, 
+            BATCH_COUNT_EXTRA,
+            sizeof(GLfloat),
+            tris_VBO_data,
+            BATCH_COUNT_EXTRA,
+            sizeof(GLuint), 
+            tris_EBO_data
+        );
+        tri_data.i_count = len_i_tris;
 
-    // // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-    // glBindVertexArray(vao_2d);
+        for (size_t i = 0; i < len_v_tris; ++i) {
+            tris_VBO_data[i] = T[i];
+        }
+        for (size_t i = 0; i < len_i_tris; ++i) {
+            tris_EBO_data[i] = TI[i];
+        }
 
-    // glBindBuffer(GL_ARRAY_BUFFER, lines_data.vbo);
-    // glBufferData(GL_ARRAY_BUFFER, lines_data.v_count * lines_data.v_size_element, lines_data.vertices, GL_STATIC_DRAW);
+        
+        gl_bind_buffers_and_upload_data(&tri_data, BATCH_COUNT_EXTRA, BATCH_COUNT_EXTRA, GL_STATIC_DRAW);
+        // POSITION
+        gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &vao_2d2, &tri_data);
+        // COLOR
+        gl_set_and_enable_vertex_attrib_ptr(1, 4, GL_FLOAT, GL_FALSE, 3, &vao_2d2, &tri_data);
 
-    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lines_data.ebo);
-    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, lines_data.i_count * lines_data.i_size_element, lines_data.indices, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, STRIDE * lines_data.v_size_element, (void*)0);
-    // glEnableVertexAttribArray(0);
-    
-    // glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, STRIDE * lines_data.v_size_element, (void*)(3 * lines_data.v_size_element));
-    // glEnableVertexAttribArray(1);
+    glBindVertexArray(0);
 
-    // // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-    // glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-    // //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    // // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-    // // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-    // glBindVertexArray(0); 
-
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	
@@ -486,6 +540,12 @@ int main(int argc, char* argv[])
     
     printf("USING GL VERSION: %s\n", glGetString(GL_VERSION));
 
+
+    glm::mat4 mat_ident(1.0);
+    glm::mat4 mat_view(1.0);
+    glm::mat4 mat_projection = glm::ortho(0.0f, (GLfloat)SCREEN_WIDTH, (GLfloat)SCREEN_HEIGHT, 0.0f, -1000.0f, 1000.0f);
+    glm::mat4 mat_projection_perspective = glm::perspective(glm::radians(45.0f), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
+
     bool keep_running = true;
     SDL_Event event;
 
@@ -495,6 +555,39 @@ int main(int argc, char* argv[])
     Uint32 curr_time = start_time;
     Uint64 delta_time = 0;
     Uint64 dt = 0;
+
+//////////////////
+// TEST INPUT
+    Camera main_cam(glm::vec3(0.0, 0.0, 0.0f));
+    
+    const Uint8* key_states = SDL_GetKeyboardState(NULL);
+
+    const Uint8* up         = &key_states[SDL_SCANCODE_W];
+    const Uint8* down       = &key_states[SDL_SCANCODE_S];
+    const Uint8* left       = &key_states[SDL_SCANCODE_A];
+    const Uint8* right      = &key_states[SDL_SCANCODE_D];
+    const Uint8* rot_r      = &key_states[SDL_SCANCODE_RIGHT];
+    const Uint8* rot_l      = &key_states[SDL_SCANCODE_LEFT];
+//  const Uint8& up_right   = key_states[SDL_SCANCODE_E];
+//  const Uint8& up_left    = key_states[SDL_SCANCODE_Q];
+//  const Uint8& down_right = key_states[SDL_SCANCODE_X];
+//  const Uint8& down_left  = key_states[SDL_SCANCODE_Z];
+    const Uint8* reset = &key_states[SDL_SCANCODE_0];
+    const Uint8* toggle_projection = &key_states[SDL_SCANCODE_P];
+
+    bool projection_is_ortho = true;
+
+    const double POS_ACC = 1.075;
+    const double NEG_ACC = 1.0 / POS_ACC;
+
+    double up_acc = 1.0;
+    double down_acc = 1.0;
+    double left_acc = 1.0;
+    double right_acc = 1.0;
+
+
+/////////////////
+// MAIN LOOP
 
     while (keep_running) {
         curr_time = SDL_GetTicks();
@@ -516,36 +609,92 @@ int main(int argc, char* argv[])
                 keep_running = false;
             }
         }
+
+    //////////////////
+    // TEST INPUT
+        {
+
+            const double CHANGE = (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS);
+
+            if (*up) {
+                main_cam.process_directional_movement(Camera_Movement::FORWARDS, CHANGE * up_acc);
+                up_acc *= POS_ACC;
+            } else {
+                if (up_acc > 1.0) {
+                    main_cam.process_directional_movement(Camera_Movement::FORWARDS, CHANGE * up_acc);
+                }
+                up_acc = glm::max(1.0, up_acc * NEG_ACC);
+            }
+            if (*down) {
+                main_cam.process_directional_movement(Camera_Movement::BACKWARDS, CHANGE * down_acc);
+                down_acc *= POS_ACC;
+            } else {
+                if (down_acc > 1.0) {
+                    main_cam.process_directional_movement(Camera_Movement::BACKWARDS, CHANGE * down_acc);
+                } 
+                down_acc = glm::max(1.0, down_acc * NEG_ACC);  
+            }
+
+            if (*left) {
+                main_cam.process_directional_movement(Camera_Movement::LEFTWARDS, CHANGE * left_acc);
+                left_acc *= POS_ACC;
+            } else {
+                if (left_acc > 1.0) {
+                    main_cam.process_directional_movement(Camera_Movement::LEFTWARDS, CHANGE * left_acc);
+                }
+                left_acc = glm::max(1.0, left_acc * NEG_ACC);
+            }
+
+            if (*right) {
+                main_cam.process_directional_movement(Camera_Movement::RIGHTWARDS, CHANGE * right_acc);
+                right_acc *= POS_ACC;
+            } else {
+                if (right_acc > 1.0) {
+                    main_cam.process_directional_movement(Camera_Movement::RIGHTWARDS, CHANGE * right_acc);
+                }
+                right_acc = glm::max(1.0, right_acc * NEG_ACC);
+            }
+
+            if (*reset) {
+                main_cam.pos = glm::vec3(0.0, 0.0, 10.0);
+                up_acc = 1.0;
+                down_acc = 1.0;
+                left_acc = 1.0;
+                right_acc = 1.0;
+            }
+
+            if (*toggle_projection) {
+                projection_is_ortho = !projection_is_ortho;
+            }
+
+        }
+        //std::cout << "x:" << main_cam.pos.x << ":y" << main_cam.pos.y << ":z" << main_cam.pos.z << std::endl;
+    //////////////////
+    // DRAW
+
                 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        shader_2d.use();
-        glBindVertexArray(vao_2d);
-        glDrawElements(GL_LINES, len_indices_draw_2d, GL_UNSIGNED_INT, 0);
+        glUseProgram(shader_2d);
 
-        //////////////////////////////////////////////////////////////////
-        // shader_2d.use();
-        // //glClear(GL_DEPTH_BUFFER_BIT);
-        // glBindVertexArray(vao_2d);
+        UniformLocation MAT_LOC = glGetUniformLocation(shader_2d, "u_matrix");
+        glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(
+            ((projection_is_ortho) ? mat_projection : mat_projection_perspective) * main_cam.get_view_matrix() * mat_ident));
 
-        //     UniformLocation MAT_LOC = glGetUniformLocation(prog_shader, "u_matrix");
+        glBindVertexArray(vao_2d.vao);
+        glDrawElements(GL_LINES, lines_data.i_count, GL_UNSIGNED_INT, (void*)0);
 
-        //     glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(scene.m_projection * ident_mat));
-        
-        //     glDrawElements(GL_TRIANGLES, len_indices_draw_2d, GL_UNSIGNED_INT, 0);
-
-        // //glBindVertexArray(0);
-
-        // shader_2d.stop_using();
-        // 2d drawing
-        //
+        glBindVertexArray(vao_2d2.vao);
+        glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, (void*)0);
                 
         SDL_GL_SwapWindow(window);
+
+    //////////////////
     }
     
     delete_static_VertexBufferData(&lines_data);
-    delete_VertexArray(&vao_2d);
+    delete_VertexAttributeArray(&vao_2d);
     SDL_GL_DeleteContext(gl_data.context);
     SDL_DestroyWindow(window);
     IMG_Quit();

@@ -6,6 +6,7 @@ SDLLIBFLAGS = $(shell sdl2-config --libs)
 
 SOURCES   = run.cpp file_io.cpp shader.cpp texture.cpp material.cpp camera.cpp mesh_generator.cpp
 OBJECTS   = $(SOURCES:.cpp=.o)
+
 EXECNAME  = run
 
 all: $(EXECNAME)
@@ -14,6 +15,8 @@ $(EXECNAME): $(OBJECTS)
 	$(CXX) $(OBJECTS) $(SDLLIBFLAGS) $(LDFLAGS) -o $@
 
 %.o: %.cpp
+	$(CXX) -c $(CXXFLAGS) $(SDLCFLAGS) $< -o $@
+%.o: %.c
 	$(CXX) -c $(CXXFLAGS) $(SDLCFLAGS) $< -o $@
 	
 clean :
