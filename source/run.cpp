@@ -617,20 +617,20 @@ int main(int argc, char* argv[])
             const double CHANGE = (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS);
 
             if (*up) {
-                main_cam.process_directional_movement(Camera_Movement::FORWARDS, CHANGE * up_acc);
+                main_cam.process_directional_movement(Camera_Movement::DOWNWARDS, CHANGE * up_acc);
                 up_acc *= POS_ACC;
             } else {
                 if (up_acc > 1.0) {
-                    main_cam.process_directional_movement(Camera_Movement::FORWARDS, CHANGE * up_acc);
+                    main_cam.process_directional_movement(Camera_Movement::DOWNWARDS, CHANGE * up_acc);
                 }
                 up_acc = glm::max(1.0, up_acc * NEG_ACC);
             }
             if (*down) {
-                main_cam.process_directional_movement(Camera_Movement::BACKWARDS, CHANGE * down_acc);
+                main_cam.process_directional_movement(Camera_Movement::UPWARDS, CHANGE * down_acc);
                 down_acc *= POS_ACC;
             } else {
                 if (down_acc > 1.0) {
-                    main_cam.process_directional_movement(Camera_Movement::BACKWARDS, CHANGE * down_acc);
+                    main_cam.process_directional_movement(Camera_Movement::UPWARDS, CHANGE * down_acc);
                 } 
                 down_acc = glm::max(1.0, down_acc * NEG_ACC);  
             }
