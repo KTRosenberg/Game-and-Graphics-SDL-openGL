@@ -4,6 +4,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/ext.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #ifdef _WIN32
 #   define SDL_MAIN_HANDLED
@@ -62,15 +63,49 @@ SDL_Window* window = NULL;
 // based on tutorial at 
 // http://headerphile.com/sdl2/opengl-part-1-sdl-opengl-awesome/
 
-void* xmalloc(size_t bytes);
-void* xmalloc(size_t bytes)
+typedef void* (*Fn_MemoryAllocator)(size_t bytes);
+
+
+void* xmalloc(size_t num_bytes);
+void* xmalloc(size_t num_bytes)
 {
-    void* mem = malloc(bytes);
-    if (mem == NULL) {
-        abort();
+    void* ptr = malloc(num_bytes);
+    if (ptr == NULL) {
+        perror("xmalloc failed");
+        exit(EXIT_FAILURE);
     }
 
-    return mem;
+    return ptr;
+}
+
+void* xcalloc(size_t num_elems, size_t elem_size);
+void* xcalloc(size_t num_elems, size_t elem_size)
+{
+    void* ptr = calloc(num_elems, elem_size);
+    if (ptr == NULL) {
+        perror("xcalloc failed");
+        exit(EXIT_FAILURE);
+    }
+
+    return ptr;
+}
+
+void* xcalloc_1arg(size_t bytes);
+void* xcalloc_1arg(size_t bytes)
+{
+    return xcalloc(1, bytes);
+}
+
+void* xrealloc(void* ptr, size_t num_bytes);
+void* xrealloc(void* ptr, size_t num_bytes)
+{
+    ptr = realloc(ptr, num_bytes);
+    if (ptr == NULL) {
+        perror("xrealloc failed");
+        exit(EXIT_FAILURE);
+    }
+
+    return ptr;
 }
 
 // TEXTURES, GEOMETRY
@@ -109,15 +144,96 @@ struct sceneData {
     glm::mat4 m_projection;
 } scene;
 
+template <typename T>
 struct CappedArray {
     size_t cap;
     size_t count;
-    void*  array;
+    T*  array;
 
-    operator void*()
+    operator T*()
     {
         return this->array;
     }
+
+    T& operator[](size_t i)
+    {
+        return this->array[i];
+    }
+     
+    const T& operator[](size_t i) const 
+    {
+        return this->array[i];
+    }
+
+    inline size_t element_count() const
+    {
+        return this->count;
+    }
+
+    inline size_t element_size() const
+    {
+        return sizeof(T);
+    }
+
+    inline size_t size() const
+    {
+        return this->cap;
+    }
+
+
+    typedef CappedArray* iterator;
+    typedef const CappedArray* const_iterator;
+    iterator begin() { return &this->array[0]; }
+    iterator end() { return &this->array[this->cap]; }
+};
+
+template <typename T>
+void CappedArray_create(CappedArray<T>* arr, size_t cap, Fn_MemoryAllocator alloc) {
+    arr->array = (T*)alloc(sizeof(T) * cap);
+    arr->count = 0;
+    arr->cap = cap;
+}
+
+template <typename T, size_t N>
+struct CappedArrayStatic {
+    size_t cap;
+    size_t count;
+    T array[N];
+
+    operator T*()
+    {
+        return this->array;
+    }
+
+    T& operator[](size_t i)
+    {
+        return this->array[i];
+    }
+     
+    const T& operator[](size_t i) const 
+    {
+        return this->array[i];
+    }
+
+    inline size_t element_count() const
+    {
+        return this->count;
+    }
+
+    inline size_t element_size() const
+    {
+        return sizeof(T);
+    }
+
+    inline size_t size() const
+    {
+        return N;
+    }
+
+    typedef CappedArrayStatic* iterator;
+    typedef const CappedArrayStatic* const_iterator;
+    iterator begin() { return &this->array[0]; }
+    iterator end() { return &this->array[N]; }
 };
 
 // ATTRIBUTES AND VERTEX ARRAYS
@@ -167,6 +283,93 @@ void create_AttributeData(
 
 // VERTEX BUFFERS
 
+
+struct LinearAllocator {
+    void* memory;
+    unsigned char* marker;
+    size_t max_size;
+
+    Fn_MemoryAllocator alloc;
+
+    struct LinearAllocator* successor;
+};
+
+struct MemoryAllocator {
+    void* type;
+    Fn_MemoryAllocator fn_alloc;
+    
+    // void* alloc(size_t bytes)
+    // {
+    //     return Fn_MemoryAllocator(bytes, type);
+    // }
+};
+
+// void MemoryAllocator_create(MemoryAllocator* ma, void* type, Fn_MemoryAllocator* fn_alloc, Fn_MemoryAllocatorType_create fn_create, void* args)
+// {
+//     ma->fn_alloc = fn_alloc;
+//     ma->type = alloc;
+//     fn_create(fn_alloc, args);
+// }
+
+typedef uint8_t MemoryIndex;
+
+#define ARENA_DEFAULT_BLOCK_SIZE (1024 * 1024)
+typedef struct MemoryArena {
+    size_t   size;
+    uint8_t  used_idx;
+    uint8_t* base;
+    int32_t  _temp_count;
+
+    void** blocks;
+} MemoryArena;
+
+void* MemoryArena_push_data(void)
+{
+    return (void*)0;
+}
+
+
+void LinearAllocator_create(LinearAllocator* allocator, size_t max_size)
+{
+    allocator->max_size  = max_size;
+    //allocator->alloc     = alloc;
+    allocator->memory    = NULL;
+    allocator->marker    = NULL;
+    allocator->successor = NULL;
+}
+
+// void* LinearAllocator_allocate(size_t bytes)
+// {
+//     void* allocator->alloc(bytes)
+// }
+
+template <typename T>
+struct Buffer {
+    T* memory;
+    size_t cap;
+
+    const operator T*()
+    {
+        return this->memory;
+    }
+
+    size_t size() const
+    {
+        return sizeof(T) * cap;
+    }
+
+    size_t element_size() const
+    {
+        return sizeof(T);
+    }
+};
+
+template <typename T>
+void Buffer_create(Buffer<T>* b, size_t cap, Fn_MemoryAllocator alloc) {
+    b->memory = alloc(cap * sizeof(T));
+    b->cap = cap;
+}
+
 typedef struct VertexBufferData {
     VertexBuffer vbo;
     ElementBuffer ebo;
@@ -183,15 +386,24 @@ typedef struct VertexBufferData {
 struct VertexBufferDataAlt {
     VertexBuffer vbo;
     ElementBuffer ebo;
-    std::vector<GLfloat> vertices;
-    std::vector<GLuint>  indices;
+    CappedArray<GLfloat> vertices;
+    CappedArray<GLuint>  indices;
 } VertexBufferDataAlt;
+
+struct VertexBufferDataBatches {
+    CappedArray<VertexBuffer> vbos;
+    CappedArray<ElementBuffer> ebos;
+
+    CappedArray<GLfloat> vertex_batches;
+    CappedArray<GLuint> vertex_batch_offsets;
+    
+    CappedArray<GLuint> index_batches; 
+    CappedArray<GLuint> index_batch_offsets;
+} VertexBufferDataBatches;
 
 typedef VertexBufferData VBData;
 
 
-
-typedef void* (*Fn_MemoryAllocator)(size_t bytes);
 
 void create_VertexBufferData(
     VertexBufferData* g,
@@ -333,10 +545,9 @@ GLData gl_data;
 
 //////////////
 
-
 int main(int argc, char* argv[])
 {
-    std::cout << std::boolalpha << std::is_pod<CappedArray>::value  << std::endl;
+    std::cout << std::boolalpha << std::is_pod<CappedArray<GLfloat>>::value  << std::endl;
 
     // initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -390,17 +601,43 @@ int main(int argc, char* argv[])
 	glewExperimental = GL_TRUE;
     glewInit();
 
+    bool status;
+    std::string glsl_perlin_noise = Shader::retrieve_src_from_file("shaders/perlin_noise.glsl", &status);
+    if (!status) {
+        return false;
+    } 
+
     // SHADERS
+#define TRANSITION
+#ifdef TRANSITION
     Shader shader_2d;
     shader_2d.load_from_file(
-        "shaders/default_2d/default_2d.vrts",
-        "shaders/default_2d/default_2d.frgs"
+        "shaders/transition_a/transition_a.vrts",
+        "shaders/transition_a/transition_a.frgs",
+        glsl_perlin_noise,
+        glsl_perlin_noise
     );
     if (!shader_2d.is_valid()) {
         fprintf(stderr, "ERROR: shader_2d\n");
         return EXIT_FAILURE;
     }
+#else
+    puts("WEE");
+    Shader shader_2d;
+    shader_2d.load_from_file(
+        "shaders/default_2d/default_2d.vrts",
+        "shaders/default_2d/default_2d.frgs",
+        glsl_perlin_noise,
+        glsl_perlin_noise
+    );
+    if (!shader_2d.is_valid()) {
+        fprintf(stderr, "ERROR: shader_2d\n");
+        return EXIT_FAILURE;
+    }
+#endif
 ///////////////
+
+    const GLfloat ASPECT = (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT;
 
     const size_t STRIDE = 7;
 
@@ -410,12 +647,12 @@ int main(int argc, char* argv[])
     const size_t len_v_lines = STRIDE * COUNT_LINES * POINTS_PER_LINE;
     const size_t len_i_lines = 2;
 
-    GLfloat wf = (GLfloat)SCREEN_WIDTH;
-    GLfloat hf = (GLfloat)SCREEN_HEIGHT;
+    GLfloat wf = 1.0f;//(GLfloat)SCREEN_WIDTH;
+    GLfloat hf = 1.0f;//(GLfloat)SCREEN_HEIGHT;
 
     GLfloat L[len_v_lines] = {
-        wf,   0.0f, 0.0f, 1.0, 0.0, 0.0, 1.0,  // top right
-        0.0f, hf,   0.0f, 0.0, 0.0, 1.0, 1.0, // bottom left
+         wf * ASPECT,  hf,   0.0f, 1.0, 0.0, 0.0, 1.0,  // top right
+        -wf * ASPECT, -hf,   0.0f, 0.0, 0.0, 1.0, 1.0, // bottom left
     };
 
     GLuint LI[len_i_lines] = {
@@ -430,16 +667,30 @@ int main(int argc, char* argv[])
     const size_t len_v_tris = STRIDE * COUNT_QUADS * POINTS_PER_QUAD;
     const size_t len_i_tris = COUNT_QUADS * TRIS_PER_QUAD * POINTS_PER_TRI;
 
+    // X formation quads
+#ifdef TRANSITION
+        //single quad
     GLfloat T[] = {
-        0.0f,  0.0f,  100.0f, 0.0, 0.0, 1.0, 1.0,  // top left
-        0.0f,  hf,    100.0f, 0.0, 0.0, 1.0, 1.0,  // bottom left
-        wf,    hf,    -100.0f, 0.0, 0.0, 1.0, 1.0,  // bottom right
-        wf,    0.0,   -100.0f, 0.0, 0.0, 1.0, 1.0,  // top right
+       -wf * ASPECT,  hf,  0.0f, 0.0, 0.0, 1.0, 1.0,  // top left
+       -wf * ASPECT, -hf,  0.0f, 0.0, 0.0, 1.0, 1.0,  // bottom left
+        wf * ASPECT, -hf,  0.0f, 0.0, 0.0, 1.0, 1.0,  // bottom right
+        wf * ASPECT,  hf,  0.0f, 0.0, 0.0, 1.0, 1.0,  // top right
+    };
+    GLuint TI[] = {  // note that we start from 0!
+        0, 1, 2,  // first Triangle
+        2, 3, 0,   // second Triangle
+    };
+#else
+    GLfloat T[] = {
+       -wf * ASPECT,  hf,  1.0f, 0.0, 0.0, 1.0, 1.0,  // top left
+       -wf * ASPECT, -hf,  1.0f, 0.0, 0.0, 1.0, 1.0,  // bottom left
+        wf * ASPECT, -hf, -1.0f, 0.0, 0.0, 1.0, 1.0,  // bottom right
+        wf * ASPECT,  hf, -1.0f, 0.0, 0.0, 1.0, 1.0,  // top right
 
-        0.0f,  0.0f, -100.0f, 1.0, 0.0, 0.0, 1.0,  // top left
-        0.0f,  hf,   -100.0f, 1.0, 0.0, 0.0, 1.0, // bottom left
-        wf,    hf,   100.0f, 1.0, 0.0, 0.0, 1.0, // bottom right
-        wf,    0.0,  100.0f, 1.0, 0.0, 0.0, 1.0, // top right
+        -wf * ASPECT,  hf, -1.0f, 1.0, 0.0, 0.0, 1.0,  // top left
+        -wf * ASPECT, -hf, -1.0f, 1.0, 0.0, 0.0, 1.0, // bottom left
+         wf * ASPECT, -hf,  1.0f, 1.0, 0.0, 0.0, 1.0, // bottom right
+         wf * ASPECT,  hf,  1.0f, 1.0, 0.0, 0.0, 1.0, // top right
     };
     GLuint TI[] = {  // note that we start from 0!
         0, 1, 2,  // first Triangle
@@ -448,6 +699,7 @@ int main(int argc, char* argv[])
         4, 5, 6,
         6, 7, 4,
     };
+#endif
 
 // TOTAL ALLOCATION
     const size_t BATCH_COUNT = 1024;
@@ -524,7 +776,15 @@ int main(int argc, char* argv[])
             tris_EBO_data[i] = TI[i];
         }
 
-        
+
+        Buffer<int> b;
+        b.memory = (int*)xcalloc_1arg(sizeof(int) * 10);
+        free(b.memory);
+        b.memory = NULL;
+
+
+        //std::cout << b[0] << std::endl;
+
         gl_bind_buffers_and_upload_data(&tri_data, BATCH_COUNT_EXTRA, BATCH_COUNT_EXTRA, GL_STATIC_DRAW);
         // POSITION
         gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &vao_2d2);
@@ -552,9 +812,8 @@ int main(int argc, char* argv[])
     
     printf("USING GL VERSION: %s\n", glGetString(GL_VERSION));
 
-
     glm::mat4 mat_ident(1.0f);
-    glm::mat4 mat_projection = glm::ortho(0.0f, (GLfloat)SCREEN_WIDTH, (GLfloat)SCREEN_HEIGHT, 0.0f, -1000.0f, 1000.0f);
+    glm::mat4 mat_projection = glm::ortho(-1.0f * ASPECT, 1.0f * ASPECT, -1.0f, 1.0f, -1.0f, 1.0f);
     //glm::mat4 mat_projection = glm::perspective(glm::radians(45.0f), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
 
     bool keep_running = true;
@@ -569,20 +828,22 @@ int main(int argc, char* argv[])
 
 //////////////////
 // TEST INPUT
-    glm::vec3 start_pos(0.0f, 0.0f, 200.0f);
+    glm::vec3 start_pos(0.0f, 0.0f, 1.0f);
     
-    ViewCamera main_cam;
-    ViewCamera_create(
-        &main_cam,
-        start_pos,
-        ViewCamera_default_speed,
-        -1000.0f,
-        1000.0f,
-        0.0f,
-        0.0f,
-        0.0f,
-        0.0f
-    );
+    FreeCamera main_cam(start_pos);
+    main_cam.orientation = glm::quat();
+    main_cam.speed = 0.01;
+    // ViewCamera_create(
+    //     &main_cam,
+    //     start_pos,
+    //     ViewCamera_default_speed,
+    //     -1000.0f,
+    //     1000.0f,
+    //     0.0f,
+    //     0.0f,
+    //     0.0f,
+    //     0.0f
+    // );
     
     const Uint8* key_states = SDL_GetKeyboardState(NULL);
 
@@ -638,6 +899,7 @@ int main(int argc, char* argv[])
                 keep_running = false;
             }
         }
+        main_cam.orientation = glm::quat();
 
     //////////////////
     // TEST INPUT
@@ -646,75 +908,77 @@ int main(int argc, char* argv[])
             const double CHANGE = (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS);
 
             if (*up) {
-                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
+                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
                 up_acc *= POS_ACC;
             } else {
                 if (up_acc > 1.0) {
-                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
+                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
                 }
                 up_acc = glm::max(1.0, up_acc * NEG_ACC);
             }
             if (*down) {
-                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
+                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
                 down_acc *= POS_ACC;
             } else {
                 if (down_acc > 1.0) {
-                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
+                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
                 } 
                 down_acc = glm::max(1.0, down_acc * NEG_ACC);  
             }
 
             if (*left) {
-                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
+                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
                 left_acc *= POS_ACC;
             } else {
                 if (left_acc > 1.0) {
-                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
+                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
                 }
                 left_acc = glm::max(1.0, left_acc * NEG_ACC);
             }
 
             if (*right) {
-                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
+                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
                 right_acc *= POS_ACC;
             } else {
                 if (right_acc > 1.0) {
-                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
+                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
                 }
                 right_acc = glm::max(1.0, right_acc * NEG_ACC);
             }
 
             if (*forwards) {
-                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
+                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
                 forwards_acc *= POS_ACC;
             } else {
                 if (forwards_acc > 1.0) {
-                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
+                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
                 }
                 forwards_acc = glm::max(1.0, forwards_acc * NEG_ACC);
             }
             if (*backwards) {
-                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
+                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
                 backwards_acc *= POS_ACC;
             } else {
                 if (backwards_acc > 1.0) {
-                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
+                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
                 } 
                 backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
             }
 
             if (*reset) {
-                ViewCamera_create(
-                    &main_cam,
-                    start_pos,
-                    ViewCamera_default_speed,
-                    -1000.0f,
-                    1000.0f,
-                    0.0f,
-                    0.0f,
-                    0.0f,
-                    0.0f
-                );
+                // FreeCamera_create(
+                //     &main_cam,
+                //     start_pos,
+                //     ViewCamera_default_speed,
+                //     -1000.0f,
+                //     1000.0f,
+                //     0.0f,
+                //     0.0f,
+                //     0.0f,
+                //     0.0f
+                // );
+                main_cam.position = start_pos;
+                main_cam.orientation = glm::quat();
 
                 up_acc        = 1.0;
                 down_acc      = 1.0;
@@ -729,6 +993,8 @@ int main(int argc, char* argv[])
             std::cout << "VIEW_POSITION{x : " << pos->x << ", y : " << pos->y << ", z: " << pos->z << "}" << std::endl;
         #endif
         }
+
+        //main_cam.rotate((GLfloat)curr_time / TIME_UNIT_TO_SECONDS, 0.0f, 0.0f, 1.0f);
     //////////////////
     // DRAW
 
@@ -740,10 +1006,12 @@ int main(int argc, char* argv[])
 
         UniformLocation MAT_LOC = glGetUniformLocation(shader_2d, "u_matrix");
         UniformLocation TIME_LOC = glGetUniformLocation(shader_2d, "u_time");
+        UniformLocation RES_LOC = glGetUniformLocation(shader_2d, "u_resolution");
 
         //glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(ViewCamera_calc_view_matrix(&main_cam) * mat_ident));
-        glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(mat_projection * ViewCamera_calc_view_matrix(&main_cam) * mat_ident));
+        glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(mat_projection * FreeCamera_calc_view_matrix(&main_cam) * mat_ident  * glm::scale(mat_ident, glm::vec3(0.5, 0.5, 0.5)) ));
         glUniform1f(TIME_LOC, ((GLdouble)curr_time / TIME_UNIT_TO_SECONDS));
+        glUniform2fv(RES_LOC, 1, glm::value_ptr(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT)));
 
         glBindVertexArray(vao_2d.vao);
         glDrawElements(GL_LINES, lines_data.i_count, GL_UNSIGNED_INT, (void*)0);

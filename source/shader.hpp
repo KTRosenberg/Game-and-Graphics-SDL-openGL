@@ -38,7 +38,7 @@ struct Shader {
     bool _is_valid;
     bool init_program(const GLchar* vertex_src, const GLchar* fragment_src);
 
-    Shader(void);
+
     
     bool load_from_file(const std::string& vertex_path, const std::string& fragment_path,
                             const std::string& vert_addons="",
@@ -62,6 +62,7 @@ struct Shader {
         return this->_program;
     }
 };
+
 
 typedef Shader Shader;
 
