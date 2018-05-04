@@ -23,8 +23,8 @@
 
 #define WINDOW_HEADER ("")
 
-#define SCREEN_WIDTH  720
-#define SCREEN_HEIGHT 480
+#define SCREEN_WIDTH  1280
+#define SCREEN_HEIGHT 720
 #define TIME_UNIT_TO_SECONDS 1000
 #define FRAMES_PER_SECOND 60
 
@@ -284,25 +284,15 @@ void create_AttributeData(
 // VERTEX BUFFERS
 
 
-struct LinearAllocator {
-    void* memory;
-    unsigned char* marker;
-    size_t max_size;
-
-    Fn_MemoryAllocator alloc;
-
-    struct LinearAllocator* successor;
-};
-
-struct MemoryAllocator {
-    void* type;
-    Fn_MemoryAllocator fn_alloc;
+// struct MemoryAllocator {
+//     void* type;
+//     Fn_MemoryAllocator fn_alloc;
     
-    // void* alloc(size_t bytes)
-    // {
-    //     return Fn_MemoryAllocator(bytes, type);
-    // }
-};
+//     void* alloc(size_t bytes)
+//     {
+//         return Fn_MemoryAllocator(type, bytes);
+//     }
+// };
 
 // void MemoryAllocator_create(MemoryAllocator* ma, void* type, Fn_MemoryAllocator* fn_alloc, Fn_MemoryAllocatorType_create fn_create, void* args)
 // {
@@ -311,64 +301,130 @@ struct MemoryAllocator {
 //     fn_create(fn_alloc, args);
 // }
 
-typedef uint8_t MemoryIndex;
-
 #define ARENA_DEFAULT_BLOCK_SIZE (1024 * 1024)
-typedef struct MemoryArena {
-    size_t   size;
-    uint8_t  used_idx;
-    uint8_t* base;
-    int32_t  _temp_count;
+#define ARENA_ALIGNMENT 8
 
-    void** blocks;
-} MemoryArena;
 
-void* MemoryArena_push_data(void)
+#define MIN(x, y) ((x) <= (y) ? (x) : (y))
+#define MAX(x, y) ((x) >= (y) ? (x) : (y))
+#define CLAMP_MAX(x, max) MIN(x, max)
+#define CLAMP_MIN(x, min) MAX(x, min)
+
+#define ALIGN_DOWN(n, a) ((n) & ~((a) - 1))
+#define ALIGN_UP(n, a) ALIGN_DOWN((n) + (a) - 1, (a))
+#define ALIGN_DOWN_PTR(p, a) ((void *)ALIGN_DOWN((uintptr_t)(p), (a)))
+#define ALIGN_UP_PTR(p, a) ((void *)ALIGN_UP((uintptr_t)(p), (a)))
+
+typedef struct ArenaAllocator {
+    char* ptr;
+    char* end;
+    char** blocks;
+    size_t block_count;
+    size_t block_cap;
+} ArenaAllocator;
+
+
+void ArenaAllocator_create(ArenaAllocator* arena);
+void* ArenaAllocator_allocate(ArenaAllocator* arena, size_t size);
+void ArenaAllocator_grow(ArenaAllocator* arena, size_t min_size);
+void ArenaAllocator_delete(ArenaAllocator* arena);
+
+void ArenaAllocator_create(ArenaAllocator* arena)
 {
-    return (void*)0;
+    arena->ptr         = NULL;
+    arena->end         = NULL;
+    arena->blocks      = NULL;
+    arena->block_count = 0;
+    arena->block_cap   = 0;
+}
+void* ArenaAllocator_allocate(ArenaAllocator* arena, size_t size)
+{
+    if (size > (size_t)(arena->end - arena->ptr)) {
+        ArenaAllocator_grow(arena, size);
+
+        assert(size <= (size_t)(arena->end - arena->ptr));
+    }
+    void* ptr = (void*)arena->ptr;
+    arena->ptr = (char*)ALIGN_UP_PTR(arena->ptr + size, ARENA_ALIGNMENT);
+    
+    assert(arena->ptr <= arena->end);
+    assert(ptr == ALIGN_DOWN_PTR(ptr, ARENA_ALIGNMENT));
+    
+    return ptr;
 }
 
-
-void LinearAllocator_create(LinearAllocator* allocator, size_t max_size)
+void ArenaAllocator_grow(ArenaAllocator* arena, size_t min_size)
 {
-    allocator->max_size  = max_size;
-    //allocator->alloc     = alloc;
-    allocator->memory    = NULL;
-    allocator->marker    = NULL;
-    allocator->successor = NULL;
-}
+    size_t size = ALIGN_UP(CLAMP_MIN(min_size, ARENA_DEFAULT_BLOCK_SIZE), ARENA_ALIGNMENT);
+    arena->ptr = (char*)xmalloc(size);
 
-// void* LinearAllocator_allocate(size_t bytes)
-// {
-//     void* allocator->alloc(bytes)
-// }
+    assert(arena->ptr == ALIGN_DOWN_PTR(arena->ptr, ARENA_ALIGNMENT));
+
+    arena->end = arena->ptr + size;
+
+    if (arena->block_count == arena->block_cap) {
+        const size_t new_cap = (arena->block_cap + 1) * 2;
+        arena->blocks = (char**)xrealloc(arena->blocks, new_cap * sizeof(*(arena->blocks)));
+        arena->block_cap = new_cap;
+    }
+
+    arena->blocks[arena->block_count] = arena->ptr;
+    
+    ++arena->block_count;
+}
+void ArenaAllocator_delete(ArenaAllocator* arena)
+{
+    for (size_t i = 0; i < arena->block_count; ++i) {
+        free(arena->blocks[i]);
+    }
+    free(arena->blocks);
+}
 
 template <typename T>
-struct Buffer {
+struct ArenaBuffer {
     T* memory;
-    size_t cap;
+    size_t count;
 
-    const operator T*()
+    operator T*()
     {
         return this->memory;
     }
 
-    size_t size() const
+    inline T& operator[](size_t i)
     {
-        return sizeof(T) * cap;
+        return this->memory[i];
+    }
+     
+    inline const T& operator[](size_t i) const 
+    {
+        return this->memory[i];
     }
 
-    size_t element_size() const
+    inline size_t size() const
+    {
+        return sizeof(T) * count;
+    }
+
+    inline size_t element_size() const
     {
         return sizeof(T);
     }
 };
 
-template <typename T>
-void Buffer_create(Buffer<T>* b, size_t cap, Fn_MemoryAllocator alloc) {
-    b->memory = alloc(cap * sizeof(T));
-    b->cap = cap;
+
+void ArenaBuffer_create_bytes(ArenaAllocator* arena, ArenaBuffer<char>* buffer, size_t count) 
+{
+    buffer->memory = (char*)ArenaAllocator_allocate(arena, count);
+    buffer->count = count;
 }
+
+template <typename T>
+void ArenaBuffer_create(ArenaAllocator* arena, ArenaBuffer<T>* buffer, size_t count) 
+{
+    buffer->memory = (T*)ArenaAllocator_allocate(arena, count * sizeof(T));
+    buffer->count = count;
+}
+
 
 typedef struct VertexBufferData {
     VertexBuffer vbo;
@@ -547,7 +603,42 @@ GLData gl_data;
 
 int main(int argc, char* argv[])
 {
-    std::cout << std::boolalpha << std::is_pod<CappedArray<GLfloat>>::value  << std::endl;
+    std::cout << std::boolalpha << std::is_pod<ArenaAllocator>::value  << std::endl;
+
+    ArenaAllocator arena;
+    ArenaAllocator_create(&arena);
+
+    ArenaBuffer<char> buff;
+    ArenaBuffer_create<char>(&arena, &buff, 26);
+    ArenaBuffer<char> buffc;
+    ArenaBuffer_create<char>(&arena, &buffc, 26);
+
+    {
+        char* it = buff;
+        char* end = &buffc[buffc.count];
+        while (it != end) {
+            *it = '0';
+            ++it;
+        }
+    }
+
+    for (size_t i = 0; i < buff.count; ++i) {
+        buff[i] = 'a' + i;
+    }
+    for (size_t i = 0; i < buffc.count; ++i) {
+        buffc[i] = 'a' + i;
+    }
+
+    {
+        char* it = buff;
+        char* end = &buffc[buffc.count];
+        while (it != end) {
+            std::cout << *it << std::endl;
+            ++it;
+        }
+    }
+
+    ArenaAllocator_delete(&arena);
 
     // initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -777,12 +868,6 @@ int main(int argc, char* argv[])
         }
 
 
-        Buffer<int> b;
-        b.memory = (int*)xcalloc_1arg(sizeof(int) * 10);
-        free(b.memory);
-        b.memory = NULL;
-
-
         //std::cout << b[0] << std::endl;
 
         gl_bind_buffers_and_upload_data(&tri_data, BATCH_COUNT_EXTRA, BATCH_COUNT_EXTRA, GL_STATIC_DRAW);
@@ -878,6 +963,9 @@ int main(int argc, char* argv[])
 
 /////////////////
 // MAIN LOOP
+#ifdef DEBUG_PRINT
+    glm::vec3 prev_pos(0.0);
+#endif
 
     while (keep_running) {
         curr_time = SDL_GetTicks();
@@ -990,7 +1078,12 @@ int main(int argc, char* argv[])
 
         #ifdef DEBUG_PRINT
             glm::vec3* pos = &main_cam.position;
-            std::cout << "VIEW_POSITION{x : " << pos->x << ", y : " << pos->y << ", z: " << pos->z << "}" << std::endl;
+            if (pos->x != prev_pos.x || pos->y != prev_pos.y || pos->z != prev_pos.z) {
+                std::cout << "VIEW_POSITION{x : " << pos->x << ", y : " << pos->y << ", z: " << pos->z << "}" << std::endl;
+            }
+            prev_pos.x = pos->x;
+            prev_pos.y = pos->y;
+            prev_pos.z = pos->z;
         #endif
         }
 
@@ -1009,7 +1102,14 @@ int main(int argc, char* argv[])
         UniformLocation RES_LOC = glGetUniformLocation(shader_2d, "u_resolution");
 
         //glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(ViewCamera_calc_view_matrix(&main_cam) * mat_ident));
-        glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(mat_projection * FreeCamera_calc_view_matrix(&main_cam) * mat_ident  * glm::scale(mat_ident, glm::vec3(0.5, 0.5, 0.5)) ));
+        glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(
+            mat_projection * 
+            FreeCamera_calc_view_matrix(&main_cam) * 
+            mat_ident * 
+            glm::translate(mat_ident, glm::vec3(glm::sin((GLfloat)curr_time / TIME_UNIT_TO_SECONDS), 0.0, 0.0))
+            /** glm::scale(mat_ident, glm::vec3(0.5, 0.5, 0.5))*/ )
+        );
+
         glUniform1f(TIME_LOC, ((GLdouble)curr_time / TIME_UNIT_TO_SECONDS));
         glUniform2fv(RES_LOC, 1, glm::value_ptr(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT)));
 
