@@ -1,6 +1,6 @@
 #include "texture.hpp"
 
-GLboolean GL_texture_load(Texture* texture_id, const char* const path, const GLboolean alpha)
+GLboolean GL_texture_load(Texture* texture_id, const char* const path, const GLboolean alpha, const GLint param_edge)
 {
     // load image
     SDL_Surface* img = nullptr; 
@@ -16,10 +16,10 @@ GLboolean GL_texture_load(Texture* texture_id, const char* const path, const GLb
     GLuint format = (alpha) ? GL_RGBA : GL_RGB;
     glTexImage2D(GL_TEXTURE_2D, 0, format, img->w, img->h, 0, format, GL_UNSIGNED_BYTE, img->pixels);
     glGenerateMipmap(GL_TEXTURE_2D);
+    
     // wrapping behavior
-    GLuint alpha_behavior = (alpha && false) ? GL_CLAMP_TO_EDGE : GL_REPEAT;
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, alpha_behavior);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, alpha_behavior);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, param_edge);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, param_edge);
     // texture filtering
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -30,8 +30,8 @@ GLboolean GL_texture_load(Texture* texture_id, const char* const path, const GLb
     return GL_TRUE;
 }
 
-GLboolean GL_texture_gen_and_load_1(Texture* texture_id, const char* const path, const GLboolean alpha)
+GLboolean GL_texture_gen_and_load_1(Texture* texture_id, const char* const path, const GLboolean alpha, const GLint param_edge)
 {
     glGenTextures(1, texture_id);
-    return GL_texture_load(texture_id, path, alpha);   
+    return GL_texture_load(texture_id, path, alpha, param_edge);   
 }

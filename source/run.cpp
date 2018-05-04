@@ -730,7 +730,7 @@ int main(int argc, char* argv[])
 
     const GLfloat ASPECT = (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT;
 
-    const size_t STRIDE = 7;
+    const size_t STRIDE = 9;
 
 // LINES
     const size_t COUNT_LINES = 1;
@@ -742,8 +742,8 @@ int main(int argc, char* argv[])
     GLfloat hf = 1.0f;//(GLfloat)SCREEN_HEIGHT;
 
     GLfloat L[len_v_lines] = {
-         wf * ASPECT,  hf,   0.0f, 1.0, 0.0, 0.0, 1.0,  // top right
-        -wf * ASPECT, -hf,   0.0f, 0.0, 0.0, 1.0, 1.0, // bottom left
+         wf * ASPECT,  hf, 0.0f,    1.0, 0.0, 0.0, 1.0,    0.0, 0.0,  // top right
+        -wf * ASPECT, -hf, 0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0 // bottom left
     };
 
     GLuint LI[len_i_lines] = {
@@ -762,10 +762,10 @@ int main(int argc, char* argv[])
 #ifdef TRANSITION
         //single quad
     GLfloat T[] = {
-       -wf * ASPECT,  hf,  0.0f, 0.0, 0.0, 1.0, 1.0,  // top left
-       -wf * ASPECT, -hf,  0.0f, 0.0, 0.0, 1.0, 1.0,  // bottom left
-        wf * ASPECT, -hf,  0.0f, 0.0, 0.0, 1.0, 1.0,  // bottom right
-        wf * ASPECT,  hf,  0.0f, 0.0, 0.0, 1.0, 1.0,  // top right
+       -wf * ASPECT,  hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // top left
+       -wf * ASPECT, -hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // bottom left
+        wf * ASPECT, -hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0, // bottom right
+        wf * ASPECT,  hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0 // top right
     };
     GLuint TI[] = {  // note that we start from 0!
         0, 1, 2,  // first Triangle
@@ -773,15 +773,15 @@ int main(int argc, char* argv[])
     };
 #else
     GLfloat T[] = {
-       -wf * ASPECT,  hf,  1.0f, 0.0, 0.0, 1.0, 1.0,  // top left
-       -wf * ASPECT, -hf,  1.0f, 0.0, 0.0, 1.0, 1.0,  // bottom left
-        wf * ASPECT, -hf, -1.0f, 0.0, 0.0, 1.0, 1.0,  // bottom right
-        wf * ASPECT,  hf, -1.0f, 0.0, 0.0, 1.0, 1.0,  // top right
+       -wf * ASPECT,  hf,  1.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // top left
+       -wf * ASPECT, -hf,  1.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // bottom left
+        wf * ASPECT, -hf, -1.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // bottom right
+        wf * ASPECT,  hf, -1.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // top right
 
-        -wf * ASPECT,  hf, -1.0f, 1.0, 0.0, 0.0, 1.0,  // top left
-        -wf * ASPECT, -hf, -1.0f, 1.0, 0.0, 0.0, 1.0, // bottom left
-         wf * ASPECT, -hf,  1.0f, 1.0, 0.0, 0.0, 1.0, // bottom right
-         wf * ASPECT,  hf,  1.0f, 1.0, 0.0, 0.0, 1.0, // top right
+        -wf * ASPECT,  hf, -1.0f,   1.0, 0.0, 0.0, 1.0,    0.0, 0.0,  // top left
+        -wf * ASPECT, -hf, -1.0f,   1.0, 0.0, 0.0, 1.0,    0.0, 0.0, // bottom left
+         wf * ASPECT, -hf,  1.0f,   1.0, 0.0, 0.0, 1.0,    0.0, 0.0, // bottom right
+         wf * ASPECT,  hf,  1.0f,   1.0, 0.0, 0.0, 1.0,    0.0, 0.0, // top right
     };
     GLuint TI[] = {  // note that we start from 0!
         0, 1, 2,  // first Triangle
@@ -802,7 +802,7 @@ int main(int argc, char* argv[])
     VertexAttributeArray vao_2d;
     VertexBufferData lines_data;
 
-    create_VertexAttributeArray(&vao_2d, 7);
+    create_VertexAttributeArray(&vao_2d, STRIDE);
 
     glBindVertexArray(vao_2d.vao);
 
@@ -834,6 +834,8 @@ int main(int argc, char* argv[])
         gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &vao_2d);
         // COLOR
         gl_set_and_enable_vertex_attrib_ptr(1, 4, GL_FLOAT, GL_FALSE, 3, &vao_2d);
+        // UV
+        gl_set_and_enable_vertex_attrib_ptr(2, 2, GL_FLOAT, GL_FALSE, 7, &vao_2d);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -844,7 +846,7 @@ int main(int argc, char* argv[])
     VertexAttributeArray vao_2d2;
     VertexBufferData tri_data;
 
-    create_VertexAttributeArray(&vao_2d2, 7);
+    create_VertexAttributeArray(&vao_2d2, STRIDE);
 
     glBindVertexArray(vao_2d2.vao);
 
@@ -875,6 +877,8 @@ int main(int argc, char* argv[])
         gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &vao_2d2);
         // COLOR
         gl_set_and_enable_vertex_attrib_ptr(1, 4, GL_FLOAT, GL_FALSE, 3, &vao_2d2);
+        // UV
+        gl_set_and_enable_vertex_attrib_ptr(2, 2, GL_FLOAT, GL_FALSE, 7, &vao_2d);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
