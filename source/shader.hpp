@@ -12,7 +12,7 @@
 // #ifdef __cplusplus 
 // extern "C" {
 // #endif
-//     bool create_shader(const GLchar* vertex_src, const GLchar* fragment_src)
+//     bool init_shader(const GLchar* vertex_src, const GLchar* fragment_src)
 //     {
 //         return false;
 //     }

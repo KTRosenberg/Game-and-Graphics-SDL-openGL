@@ -114,26 +114,26 @@ typedef struct TextureData {
     size_t count;
 } TextureData;
 
-void create_TextureData(TextureData* t, const size_t id_count) 
+void TextureData_init(TextureData* t, const size_t id_count) 
 {
     t->ids = (Texture*)xmalloc(id_count * sizeof(t->ids));
     t->count = id_count;
     glGenTextures(t->count, t->ids);
 }
 
-void create_static_TextureData(TextureData* t, const size_t id_count, Texture* buffer)
+void TextureData_init_static(TextureData* t, const size_t id_count, Texture* buffer)
 {
     t->ids = buffer;
     t->count = id_count;
     glGenTextures(id_count, t->ids);
 }
 
-void delete_TextureData(TextureData* t)
+void TextureData_delete(TextureData* t)
 {
     glDeleteTextures(t->count, t->ids);
     free(t);
 }
-void delete_static_TextureData(TextureData* t)
+void TextureData_delete_static(TextureData* t)
 {
     glDeleteTextures(t->count, t->ids);
 }
@@ -188,7 +188,7 @@ struct CappedArray {
 };
 
 template <typename T>
-void CappedArray_create(CappedArray<T>* arr, size_t cap, Fn_MemoryAllocator alloc) {
+void CappedArray_init(CappedArray<T>* arr, size_t cap, Fn_MemoryAllocator alloc) {
     arr->array = (T*)alloc(sizeof(T) * cap);
     arr->count = 0;
     arr->cap = cap;
@@ -248,7 +248,7 @@ typedef struct AttributeData {
     GLchar*   name;
 } AttributeData;
 
-void create_AttributeData(
+void AttributeData_init(
     AttributeData* a,
     GLuint index,
     GLint size,
@@ -294,11 +294,11 @@ void create_AttributeData(
 //     }
 // };
 
-// void MemoryAllocator_create(MemoryAllocator* ma, void* type, Fn_MemoryAllocator* fn_alloc, Fn_MemoryAllocatorType_create fn_create, void* args)
+// void MemoryAllocator_init(MemoryAllocator* ma, void* type, Fn_MemoryAllocator* fn_alloc, Fn_MemoryAllocatorType_init fn_init, void* args)
 // {
 //     ma->fn_alloc = fn_alloc;
 //     ma->type = alloc;
-//     fn_create(fn_alloc, args);
+//     fn_init(fn_alloc, args);
 // }
 
 #define ARENA_DEFAULT_BLOCK_SIZE (1024 * 1024)
@@ -324,12 +324,12 @@ typedef struct ArenaAllocator {
 } ArenaAllocator;
 
 
-void ArenaAllocator_create(ArenaAllocator* arena);
+void ArenaAllocator_init(ArenaAllocator* arena);
 void* ArenaAllocator_allocate(ArenaAllocator* arena, size_t size);
 void ArenaAllocator_grow(ArenaAllocator* arena, size_t min_size);
 void ArenaAllocator_delete(ArenaAllocator* arena);
 
-void ArenaAllocator_create(ArenaAllocator* arena)
+void ArenaAllocator_init(ArenaAllocator* arena)
 {
     arena->ptr         = NULL;
     arena->end         = NULL;
@@ -412,14 +412,14 @@ struct ArenaBuffer {
 };
 
 
-void ArenaBuffer_create_bytes(ArenaAllocator* arena, ArenaBuffer<char>* buffer, size_t count) 
+void ArenaBuffer_init_bytes(ArenaAllocator* arena, ArenaBuffer<char>* buffer, size_t count) 
 {
     buffer->memory = (char*)ArenaAllocator_allocate(arena, count);
     buffer->count = count;
 }
 
 template <typename T>
-void ArenaBuffer_create(ArenaAllocator* arena, ArenaBuffer<T>* buffer, size_t count) 
+void ArenaBuffer_init(ArenaAllocator* arena, ArenaBuffer<T>* buffer, size_t count) 
 {
     buffer->memory = (T*)ArenaAllocator_allocate(arena, count * sizeof(T));
     buffer->count = count;
@@ -461,7 +461,7 @@ typedef VertexBufferData VBData;
 
 
 
-void create_VertexBufferData(
+void VertexBufferData_init(
     VertexBufferData* g,
     const size_t v_cap,
     const size_t i_cap,
@@ -479,7 +479,7 @@ void create_VertexBufferData(
     g->i_count = 0;
 }
 
-void create_static_VertexBufferData(
+void VertexBufferData_init_static(
     VertexBufferData* g,
     const size_t v_cap,
     GLfloat* vertices,
@@ -498,13 +498,13 @@ void create_static_VertexBufferData(
     g->i_count = 0;
 }
 
-void delete_VertexBufferData(VertexBufferData* g)
+void VertexBufferData_delete(VertexBufferData* g)
 {
     glDeleteBuffers(2, (GLBuffer*)&g->vbo);
     free(g->vertices);
     free(g->indices);
 }
-void delete_static_VertexBufferData(VertexBufferData* g)
+void VertexBufferData_delete_static(VertexBufferData* g)
 {
     glDeleteBuffers(2, (GLBuffer*)&g->vbo);
 }
@@ -517,12 +517,12 @@ typedef struct VertexAttributeArray {
 
 typedef VertexAttributeArray VAttribArr;
 
-inline void create_VertexAttributeArray(VertexAttributeArray* vao, size_t stride) 
+inline void VertexAttributeArray_init(VertexAttributeArray* vao, size_t stride) 
 {
     glGenVertexArrays(1, &vao->vao);
     vao->stride = stride;
 }
-inline void delete_VertexAttributeArray(VertexAttributeArray* vao) 
+inline void VertexAttributeArray_delete(VertexAttributeArray* vao) 
 {
     glDeleteVertexArrays(1, &vao->vao);
 }
@@ -557,7 +557,7 @@ typedef struct CollisionStatus {
     glm::vec3 point;
 } CollisionStatus;
 
-void create_CollisionStatus(CollisionStatus* cs, const bool collided, glm::vec3 point)
+void CollisionStatus_init(CollisionStatus* cs, const bool collided, glm::vec3 point)
 {
     cs->collided = collided;
     cs->point = point;
@@ -606,12 +606,12 @@ int main(int argc, char* argv[])
     std::cout << std::boolalpha << std::is_pod<ArenaAllocator>::value  << std::endl;
 
     ArenaAllocator arena;
-    ArenaAllocator_create(&arena);
+    ArenaAllocator_init(&arena);
 
     ArenaBuffer<char> buff;
-    ArenaBuffer_create<char>(&arena, &buff, 26);
+    ArenaBuffer_init<char>(&arena, &buff, 26);
     ArenaBuffer<char> buffc;
-    ArenaBuffer_create<char>(&arena, &buffc, 26);
+    ArenaBuffer_init<char>(&arena, &buffc, 26);
 
     {
         char* it = buff;
@@ -633,7 +633,7 @@ int main(int argc, char* argv[])
         char* it = buff;
         char* end = &buffc[buffc.count];
         while (it != end) {
-            std::cout << *it << std::endl;
+            //std::cout << *it << std::endl;
             ++it;
         }
     }
@@ -703,8 +703,8 @@ int main(int argc, char* argv[])
 #ifdef TRANSITION
     Shader shader_2d;
     shader_2d.load_from_file(
-        "shaders/transition_a/transition_a.vrts",
-        "shaders/transition_a/transition_a.frgs",
+        "shaders/transition/test_b_tex.vrts",
+        "shaders/transition/test_b_tex.frgs",
         glsl_perlin_noise,
         glsl_perlin_noise
     );
@@ -742,8 +742,8 @@ int main(int argc, char* argv[])
     GLfloat hf = 1.0f;//(GLfloat)SCREEN_HEIGHT;
 
     GLfloat L[len_v_lines] = {
-         wf * ASPECT,  hf, 0.0f,    1.0, 0.0, 0.0, 1.0,    0.0, 0.0,  // top right
-        -wf * ASPECT, -hf, 0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0 // bottom left
+         wf * ASPECT,  hf, 0.0f,    1.0, 0.0, 0.0, 1.0,    1.0, 0.0,  // top right
+        -wf * ASPECT, -hf, 0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 1.0 // bottom left
     };
 
     GLuint LI[len_i_lines] = {
@@ -763,9 +763,9 @@ int main(int argc, char* argv[])
         //single quad
     GLfloat T[] = {
        -wf * ASPECT,  hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // top left
-       -wf * ASPECT, -hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // bottom left
-        wf * ASPECT, -hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0, // bottom right
-        wf * ASPECT,  hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0 // top right
+       -wf * ASPECT, -hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 1.0,  // bottom left
+        wf * ASPECT, -hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    1.0, 1.0, // bottom right
+        wf * ASPECT,  hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    1.0, 0.0 // top right
     };
     GLuint TI[] = {  // note that we start from 0!
         0, 1, 2,  // first Triangle
@@ -774,14 +774,14 @@ int main(int argc, char* argv[])
 #else
     GLfloat T[] = {
        -wf * ASPECT,  hf,  1.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // top left
-       -wf * ASPECT, -hf,  1.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // bottom left
-        wf * ASPECT, -hf, -1.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // bottom right
-        wf * ASPECT,  hf, -1.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // top right
+       -wf * ASPECT, -hf,  1.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 1.0,  // bottom left
+        wf * ASPECT, -hf, -1.0f,    0.0, 0.0, 1.0, 1.0,    1.0, 1.0,  // bottom right
+        wf * ASPECT,  hf, -1.0f,    0.0, 0.0, 1.0, 1.0,    1.0, 0.0,  // top right
 
         -wf * ASPECT,  hf, -1.0f,   1.0, 0.0, 0.0, 1.0,    0.0, 0.0,  // top left
-        -wf * ASPECT, -hf, -1.0f,   1.0, 0.0, 0.0, 1.0,    0.0, 0.0, // bottom left
-         wf * ASPECT, -hf,  1.0f,   1.0, 0.0, 0.0, 1.0,    0.0, 0.0, // bottom right
-         wf * ASPECT,  hf,  1.0f,   1.0, 0.0, 0.0, 1.0,    0.0, 0.0, // top right
+        -wf * ASPECT, -hf, -1.0f,   1.0, 0.0, 0.0, 1.0,    0.0, 1.0, // bottom left
+         wf * ASPECT, -hf,  1.0f,   1.0, 0.0, 0.0, 1.0,    1.0, 0.0, // bottom right
+         wf * ASPECT,  hf,  1.0f,   1.0, 0.0, 0.0, 1.0,    1.0, 0.0, // top right
     };
     GLuint TI[] = {  // note that we start from 0!
         0, 1, 2,  // first Triangle
@@ -802,7 +802,7 @@ int main(int argc, char* argv[])
     VertexAttributeArray vao_2d;
     VertexBufferData lines_data;
 
-    create_VertexAttributeArray(&vao_2d, STRIDE);
+    VertexAttributeArray_init(&vao_2d, STRIDE);
 
     glBindVertexArray(vao_2d.vao);
 
@@ -810,7 +810,7 @@ int main(int argc, char* argv[])
         GLfloat lines_VBO_data[BATCH_COUNT_EXTRA * sizeof(GLfloat)];
         GLuint lines_EBO_data[BATCH_COUNT_EXTRA * sizeof(GLuint)];
 
-        create_static_VertexBufferData(
+        VertexBufferData_init_static(
             &lines_data, 
             BATCH_COUNT_EXTRA,
             lines_VBO_data,
@@ -846,14 +846,14 @@ int main(int argc, char* argv[])
     VertexAttributeArray vao_2d2;
     VertexBufferData tri_data;
 
-    create_VertexAttributeArray(&vao_2d2, STRIDE);
+    VertexAttributeArray_init(&vao_2d2, STRIDE);
 
     glBindVertexArray(vao_2d2.vao);
 
         GLfloat tris_VBO_data[BATCH_COUNT_EXTRA * sizeof(GLfloat)];
         GLuint  tris_EBO_data[BATCH_COUNT_EXTRA * sizeof(GLuint)];
 
-        create_static_VertexBufferData(
+        VertexBufferData_init_static(
             &tri_data, 
             BATCH_COUNT_EXTRA,
             tris_VBO_data,
@@ -922,7 +922,7 @@ int main(int argc, char* argv[])
     FreeCamera main_cam(start_pos);
     main_cam.orientation = glm::quat();
     main_cam.speed = 0.01;
-    // ViewCamera_create(
+    // ViewCamera_init(
     //     &main_cam,
     //     start_pos,
     //     ViewCamera_default_speed,
@@ -970,6 +970,19 @@ int main(int argc, char* argv[])
 #ifdef DEBUG_PRINT
     glm::vec3 prev_pos(0.0);
 #endif
+
+
+    Texture tex0;
+    GL_texture_gen_and_load_1(&tex0, "./textures/bg_test_1.png", GL_TRUE, GL_REPEAT);
+    Texture tex1;
+    GL_texture_gen_and_load_1(&tex1, "./textures/bg_test_2.png", GL_TRUE, GL_REPEAT);
+
+    // TEXTURE 0
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, texture[0]);
+    // glUniform1i(glGetUniformLocation(prog_shader, "tex0"), 0);
+    // //
+    // glUniform1i(glGetUniformLocation(prog_shader, "tex0"), 0);
 
     while (keep_running) {
         curr_time = SDL_GetTicks();
@@ -1058,7 +1071,7 @@ int main(int argc, char* argv[])
             }
 
             if (*reset) {
-                // FreeCamera_create(
+                // FreeCamera_init(
                 //     &main_cam,
                 //     start_pos,
                 //     ViewCamera_default_speed,
@@ -1079,16 +1092,6 @@ int main(int argc, char* argv[])
                 backwards_acc = 1.0;
                 forwards_acc  = 1.0;
             }
-
-        #ifdef DEBUG_PRINT
-            glm::vec3* pos = &main_cam.position;
-            if (pos->x != prev_pos.x || pos->y != prev_pos.y || pos->z != prev_pos.z) {
-                std::cout << "VIEW_POSITION{x : " << pos->x << ", y : " << pos->y << ", z: " << pos->z << "}" << std::endl;
-            }
-            prev_pos.x = pos->x;
-            prev_pos.y = pos->y;
-            prev_pos.z = pos->z;
-        #endif
         }
 
         //main_cam.rotate((GLfloat)curr_time / TIME_UNIT_TO_SECONDS, 0.0f, 0.0f, 1.0f);
@@ -1101,21 +1104,44 @@ int main(int argc, char* argv[])
 
         glUseProgram(shader_2d);
 
+        // TEXTURE 0
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, tex0);
+        glUniform1i(glGetUniformLocation(shader_2d, "tex0"), 0);
+        // TEXTURE 0
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, tex1);
+        glUniform1i(glGetUniformLocation(shader_2d, "tex1"), 1);
+
         UniformLocation MAT_LOC = glGetUniformLocation(shader_2d, "u_matrix");
         UniformLocation TIME_LOC = glGetUniformLocation(shader_2d, "u_time");
         UniformLocation RES_LOC = glGetUniformLocation(shader_2d, "u_resolution");
+        UniformLocation CAM_LOC = glGetUniformLocation(shader_2d, "u_position_cam");
 
         //glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(ViewCamera_calc_view_matrix(&main_cam) * mat_ident));
         glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(
             mat_projection * 
             FreeCamera_calc_view_matrix(&main_cam) * 
-            mat_ident * 
-            glm::translate(mat_ident, glm::vec3(glm::sin((GLfloat)curr_time / TIME_UNIT_TO_SECONDS), 0.0, 0.0))
+            mat_ident /** 
+            glm::translate(mat_ident, glm::vec3(glm::sin((GLfloat)curr_time / TIME_UNIT_TO_SECONDS), 0.0, 0.0))*/
             /** glm::scale(mat_ident, glm::vec3(0.5, 0.5, 0.5))*/ )
         );
 
         glUniform1f(TIME_LOC, ((GLdouble)curr_time / TIME_UNIT_TO_SECONDS));
         glUniform2fv(RES_LOC, 1, glm::value_ptr(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT)));
+
+        #ifdef DEBUG_PRINT
+            glm::vec3* pos = &main_cam.position;
+            if (pos->x != prev_pos.x || pos->y != prev_pos.y || pos->z != prev_pos.z) {
+                std::cout << "VIEW_POSITION{x : " << pos->x << ", y : " << pos->y << ", z: " << pos->z << "}" << std::endl;
+            }
+            prev_pos.x = pos->x;
+            prev_pos.y = pos->y;
+            prev_pos.z = pos->z;
+        #endif
+
+        glUniform3fv(CAM_LOC, 1, glm::value_ptr(*pos));
+
 
         glBindVertexArray(vao_2d.vao);
         glDrawElements(GL_LINES, lines_data.i_count, GL_UNSIGNED_INT, (void*)0);
@@ -1128,8 +1154,8 @@ int main(int argc, char* argv[])
     //////////////////
     }
     
-    delete_static_VertexBufferData(&lines_data);
-    delete_VertexAttributeArray(&vao_2d);
+    VertexBufferData_delete_static(&lines_data);
+    VertexAttributeArray_delete(&vao_2d);
     SDL_GL_DeleteContext(gl_data.context);
     SDL_DestroyWindow(window);
     IMG_Quit();

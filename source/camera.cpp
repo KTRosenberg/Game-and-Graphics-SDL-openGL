@@ -1,7 +1,7 @@
 #include "camera.hpp"
 
 
-void ViewCamera_create(ViewCamera* view, glm::vec3 position_start, GLfloat speed, GLfloat min_z, GLfloat max_z, GLfloat min_x, GLfloat max_x, GLfloat min_y, GLfloat max_y)
+void ViewCamera_init(ViewCamera* view, glm::vec3 position_start, GLfloat speed, GLfloat min_z, GLfloat max_z, GLfloat min_x, GLfloat max_x, GLfloat min_y, GLfloat max_y)
 {
     view->position = -position_start; 
     view->speed   = speed;
@@ -191,7 +191,7 @@ void Camera::update_camera_vectors(void)
 
 
 
-void FreeCamera_create(FreeCamera* view, glm::vec3 start_position)
+void FreeCamera_init(FreeCamera* view, glm::vec3 start_position)
 {
     view->position = start_position;
     view->orientation = glm::quat();
