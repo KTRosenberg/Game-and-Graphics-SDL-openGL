@@ -703,8 +703,8 @@ int main(int argc, char* argv[])
 #ifdef TRANSITION
     Shader shader_2d;
     shader_2d.load_from_file(
-        "shaders/transition/test_b_tex.vrts",
-        "shaders/transition/test_b_tex.frgs",
+        "shaders/parallax/parallax.vrts",
+        "shaders/parallax/parallax.frgs",
         glsl_perlin_noise,
         glsl_perlin_noise
     );
@@ -764,8 +764,8 @@ int main(int argc, char* argv[])
     GLfloat T[] = {
        -wf * ASPECT,  hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // top left
        -wf * ASPECT, -hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 1.0,  // bottom left
-        wf * ASPECT, -hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    1.0, 1.0, // bottom right
-        wf * ASPECT,  hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    1.0, 0.0 // top right
+        wf * ASPECT, -hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.5, 1.0, // bottom right
+        wf * ASPECT,  hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.5, 0.0 // top right
     };
     GLuint TI[] = {  // note that we start from 0!
         0, 1, 2,  // first Triangle
@@ -973,9 +973,9 @@ int main(int argc, char* argv[])
 
 
     Texture tex0;
-    GL_texture_gen_and_load_1(&tex0, "./textures/bg_test_1.png", GL_TRUE, GL_REPEAT);
+    GL_texture_gen_and_load_1(&tex0, "./textures/bg_test_2_w2.png", GL_TRUE, GL_REPEAT, GL_CLAMP_TO_EDGE);
     Texture tex1;
-    GL_texture_gen_and_load_1(&tex1, "./textures/bg_test_2.png", GL_TRUE, GL_REPEAT);
+    GL_texture_gen_and_load_1(&tex1, "./textures/bg_test_2_w2.png", GL_TRUE, GL_REPEAT, GL_CLAMP_TO_EDGE);
 
     // TEXTURE 0
     // glActiveTexture(GL_TEXTURE0);
@@ -1121,7 +1121,7 @@ int main(int argc, char* argv[])
         //glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(ViewCamera_calc_view_matrix(&main_cam) * mat_ident));
         glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(
             mat_projection * 
-            FreeCamera_calc_view_matrix(&main_cam) * 
+            /* FreeCamera_calc_view_matrix(&main_cam) * */
             mat_ident /** 
             glm::translate(mat_ident, glm::vec3(glm::sin((GLfloat)curr_time / TIME_UNIT_TO_SECONDS), 0.0, 0.0))*/
             /** glm::scale(mat_ident, glm::vec3(0.5, 0.5, 0.5))*/ )
