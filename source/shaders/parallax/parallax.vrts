@@ -14,6 +14,8 @@ uniform mat4 u_matrix;
 uniform float u_time;
 uniform vec2 u_resolution;
 uniform vec3 u_position_cam;
+uniform int u_count_layers;
+uniform float u_offset_layers_x;
 
 void main(void) 
 {
@@ -22,6 +24,6 @@ void main(void)
    v_color = a_color;
 
    // TODO animation
-   v_uv = a_uv;
+   v_uv = vec2(a_uv.x * u_offset_layers_x, a_uv.y);
    v_position_cam = u_position_cam;
 }

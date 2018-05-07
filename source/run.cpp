@@ -764,8 +764,8 @@ int main(int argc, char* argv[])
     GLfloat T[] = {
        -wf * ASPECT,  hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // top left
        -wf * ASPECT, -hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 1.0,  // bottom left
-        wf * ASPECT, -hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.5, 1.0, // bottom right
-        wf * ASPECT,  hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.5, 0.0 // top right
+        wf * ASPECT, -hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    1.0, 1.0, // bottom right
+        wf * ASPECT,  hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    1.0, 0.0 // top right
     };
     GLuint TI[] = {  // note that we start from 0!
         0, 1, 2,  // first Triangle
@@ -984,6 +984,21 @@ int main(int argc, char* argv[])
     // //
     // glUniform1i(glGetUniformLocation(prog_shader, "tex0"), 0);
 
+
+    glUseProgram(shader_2d);
+
+    UniformLocation RES_LOC = glGetUniformLocation(shader_2d, "u_resolution");
+    UniformLocation COUNT_LAYERS = glGetUniformLocation(shader_2d, "u_count_layers");
+    UniformLocation OFFSET_LAYERS_X = glGetUniformLocation(shader_2d, "u_offset_layers_x");
+
+    const GLuint UVAL_COUNT_LAYERS = 2;
+    const GLdouble UVAL_OFFSET_LAYERS = (GLdouble)(1.0 / UVAL_COUNT_LAYERS); 
+
+    glUniform2fv(RES_LOC, 1, glm::value_ptr(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT)));
+    glUniform1i(COUNT_LAYERS, 2);
+    glUniform1f(OFFSET_LAYERS_X, 0.5);
+
+
     while (keep_running) {
         curr_time = SDL_GetTicks();
         // frame-rate independence?
@@ -1115,7 +1130,6 @@ int main(int argc, char* argv[])
 
         UniformLocation MAT_LOC = glGetUniformLocation(shader_2d, "u_matrix");
         UniformLocation TIME_LOC = glGetUniformLocation(shader_2d, "u_time");
-        UniformLocation RES_LOC = glGetUniformLocation(shader_2d, "u_resolution");
         UniformLocation CAM_LOC = glGetUniformLocation(shader_2d, "u_position_cam");
 
         //glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(ViewCamera_calc_view_matrix(&main_cam) * mat_ident));
@@ -1128,7 +1142,7 @@ int main(int argc, char* argv[])
         );
 
         glUniform1f(TIME_LOC, ((GLdouble)curr_time / TIME_UNIT_TO_SECONDS));
-        glUniform2fv(RES_LOC, 1, glm::value_ptr(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT)));
+
 
         #ifdef DEBUG_PRINT
             glm::vec3* pos = &main_cam.position;

@@ -11,8 +11,9 @@ uniform vec2 u_resolution;
 uniform sampler2D tex0;
 uniform sampler2D tex1;
 
-uniform float offset_layers;
-uniform int   count_layers;
+uniform float u_offset_layers;
+uniform int   u_count_layers;
+uniform float u_offset_layers_x;
 
 out vec4 color;
 
@@ -36,7 +37,7 @@ void main(void)
 
    float off_x = v_uv.x + (T * Y);
 
-   vec4 tex  = vec4(texture(tex0, vec2(mod(off_x, 0.5), v_uv.y + (-v_position_cam.y * v_uv.y))));
+   vec4 tex  = vec4(texture(tex0, vec2(mod(off_x, u_offset_layers_x), v_uv.y + (-v_position_cam.y * v_uv.y))));
 
    c = tex;
 
