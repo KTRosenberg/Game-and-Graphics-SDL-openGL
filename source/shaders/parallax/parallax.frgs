@@ -37,13 +37,13 @@ void main(void)
    vec4 texel = vec4(1.0);
    float rate = 0.65;
    for (int i = 0; i < u_count_layers; ++i) {
-      float sample_coord = v_uv.x + (v_position_cam.x * rate);
+      float sample_coord = v_uv.x + ((v_position_cam.x * 1000.0 * rate) / 1000.0);
 
       float off_y = (-v_position_cam.y * rate * rate * rate);
       off_y = max(off_y, 0.0);
 
       texel = vec4(texture(tex0, vec2(
-         (float(i) * u_offset_layers_x) + mod(sample_coord * 100.0, u_offset_layers_x * 100.0) / 100.0,
+         (float(i) * u_offset_layers_x) + mod(sample_coord * 1000.0, u_offset_layers_x * 1000.0) / 1000.0,
          v_uv.y + off_y))
       );
 
