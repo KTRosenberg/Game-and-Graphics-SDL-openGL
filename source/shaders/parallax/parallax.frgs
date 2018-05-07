@@ -11,7 +11,6 @@ uniform vec2 u_resolution;
 uniform sampler2D tex0;
 uniform sampler2D tex1;
 
-uniform float u_offset_layers;
 uniform int   u_count_layers;
 uniform float u_offset_layers_x;
 
@@ -30,16 +29,30 @@ vec3 sin_pos_v3(vec3 v3)
 
 void main(void)
 {
-   vec4 c = vec4(0.0);
+   vec4 c = vec4(1.0);
 
-   float T = v_position_cam.x;
    float Y = float(int(v_uv.y * 10.0)) / 10.0;
 
-   float off_x = v_uv.x + (T * Y);
 
-   vec4 tex  = vec4(texture(tex0, vec2(mod(off_x, u_offset_layers_x), v_uv.y + (-v_position_cam.y * v_uv.y))));
+   vec4 texel = vec4(1.0);
+   float rate = 0.65;
+   for (int i = 0; i < u_count_layers; ++i) {
+      float sample_coord = v_uv.x + (v_position_cam.x * rate);
 
-   c = tex;
+      float off_y = (-v_position_cam.y * rate * rate * rate);
+      off_y = max(off_y, 0.0);
 
-   color = vec4(sqrt(c.rgb), c.a);
+      texel = vec4(texture(tex0, vec2(
+         (float(i) * u_offset_layers_x) + mod(sample_coord * 100.0, u_offset_layers_x * 100.0) / 100.0,
+         v_uv.y + off_y))
+      );
+
+      if (texel.a != 0.0) {
+         break;
+      }
+
+      rate *= rate;
+   }
+
+   color = vec4(texel.rgb, texel.a);
 }

@@ -972,11 +972,14 @@ int main(int argc, char* argv[])
 #endif
 
 
+    // Texture tex0;
+    // GL_texture_gen_and_load_1(&tex0, "./textures/bg_test_2_w2.png", GL_TRUE, GL_REPEAT, GL_CLAMP_TO_EDGE);
+    // Texture tex1;
+    // GL_texture_gen_and_load_1(&tex1, "./textures/bg_test_2_w2.png", GL_TRUE, GL_REPEAT, GL_CLAMP_TO_EDGE);
     Texture tex0;
-    GL_texture_gen_and_load_1(&tex0, "./textures/bg_test_2_w2.png", GL_TRUE, GL_REPEAT, GL_CLAMP_TO_EDGE);
+    GL_texture_gen_and_load_1(&tex0, "./textures/bg_test_3.png", GL_TRUE, GL_REPEAT, GL_CLAMP_TO_EDGE);
     Texture tex1;
-    GL_texture_gen_and_load_1(&tex1, "./textures/bg_test_2_w2.png", GL_TRUE, GL_REPEAT, GL_CLAMP_TO_EDGE);
-
+    GL_texture_gen_and_load_1(&tex1, "./textures/bg_test_3.png", GL_TRUE, GL_REPEAT, GL_CLAMP_TO_EDGE);
     // TEXTURE 0
     // glActiveTexture(GL_TEXTURE0);
     // glBindTexture(GL_TEXTURE_2D, texture[0]);
@@ -991,12 +994,21 @@ int main(int argc, char* argv[])
     UniformLocation COUNT_LAYERS = glGetUniformLocation(shader_2d, "u_count_layers");
     UniformLocation OFFSET_LAYERS_X = glGetUniformLocation(shader_2d, "u_offset_layers_x");
 
-    const GLuint UVAL_COUNT_LAYERS = 2;
-    const GLdouble UVAL_OFFSET_LAYERS = (GLdouble)(1.0 / UVAL_COUNT_LAYERS); 
+    const GLint UVAL_COUNT_LAYERS = 5;
+    const GLfloat UVAL_OFFSET_LAYERS = (1.0f / (GLfloat)UVAL_COUNT_LAYERS); 
 
     glUniform2fv(RES_LOC, 1, glm::value_ptr(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT)));
-    glUniform1i(COUNT_LAYERS, 2);
-    glUniform1f(OFFSET_LAYERS_X, 0.5);
+    glUniform1i(COUNT_LAYERS, UVAL_COUNT_LAYERS);
+    glUniform1f(OFFSET_LAYERS_X, UVAL_OFFSET_LAYERS);
+
+    // TEXTURE 0
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, tex0);
+    glUniform1i(glGetUniformLocation(shader_2d, "tex0"), 0);
+    // TEXTURE 0
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, tex1);
+    glUniform1i(glGetUniformLocation(shader_2d, "tex1"), 1);
 
 
     while (keep_running) {
@@ -1117,16 +1129,7 @@ int main(int argc, char* argv[])
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glUseProgram(shader_2d);
-
-        // TEXTURE 0
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, tex0);
-        glUniform1i(glGetUniformLocation(shader_2d, "tex0"), 0);
-        // TEXTURE 0
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, tex1);
-        glUniform1i(glGetUniformLocation(shader_2d, "tex1"), 1);
+        //glUseProgram(shader_2d);
 
         UniformLocation MAT_LOC = glGetUniformLocation(shader_2d, "u_matrix");
         UniformLocation TIME_LOC = glGetUniformLocation(shader_2d, "u_time");
@@ -1143,9 +1146,9 @@ int main(int argc, char* argv[])
 
         glUniform1f(TIME_LOC, ((GLdouble)curr_time / TIME_UNIT_TO_SECONDS));
 
-
+        glm::vec3* pos = &main_cam.position;
         #ifdef DEBUG_PRINT
-            glm::vec3* pos = &main_cam.position;
+
             if (pos->x != prev_pos.x || pos->y != prev_pos.y || pos->z != prev_pos.z) {
                 std::cout << "VIEW_POSITION{x : " << pos->x << ", y : " << pos->y << ", z: " << pos->z << "}" << std::endl;
             }
@@ -1158,7 +1161,7 @@ int main(int argc, char* argv[])
 
 
         glBindVertexArray(vao_2d.vao);
-        glDrawElements(GL_LINES, lines_data.i_count, GL_UNSIGNED_INT, (void*)0);
+        //glDrawElements(GL_LINES, lines_data.i_count, GL_UNSIGNED_INT, (void*)0);
 
         glBindVertexArray(vao_2d2.vao);
         glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, (void*)0);
