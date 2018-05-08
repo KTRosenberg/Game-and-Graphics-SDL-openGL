@@ -977,9 +977,9 @@ int main(int argc, char* argv[])
     // Texture tex1;
     // GL_texture_gen_and_load_1(&tex1, "./textures/bg_test_2_w2.png", GL_TRUE, GL_REPEAT, GL_CLAMP_TO_EDGE);
     Texture tex0;
-    GL_texture_gen_and_load_1(&tex0, "./textures/bg_test_3.png", GL_TRUE, GL_REPEAT, GL_CLAMP_TO_EDGE);
+    GL_texture_gen_and_load_1(&tex0, "./textures/bg_test_3.png", GL_TRUE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
     Texture tex1;
-    GL_texture_gen_and_load_1(&tex1, "./textures/bg_test_3.png", GL_TRUE, GL_REPEAT, GL_CLAMP_TO_EDGE);
+    GL_texture_gen_and_load_1(&tex1, "./textures/bg_test_3.png", GL_TRUE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
     // TEXTURE 0
     // glActiveTexture(GL_TEXTURE0);
     // glBindTexture(GL_TEXTURE_2D, texture[0]);
