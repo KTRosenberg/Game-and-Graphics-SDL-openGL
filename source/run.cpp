@@ -699,12 +699,10 @@ int main(int argc, char* argv[])
     } 
 
     // SHADERS
-#define TRANSITION
-#ifdef TRANSITION
     Shader shader_2d;
     shader_2d.load_from_file(
-        "shaders/parallax/parallax.vrts",
-        "shaders/parallax/parallax.frgs",
+        "shaders/parallax/parallax_v2.vrts",
+        "shaders/parallax/parallax_v2.frgs",
         glsl_perlin_noise,
         glsl_perlin_noise
     );
@@ -712,136 +710,114 @@ int main(int argc, char* argv[])
         fprintf(stderr, "ERROR: shader_2d\n");
         return EXIT_FAILURE;
     }
-#else
-    puts("WEE");
-    Shader shader_2d;
-    shader_2d.load_from_file(
-        "shaders/default_2d/default_2d.vrts",
-        "shaders/default_2d/default_2d.frgs",
-        glsl_perlin_noise,
-        glsl_perlin_noise
-    );
-    if (!shader_2d.is_valid()) {
-        fprintf(stderr, "ERROR: shader_2d\n");
-        return EXIT_FAILURE;
-    }
-#endif
 ///////////////
 
     const GLfloat ASPECT = (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT;
 
     const size_t STRIDE = 9;
 
-// LINES
-    const size_t COUNT_LINES = 1;
-    const size_t POINTS_PER_LINE = 2;
-    const size_t len_v_lines = STRIDE * COUNT_LINES * POINTS_PER_LINE;
-    const size_t len_i_lines = 2;
-
-    GLfloat wf = 1.0f;//(GLfloat)SCREEN_WIDTH;
-    GLfloat hf = 1.0f;//(GLfloat)SCREEN_HEIGHT;
-
-    GLfloat L[len_v_lines] = {
-         wf * ASPECT,  hf, 0.0f,    1.0, 0.0, 0.0, 1.0,    1.0, 0.0,  // top right
-        -wf * ASPECT, -hf, 0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 1.0 // bottom left
-    };
-
-    GLuint LI[len_i_lines] = {
-        0, 1
-    };
-
 // QUADS
-    const size_t COUNT_QUADS = 2;
+    const size_t COUNT_QUADS = 4;
     const size_t POINTS_PER_QUAD = 4;
     const size_t POINTS_PER_TRI = 3;
     const size_t TRIS_PER_QUAD = 2;
     const size_t len_v_tris = STRIDE * COUNT_QUADS * POINTS_PER_QUAD;
-    const size_t len_i_tris = COUNT_QUADS * TRIS_PER_QUAD * POINTS_PER_TRI;
+    const size_t len_i_tris = COUNT_QUADS * TRIS_PER_QUAD * POINTS_PER_TRI * 3;
 
-    // X formation quads
-#ifdef TRANSITION
-        //single quad
+    const GLfloat wf = 1.0f;
+    const GLfloat hf = 1.0f;
+
+    const GLfloat OFF = 0.0f * ASPECT * 2.0f;
+
     GLfloat T[] = {
-       -wf * ASPECT,  hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // top left
-       -wf * ASPECT, -hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 1.0,  // bottom left
-        wf * ASPECT, -hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    1.0, 1.0, // bottom right
-        wf * ASPECT,  hf,  0.0f,    0.0, 0.0, 1.0, 1.0,    1.0, 0.0 // top right
+       -wf * ASPECT,  hf,  0.0f,    1.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // top left
+       -wf * ASPECT, -hf,  0.0f,    1.0, 0.0, 1.0, 1.0,    0.0, 1.0,  // bottom left
+        wf * ASPECT, -hf,  0.0f,    1.0, 0.0, 1.0, 1.0,    1.0, 1.0, // bottom right
+        wf * ASPECT,  hf,  0.0f,    1.0, 0.0, 1.0, 1.0,    1.0, 0.0, // top right
+
+       -wf * ASPECT + (OFF),  hf,  1.0f,    1.0, 0.0, 0.0, 1.0,    0.0, 0.0,  // top left
+       -wf * ASPECT + (OFF), -hf,  1.0f,    1.0, 0.0, 0.0, 1.0,    0.0, 1.0,  // bottom left
+        wf * ASPECT + (OFF), -hf,  1.0f,    1.0, 0.0, 0.0, 1.0,    1.0, 1.0, // bottom right
+        wf * ASPECT + (OFF),  hf,  1.0f,    1.0, 0.0, 0.0, 1.0,    1.0, 0.0, // top right
+
+       -wf * ASPECT + (2 * OFF),  hf,  2.0f,    0.0, 1.0, 0.0, 1.0,    0.0, 0.0,  // top left
+       -wf * ASPECT + (2 * OFF), -hf,  2.0f,    0.0, 1.0, 0.0, 1.0,    0.0, 1.0,  // bottom left
+        wf * ASPECT + (2 * OFF), -hf,  2.0f,    0.0, 1.0, 0.0, 1.0,    1.0, 1.0, // bottom right
+        wf * ASPECT + (2 * OFF),  hf,  2.0f,    0.0, 1.0, 0.0, 1.0,    1.0, 0.0, // top right
+
+
+       -wf * ASPECT + (3 * OFF),  hf,  3.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // top left
+       -wf * ASPECT + (3 * OFF), -hf,  3.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 1.0,  // bottom left
+        wf * ASPECT + (3 * OFF), -hf,  3.0f,    0.0, 0.0, 1.0, 1.0,    1.0, 1.0, // bottom right
+        wf * ASPECT + (3 * OFF),  hf,  3.0f,    0.0, 0.0, 1.0, 1.0,    1.0, 0.0, // top right
+
+
+       -wf * ASPECT + (4 * OFF),  hf,  4.0f,    1.0, 1.0, 1.0, 1.0,    0.0, 0.0,  // top left
+       -wf * ASPECT + (4 * OFF), -hf,  4.0f,    1.0, 1.0, 1.0, 1.0,    0.0, 1.0,  // bottom left
+        wf * ASPECT + (4 * OFF), -hf,  4.0f,    1.0, 1.0, 1.0, 1.0,    1.0, 1.0, // bottom right
+        wf * ASPECT + (4 * OFF),  hf,  4.0f,    1.0, 1.0, 1.0, 1.0,    1.0, 0.0 // top right
     };
     GLuint TI[] = {  // note that we start from 0!
-        0, 1, 2,  // first Triangle
-        2, 3, 0,   // second Triangle
-    };
-#else
-    GLfloat T[] = {
-       -wf * ASPECT,  hf,  1.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 0.0,  // top left
-       -wf * ASPECT, -hf,  1.0f,    0.0, 0.0, 1.0, 1.0,    0.0, 1.0,  // bottom left
-        wf * ASPECT, -hf, -1.0f,    0.0, 0.0, 1.0, 1.0,    1.0, 1.0,  // bottom right
-        wf * ASPECT,  hf, -1.0f,    0.0, 0.0, 1.0, 1.0,    1.0, 0.0,  // top right
+        0, 1, 2,
+        2, 3, 0,
 
-        -wf * ASPECT,  hf, -1.0f,   1.0, 0.0, 0.0, 1.0,    0.0, 0.0,  // top left
-        -wf * ASPECT, -hf, -1.0f,   1.0, 0.0, 0.0, 1.0,    0.0, 1.0, // bottom left
-         wf * ASPECT, -hf,  1.0f,   1.0, 0.0, 0.0, 1.0,    1.0, 0.0, // bottom right
-         wf * ASPECT,  hf,  1.0f,   1.0, 0.0, 0.0, 1.0,    1.0, 0.0, // top right
-    };
-    GLuint TI[] = {  // note that we start from 0!
-        0, 1, 2,  // first Triangle
-        2, 3, 0,   // second Triangle
+        0, 1, 2,
+        2, 3, 0,
+
+        0, 1, 2,
+        2, 3, 0,
+
+
 
         4, 5, 6,
         6, 7, 4,
+
+        4, 5, 6,
+        6, 7, 4,
+
+        4, 5, 6,
+        6, 7, 4,
+
+
+
+        8, 9 ,10,
+        10, 11, 8,
+
+        8, 9 ,10,
+        10, 11, 8,
+
+        8, 9 ,10,
+        10, 11, 8,
+
+
+
+        12, 13, 14,
+        14, 15, 12,
+
+        12, 13, 14,
+        14, 15, 12,
+
+        12, 13, 14,
+        14, 15, 12,
+
+
+
+        16, 17, 18,
+        18, 19, 16,
+
+        16, 17, 18,
+        18, 19, 16,
+
+        16, 17, 18,
+        18, 19, 16,
     };
-#endif
 
 // TOTAL ALLOCATION
     const size_t BATCH_COUNT = 1024;
     const size_t GUESS_VERTS_PER_DRAW = 4;
     const size_t BATCH_COUNT_EXTRA = BATCH_COUNT * GUESS_VERTS_PER_DRAW * STRIDE;
 
-// R1 ////////////////////////////////////////////////
-
-    VertexAttributeArray vao_2d;
-    VertexBufferData lines_data;
-
-    VertexAttributeArray_init(&vao_2d, STRIDE);
-
-    glBindVertexArray(vao_2d.vao);
-
-
-        GLfloat lines_VBO_data[BATCH_COUNT_EXTRA * sizeof(GLfloat)];
-        GLuint lines_EBO_data[BATCH_COUNT_EXTRA * sizeof(GLuint)];
-
-        VertexBufferData_init_static(
-            &lines_data, 
-            BATCH_COUNT_EXTRA,
-            lines_VBO_data,
-            BATCH_COUNT_EXTRA,
-            lines_EBO_data
-        );
-        lines_data.v_count = len_v_lines;
-        lines_data.i_count = len_i_lines;
-
-
-        for (size_t i = 0; i < len_v_lines; ++i) {
-            lines_VBO_data[i] = L[i];
-        }
-        for (size_t i = 0; i < len_i_lines; ++i) {
-            lines_EBO_data[i] = LI[i];
-        }
-
-        
-        gl_bind_buffers_and_upload_data(&lines_data, BATCH_COUNT_EXTRA, BATCH_COUNT_EXTRA, GL_STATIC_DRAW);
-        // POSITION
-        gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &vao_2d);
-        // COLOR
-        gl_set_and_enable_vertex_attrib_ptr(1, 4, GL_FLOAT, GL_FALSE, 3, &vao_2d);
-        // UV
-        gl_set_and_enable_vertex_attrib_ptr(2, 2, GL_FLOAT, GL_FALSE, 7, &vao_2d);
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glBindVertexArray(0);
-
-// R2 ////////////////////////////////////////////////
+//////////////////////////////////////////////////
 
     VertexAttributeArray vao_2d2;
     VertexBufferData tri_data;
@@ -878,7 +854,7 @@ int main(int argc, char* argv[])
         // COLOR
         gl_set_and_enable_vertex_attrib_ptr(1, 4, GL_FLOAT, GL_FALSE, 3, &vao_2d2);
         // UV
-        gl_set_and_enable_vertex_attrib_ptr(2, 2, GL_FLOAT, GL_FALSE, 7, &vao_2d);
+        gl_set_and_enable_vertex_attrib_ptr(2, 2, GL_FLOAT, GL_FALSE, 7, &vao_2d2);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -890,8 +866,9 @@ int main(int argc, char* argv[])
 	
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
-	glEnable(GL_MULTISAMPLE);
-	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	//glEnable(GL_MULTISAMPLE);
+	//glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_DST_ALPHA);
 	
 
     glDepthRange(0, 1);
@@ -902,7 +879,7 @@ int main(int argc, char* argv[])
     printf("USING GL VERSION: %s\n", glGetString(GL_VERSION));
 
     glm::mat4 mat_ident(1.0f);
-    glm::mat4 mat_projection = glm::ortho(-1.0f * ASPECT, 1.0f * ASPECT, -1.0f, 1.0f, -1.0f, 1.0f);
+    glm::mat4 mat_projection = glm::ortho(-1.0f * ASPECT, 1.0f * ASPECT, -1.0f, 1.0f, -1.0f * 100, 1.0f * 100);
     //glm::mat4 mat_projection = glm::perspective(glm::radians(45.0f), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
 
     bool keep_running = true;
@@ -994,7 +971,7 @@ int main(int argc, char* argv[])
     UniformLocation COUNT_LAYERS = glGetUniformLocation(shader_2d, "u_count_layers");
     UniformLocation OFFSET_LAYERS_X = glGetUniformLocation(shader_2d, "u_offset_layers_x");
 
-    const GLint UVAL_COUNT_LAYERS = 5;
+    const GLint UVAL_COUNT_LAYERS = COUNT_QUADS;
     const GLfloat UVAL_OFFSET_LAYERS = (1.0f / (GLfloat)UVAL_COUNT_LAYERS); 
 
     glUniform2fv(RES_LOC, 1, glm::value_ptr(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT)));
@@ -1126,7 +1103,7 @@ int main(int argc, char* argv[])
     // DRAW
 
                 
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         //glUseProgram(shader_2d);
@@ -1138,7 +1115,7 @@ int main(int argc, char* argv[])
         //glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(ViewCamera_calc_view_matrix(&main_cam) * mat_ident));
         glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(
             mat_projection * 
-            /* FreeCamera_calc_view_matrix(&main_cam) * */
+            //FreeCamera_calc_view_matrix(&main_cam) * 
             mat_ident /** 
             glm::translate(mat_ident, glm::vec3(glm::sin((GLfloat)curr_time / TIME_UNIT_TO_SECONDS), 0.0, 0.0))*/
             /** glm::scale(mat_ident, glm::vec3(0.5, 0.5, 0.5))*/ )
@@ -1160,9 +1137,6 @@ int main(int argc, char* argv[])
         glUniform3fv(CAM_LOC, 1, glm::value_ptr(*pos));
 
 
-        glBindVertexArray(vao_2d.vao);
-        //glDrawElements(GL_LINES, lines_data.i_count, GL_UNSIGNED_INT, (void*)0);
-
         glBindVertexArray(vao_2d2.vao);
         glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, (void*)0);
                 
@@ -1171,8 +1145,7 @@ int main(int argc, char* argv[])
     //////////////////
     }
     
-    VertexBufferData_delete_static(&lines_data);
-    VertexAttributeArray_delete(&vao_2d);
+    VertexAttributeArray_delete(&vao_2d2);
     SDL_GL_DeleteContext(gl_data.context);
     SDL_DestroyWindow(window);
     IMG_Quit();
