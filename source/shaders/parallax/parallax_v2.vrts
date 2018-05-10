@@ -21,10 +21,12 @@ uniform float u_offset_layers_x;
 
 void main(void) 
 {
-   gl_Position = u_matrix * vec4(a_position, 1.0);
+   gl_Position = u_matrix * vec4(vec2(a_position.xy - u_position_cam.xy), a_position.z, 1.0);
    v_position = a_position.xyz;
+
    v_color = a_color;
 
-   v_uv = vec2((a_uv.x + a_position.z) * u_offset_layers_x, a_uv.y);
+   //v_uv = vec2((a_uv.x + a_position.z) * u_offset_layers_x, a_uv.y);
+
    v_position_cam = u_position_cam;
 }

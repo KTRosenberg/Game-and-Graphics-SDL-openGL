@@ -39,7 +39,7 @@ int ignore_mouse_movement(void* unused, SDL_Event* event)
     return (event->type == SDL_MOUSEMOTION) ? 0 : 1;
 }
 
-#define DEBUG_PRINT
+//#define DEBUG_PRINT
 
 void debug_print(const char* const in);
 void debug_print(const char* const in) 
@@ -603,42 +603,42 @@ GLData gl_data;
 
 int main(int argc, char* argv[])
 {
-    std::cout << std::boolalpha << std::is_pod<ArenaAllocator>::value  << std::endl;
+    // std::cout << std::boolalpha << std::is_pod<ArenaAllocator>::value  << std::endl;
 
-    ArenaAllocator arena;
-    ArenaAllocator_init(&arena);
+    // ArenaAllocator arena;
+    // ArenaAllocator_init(&arena);
 
-    ArenaBuffer<char> buff;
-    ArenaBuffer_init<char>(&arena, &buff, 26);
-    ArenaBuffer<char> buffc;
-    ArenaBuffer_init<char>(&arena, &buffc, 26);
+    // ArenaBuffer<char> buff;
+    // ArenaBuffer_init<char>(&arena, &buff, 26);
+    // ArenaBuffer<char> buffc;
+    // ArenaBuffer_init<char>(&arena, &buffc, 26);
 
-    {
-        char* it = buff;
-        char* end = &buffc[buffc.count];
-        while (it != end) {
-            *it = '0';
-            ++it;
-        }
-    }
+    // {
+    //     char* it = buff;
+    //     char* end = &buffc[buffc.count];
+    //     while (it != end) {
+    //         *it = '0';
+    //         ++it;
+    //     }
+    // }
 
-    for (size_t i = 0; i < buff.count; ++i) {
-        buff[i] = 'a' + i;
-    }
-    for (size_t i = 0; i < buffc.count; ++i) {
-        buffc[i] = 'a' + i;
-    }
+    // for (size_t i = 0; i < buff.count; ++i) {
+    //     buff[i] = 'a' + i;
+    // }
+    // for (size_t i = 0; i < buffc.count; ++i) {
+    //     buffc[i] = 'a' + i;
+    // }
 
-    {
-        char* it = buff;
-        char* end = &buffc[buffc.count];
-        while (it != end) {
-            //std::cout << *it << std::endl;
-            ++it;
-        }
-    }
+    // {
+    //     char* it = buff;
+    //     char* end = &buffc[buffc.count];
+    //     while (it != end) {
+    //         //std::cout << *it << std::endl;
+    //         ++it;
+    //     }
+    // }
 
-    ArenaAllocator_delete(&arena);
+    // ArenaAllocator_delete(&arena);
 
     // initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -717,7 +717,7 @@ int main(int argc, char* argv[])
     const size_t STRIDE = 9;
 
 // QUADS
-    const size_t COUNT_QUADS = 4;
+    const size_t COUNT_QUADS = 5;
     const size_t POINTS_PER_QUAD = 4;
     const size_t POINTS_PER_TRI = 3;
     const size_t TRIS_PER_QUAD = 2;
@@ -757,7 +757,7 @@ int main(int argc, char* argv[])
         wf * ASPECT + (4 * OFF), -hf,  4.0f,    1.0, 1.0, 1.0, 1.0,    1.0, 1.0, // bottom right
         wf * ASPECT + (4 * OFF),  hf,  4.0f,    1.0, 1.0, 1.0, 1.0,    1.0, 0.0 // top right
     };
-    GLuint TI[] = {  // note that we start from 0!
+    GLuint TI[] = {
         0, 1, 2,
         2, 3, 0,
 
@@ -865,12 +865,12 @@ int main(int argc, char* argv[])
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);
 	//glEnable(GL_MULTISAMPLE);
-	//glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_DST_ALPHA);
-	
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
 
+    //glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_DST_ALPHA);
+	
     glDepthRange(0, 1);
     glDepthFunc(GL_LEQUAL);
     
@@ -879,7 +879,7 @@ int main(int argc, char* argv[])
     printf("USING GL VERSION: %s\n", glGetString(GL_VERSION));
 
     glm::mat4 mat_ident(1.0f);
-    glm::mat4 mat_projection = glm::ortho(-1.0f * ASPECT, 1.0f * ASPECT, -1.0f, 1.0f, -1.0f * 100, 1.0f * 100);
+    glm::mat4 mat_projection = glm::ortho(-1.0f * ASPECT, 1.0f * ASPECT, -1.0f, 1.0f, -1.0f * 10000, 1.0f * 10000);
     //glm::mat4 mat_projection = glm::perspective(glm::radians(45.0f), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
 
     bool keep_running = true;
@@ -953,10 +953,15 @@ int main(int argc, char* argv[])
     // GL_texture_gen_and_load_1(&tex0, "./textures/bg_test_2_w2.png", GL_TRUE, GL_REPEAT, GL_CLAMP_TO_EDGE);
     // Texture tex1;
     // GL_texture_gen_and_load_1(&tex1, "./textures/bg_test_2_w2.png", GL_TRUE, GL_REPEAT, GL_CLAMP_TO_EDGE);
-    Texture tex0;
-    GL_texture_gen_and_load_1(&tex0, "./textures/bg_test_3.png", GL_TRUE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-    Texture tex1;
-    GL_texture_gen_and_load_1(&tex1, "./textures/bg_test_3.png", GL_TRUE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+    // Texture tex0;
+    // if (GL_texture_gen_and_load_1(&tex0, "./textures/bla.png", GL_TRUE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE) == GL_FALSE) {
+    //     return EXIT_FAILURE;
+    // }
+
+    // Texture tex1;
+    // if (GL_texture_gen_and_load_1(&tex1, "./textures/bla.png", GL_TRUE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE) == GL_FALSE) {
+    //     return EXIT_FAILURE;
+    // }
     // TEXTURE 0
     // glActiveTexture(GL_TEXTURE0);
     // glBindTexture(GL_TEXTURE_2D, texture[0]);
@@ -979,13 +984,13 @@ int main(int argc, char* argv[])
     glUniform1f(OFFSET_LAYERS_X, UVAL_OFFSET_LAYERS);
 
     // TEXTURE 0
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, tex0);
-    glUniform1i(glGetUniformLocation(shader_2d, "tex0"), 0);
-    // TEXTURE 0
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, tex1);
-    glUniform1i(glGetUniformLocation(shader_2d, "tex1"), 1);
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, tex0);
+    // glUniform1i(glGetUniformLocation(shader_2d, "tex0"), 0);
+    // // TEXTURE 0
+    // glActiveTexture(GL_TEXTURE1);
+    // glBindTexture(GL_TEXTURE_2D, tex1);
+    // glUniform1i(glGetUniformLocation(shader_2d, "tex1"), 1);
 
 
     while (keep_running) {
@@ -994,13 +999,13 @@ int main(int argc, char* argv[])
         dt = (Uint64)(curr_time - prev_time);
         delta_time = dt;
 
-        if (dt < INTERVAL) {
-            continue;
-        }
+        // if (dt < INTERVAL) {
+        //     continue;
+        // }
 
-        do {
-            dt -= INTERVAL;
-        } while (dt >= INTERVAL);
+        // do {
+        //     dt -= INTERVAL;
+        // } while (dt >= INTERVAL);
         prev_time = curr_time;
 
         while (SDL_PollEvent(&event)) {

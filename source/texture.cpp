@@ -1,5 +1,5 @@
 #include "texture.hpp"
-
+#include <iostream>
 GLboolean GL_texture_load(Texture* texture_id, const char* const path, const GLboolean alpha, const GLint param_edge_x, const GLint param_edge_y)
 {
     // load image
@@ -14,8 +14,9 @@ GLboolean GL_texture_load(Texture* texture_id, const char* const path, const GLb
     glBindTexture(GL_TEXTURE_2D, *texture_id);
     // image assignment
     GLuint format = (alpha) ? GL_RGBA : GL_RGB;
-    glTexImage2D(GL_TEXTURE_2D, 0, format, img->w, img->h, 0, format, GL_UNSIGNED_BYTE, img->pixels);
-    
+
+    glTexImage2D(GL_TEXTURE_2D, 0, format, img->w, img->h, 0, format, GL_UNSIGNED_BYTE, (GLvoid*)img->pixels);
+
     // wrapping behavior
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, param_edge_x);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, param_edge_y);

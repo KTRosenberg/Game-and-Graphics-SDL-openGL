@@ -9,8 +9,8 @@ in float z;
 
 uniform float u_time;
 uniform vec2 u_resolution;
-uniform sampler2D tex0;
-uniform sampler2D tex1;
+//uniform sampler2D tex0;
+//uniform sampler2D tex1;
 
 uniform int   u_count_layers;
 uniform float u_offset_layers_x;
@@ -30,9 +30,8 @@ vec3 sin_pos_v3(vec3 v3)
 
 void main(void)
 {
-   vec4 texel = texture(tex0, vec2(v_uv.x, v_uv.y));
-   if (texel.r == 1.0) {
-      discard;
-   }
-   color = vec4(texel.rgb, texel.a);
+   //vec4 texel = texture(tex0, vec2(v_uv.x, v_uv.y));
+
+  // color = vec4(texel.rgb, texel.a);
+   color = vec4(1.0, 0.0, 1.0, 1.0);
 }
