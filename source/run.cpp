@@ -718,7 +718,7 @@ int main(int argc, char* argv[])
     size_t POINTS_PER_TRI = 3;
     size_t TRIS_PER_QUAD = 2;
     size_t len_v_tris = STRIDE * COUNT_QUADS * POINTS_PER_QUAD;
-    size_t len_i_tris = COUNT_QUADS * TRIS_PER_QUAD * POINTS_PER_TRI * 3;
+    size_t len_i_tris = COUNT_QUADS * TRIS_PER_QUAD * POINTS_PER_TRI;
 
     const GLfloat wf = 1.0f;
     const GLfloat hf = 1.0f;
@@ -910,7 +910,7 @@ GLdouble tex_res = 4096.0;
     glBindVertexArray(vao_2d2.vao);
 
         GLfloat tris_VBO_data[sizeof(T)];
-        GLuint  tris_EBO_data[sizeof(TI)];
+        GLuint  tris_EBO_data[sizeof(TI) / sizeof(TI[0])];
 
         VertexBufferData_init_static(
             &tri_data, 
@@ -921,12 +921,8 @@ GLdouble tex_res = 4096.0;
         );
         tri_data.i_count = len_i_tris;
 
-        for (size_t i = 0; i < len_v_tris; ++i) {
-            tris_VBO_data[i] = T[i];
-        }
-        for (size_t i = 0; i < len_i_tris; ++i) {
-            tris_EBO_data[i] = TI[i];
-        }
+        memcpy(tris_VBO_data, T, sizeof(T));
+        memcpy(tris_EBO_data, TI, sizeof(TI));
 
 
         //std::cout << b[0] << std::endl;
