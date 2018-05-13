@@ -1044,8 +1044,7 @@ GLdouble tex_res = 4096.0;
 
     glUniform2fv(RES_LOC, 1, glm::value_ptr(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT)));
     glUniform1i(COUNT_LAYERS_LOC, UVAL_COUNT_LAYERS);
-    glUniform1i(ASPECT_LOC, SCREEN_WIDTH / SCREEN_HEIGHT);
-
+    glUniform1f(ASPECT_LOC, (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT);
     // TEXTURE 0
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, tex0);
