@@ -1,0 +1,35 @@
+#version 330 core
+precision highp float;
+
+layout (location = 0) in vec3 a_position;
+layout (location = 1) in vec2 a_uv;
+
+out vec3 v_position;
+out vec2 v_uv;
+out vec3 v_position_cam;
+
+uniform mat4 u_matrix;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_aspect;
+uniform vec3 u_position_cam;
+
+uniform int u_count_layers;
+
+void main(void) 
+{
+   float X = (2.0 * -u_time - u_position_cam.x) * (1.0 / pow(2.0, 5.0 - a_position.z));
+
+   X = mod(X, u_aspect * 2.0);
+
+   X += a_position.x;
+
+   float y_off = clamp(u_position_cam.y, 0.0, 2.0) * (1.0 / pow(2.0, u_count_layers - a_position.z));
+
+   gl_Position = u_matrix * vec4(X, a_position.y - y_off, a_position.z, 1.0);
+   v_position = a_position.xyz;
+
+   v_uv = a_uv;
+
+   v_position_cam = u_position_cam;
+}

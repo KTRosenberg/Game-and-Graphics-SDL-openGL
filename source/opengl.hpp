@@ -5,10 +5,10 @@
 #   include <SDL_opengl.h>
 #   include <gl\glu.h>
 #else // __APPLE_
-#   define GL3_PROTOTYPES 1
+#   //define GL3_PROTOTYPES 1
 #   define GLEW_STATIC
 #   include <GL/glew.h>
-#   include <OpenGL/glu.h>
+#   //include <OpenGL/glu.h>
 #   include <OpenGL/gl.h>
 //#   include <OpenGL/gl3.h>
 #endif

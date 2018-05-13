@@ -2,12 +2,6 @@
 
 using namespace file_io;
 
-Shader::Shader(void)
-    :
-        _is_valid(false)
-{
-}
-
 // Shader::~Shader(void)
 // {
 //     glDeleteProgram(this->_program);
@@ -24,9 +18,6 @@ bool Shader::load_from_file(const std::string& vertex_path, const std::string& f
                         const std::string& vert_addons,
                         const std::string& frag_addons) 
 {
-    if (this->_is_valid) {
-        return false;
-    }
 
     bool status = false;
     std::string vs = Shader::retrieve_src_from_file(vertex_path.c_str(), &status);
@@ -49,12 +40,7 @@ bool Shader::load_from_file(const std::string& vertex_path, const std::string& f
 bool Shader::load_from_src(const std::string& vertex_src, const std::string& fragment_src,
                         const std::string& vert_addons,
                         const std::string& frag_addons)
-{
-    if (this->_is_valid) {
-        std::cout << "ERROR::Shader_already_loaded" << std::endl;
-        return false;
-    }
-    
+{    
     std::string vertex_combined;
     std::string fragment_combined;
     

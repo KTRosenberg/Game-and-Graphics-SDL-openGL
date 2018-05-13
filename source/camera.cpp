@@ -1,7 +1,7 @@
 #include "camera.hpp"
 
 
-void ViewCamera_create(ViewCamera* view, glm::vec3 position_start, GLfloat speed, GLfloat min_z, GLfloat max_z, GLfloat min_x, GLfloat max_x, GLfloat min_y, GLfloat max_y)
+void ViewCamera_init(ViewCamera* view, glm::vec3 position_start, GLfloat speed, GLfloat min_z, GLfloat max_z, GLfloat min_x, GLfloat max_x, GLfloat min_y, GLfloat max_y)
 {
     view->position = -position_start; 
     view->speed   = speed;
@@ -50,15 +50,16 @@ void ViewCamera_process_directional_movement(ViewCamera* view, Movement_Directio
         #ifdef DB 
         std::cout << "UPWARDS" << std::endl; 
         #endif
-        p->y -= velocity;
+        p->y += velocity;
         break;
     case Movement_Direction::DOWNWARDS:
         #ifdef DB 
         std::cout << "DOWNWARDS" << std::endl; 
         #endif
-        p->y += velocity;
+        p->y -= velocity;
         break;
     }
+    #undef DB
 
 
     p->x = glm::clamp(view->position.x, view->min_x, view->max_x);  
@@ -186,4 +187,75 @@ void Camera::update_camera_vectors(void)
     this->right = glm::normalize(glm::cross(this->front, this->world_up));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
     this->up    = glm::normalize(glm::cross(this->right, this->front));
 }
+////////////////////////
+
+
+
+void FreeCamera_init(FreeCamera* view, glm::vec3 start_position)
+{
+    view->position = start_position;
+    view->orientation = glm::quat();
+    view->matrix = glm::mat4(1.0);
+}
+
+
+void FreeCamera_process_directional_movement(FreeCamera* view, Movement_Direction direction, GLfloat delta_time)
+{
+    const GLfloat velocity = view->speed * delta_time;
+    glm::vec3* p = &view->position;
+
+    //#define DB
+    switch (direction) {
+    case Movement_Direction::FORWARDS:
+        #ifdef DB 
+        std::cout << "FORWARDS" << std::endl; 
+        #endif
+        p->z -= velocity;
+        break;
+    case Movement_Direction::BACKWARDS:
+        #ifdef DB 
+        std::cout << "BACKWARDS" << std::endl;
+        #endif
+        p->z += velocity;
+        break;
+    case Movement_Direction::LEFTWARDS:
+        #ifdef DB 
+        std::cout << "LEFTWARDS" << std::endl; 
+        #endif
+        p->x -= velocity;
+        break;
+    case Movement_Direction::RIGHTWARDS:
+        #ifdef DB 
+        std::cout << "RIGHTWARDS" << std::endl; 
+        #endif
+        p->x += velocity;
+        break;
+    case Movement_Direction::UPWARDS:
+        #ifdef DB 
+        std::cout << "UPWARDS" << std::endl; 
+        #endif
+        p->y += velocity;
+        break;
+    case Movement_Direction::DOWNWARDS:
+        #ifdef DB 
+        std::cout << "DOWNWARDS" << std::endl; 
+        #endif
+        p->y -= velocity;
+        break;
+    }
+
+
+    // p->x = glm::clamp(p->x, view->min_x, view->max_x);  
+    // p->y = glm::clamp(p->y, view->min_y, view->max_y);  
+    // p->z = glm::clamp(p->z, view->min_z, view->max_z);
+    //p->x = glm::clamp(p->x, 0.0f, 720.0f);  
+    //p->y = glm::clamp(p->y, 0.0f, 480.0f);  
+    p->z = glm::clamp(p->z, -1.0f, 1.0f);
+}
+
+glm::mat4 FreeCamera_calc_view_matrix(FreeCamera* view)
+{
+    return glm::translate(glm::mat4_cast(view->orientation), -view->position);    
+}
+
         
