@@ -2,11 +2,6 @@
 
 using namespace file_io;
 
-// Shader::~Shader(void)
-// {
-//     glDeleteProgram(this->_program);
-// }
-
 void Shader::remove_program(void)
 {
     this->_is_valid = false;
@@ -130,11 +125,11 @@ bool Shader::init_program(const GLchar* vertex_src, const GLchar* fragment_src)
         puts("SHADER::PROGRAM::LINK_SUCCEEDED");
     }
     
-    // glDetachShader(this->_program, vertex_shader);
-    // glDetachShader(this->_program, fragment_shader);
+    glDetachShader(this->_program, vertex_shader);
+    glDetachShader(this->_program, fragment_shader);
     
-    // glDeleteShader(vertex_shader);
-    // glDeleteShader(fragment_shader); // TODO clean-up later
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
     
     return true;  
 }

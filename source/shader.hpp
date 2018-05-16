@@ -64,6 +64,4 @@ struct Shader {
 };
 
 
-typedef Shader Shader;
-
 #endif // SHADER_HPP

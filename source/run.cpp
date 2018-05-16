@@ -121,7 +121,7 @@ void TextureData_init(TextureData* t, const size_t id_count)
     glGenTextures(t->count, t->ids);
 }
 
-void TextureData_init_static(TextureData* t, const size_t id_count, Texture* buffer)
+void TextureData_init_inplace(TextureData* t, const size_t id_count, Texture* buffer)
 {
     t->ids = buffer;
     t->count = id_count;
@@ -133,7 +133,7 @@ void TextureData_delete(TextureData* t)
     glDeleteTextures(t->count, t->ids);
     free(t);
 }
-void TextureData_delete_static(TextureData* t)
+void TextureData_delete_inplace(TextureData* t)
 {
     glDeleteTextures(t->count, t->ids);
 }
@@ -467,7 +467,8 @@ void VertexBufferData_init(
     const size_t i_cap,
     Fn_MemoryAllocator alloc
 ) {
-    glGenBuffers(2, (GLBuffer*)&g->vbo);
+    glGenBuffers(1, (GLBuffer*)&g->vbo);
+    glGenBuffers(1, (GLBuffer*)&g->ebo);
 
     g->v_cap = v_cap;
     g->i_cap = i_cap;
@@ -479,14 +480,15 @@ void VertexBufferData_init(
     g->i_count = 0;
 }
 
-void VertexBufferData_init_static(
+void VertexBufferData_init_inplace(
     VertexBufferData* g,
     const size_t v_cap,
     GLfloat* vertices,
     const size_t i_cap,
     GLuint* indices
 ) {
-    glGenBuffers(2, (GLBuffer*)&g->vbo);
+    glGenBuffers(1, (GLBuffer*)&g->vbo);
+    glGenBuffers(1, (GLBuffer*)&g->ebo);
 
     g->v_cap = v_cap;
     g->i_cap = i_cap;
@@ -500,13 +502,15 @@ void VertexBufferData_init_static(
 
 void VertexBufferData_delete(VertexBufferData* g)
 {
-    glDeleteBuffers(2, (GLBuffer*)&g->vbo);
+    glDeleteBuffers(1, (GLBuffer*)&g->vbo);
+    glDeleteBuffers(1, (GLBuffer*)&g->ebo);
     free(g->vertices);
     free(g->indices);
 }
-void VertexBufferData_delete_static(VertexBufferData* g)
+void VertexBufferData_delete_inplace(VertexBufferData* g)
 {
-    glDeleteBuffers(2, (GLBuffer*)&g->vbo);
+    glDeleteBuffers(1, (GLBuffer*)&g->vbo);
+    glDeleteBuffers(1, (GLBuffer*)&g->ebo);
 }
 
 
@@ -522,18 +526,14 @@ void VertexAttributeArray_init(VertexAttributeArray* vao, size_t stride)
     glGenVertexArrays(1, &vao->vao);
     vao->stride = stride;
 }
-inline void VertexAttributeArray_delete(VertexAttributeArray* vao) 
+void VertexAttributeArray_delete(VertexAttributeArray* vao) 
 {
     glDeleteVertexArrays(1, &vao->vao);
 }
-inline GLvoid* attribute_offsetof(size_t offset)
-{
-    return (GLvoid*)(offset * sizeof(GLfloat));
-}
-inline size_t attribute_sizeof(VertexAttributeArray* vao) 
-{
-    return vao->stride * sizeof(GLfloat);
-}
+
+#define attribute_offsetof(offset) (GLvoid*)(offset * sizeof(GLfloat))
+
+#define attribute_sizeof(vao) vao->stride * sizeof(GLfloat)
 
 void gl_set_and_enable_vertex_attrib_ptr(GLuint index, GLint size, GLenum type, GLboolean normalized, size_t offset, VertexAttributeArray* va)
 {
@@ -675,6 +675,8 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Window could not be created\n");
         return EXIT_FAILURE;
     }
+
+    //SDL_SetWindowFullscreen(window, true);
     
     int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
     if(!(IMG_Init(imgFlags) & imgFlags)) {
@@ -912,7 +914,7 @@ GLdouble tex_res = 4096.0;
         GLfloat tris_VBO_data[sizeof(T)];
         GLuint  tris_EBO_data[sizeof(TI) / sizeof(TI[0])];
 
-        VertexBufferData_init_static(
+        VertexBufferData_init_inplace(
             &tri_data, 
             BATCH_COUNT_EXTRA,
             tris_VBO_data,
@@ -1251,6 +1253,7 @@ GLdouble tex_res = 4096.0;
     }
     
     VertexAttributeArray_delete(&vao_2d2);
+    VertexBufferData_delete_inplace(&tri_data);
     SDL_GL_DeleteContext(gl_data.context);
     SDL_DestroyWindow(window);
     IMG_Quit();
