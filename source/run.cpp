@@ -1079,13 +1079,17 @@ GLdouble tex_res = 4096.0;
     double t_accumulator_ms = 0.0;
     double t_accumulator_ms_overall = 0.0;
     Uint64 t_accumulator_count = 0;
+    double frequency = 0.0;
+
+
 
 
     while (keep_running) {
         t_prev = t_now;
         t_now = SDL_GetPerformanceCounter();
+        frequency = SDL_GetPerformanceFrequency();
 
-        t_delta_s       = (double)((t_now - t_prev) / (double)SDL_GetPerformanceFrequency());
+        t_delta_s       = (double)((t_now - t_prev) / frequency);
         t_delta_ms      = t_delta_s * MS_PER_S;
         t_elapsed_s     += t_delta_s;
         t_accumulator_ms += t_delta_ms;
@@ -1218,7 +1222,7 @@ GLdouble tex_res = 4096.0;
         glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(
             mat_projection * 
             /*FreeCamera_calc_view_matrix(&main_cam) * */ 
-            /*glm::translate(mat_ident, glm::vec3(glm::sin((GLfloat)T), 0.0, 0.0)) * */
+            /*glm::translate(mat_ident, glm::vec3(glm::sin(((double)t_now / frequency)), 0.0, 0.0)) * */
             /*glm::scale(mat_ident, glm::vec3(0.25, 0.25, 1.0))* */
                         mat_ident)
         );
