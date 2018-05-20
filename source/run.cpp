@@ -381,11 +381,12 @@ void ArenaAllocator_delete(ArenaAllocator* arena)
 }
 
 template <typename T>
-struct Buffer {
+struct ArenaBuffer {
     T* memory;
     size_t count;
+    size_t cap;
 
-    operator T*()
+    operator T*(void)
     {
         return this->memory;
     }
@@ -400,30 +401,21 @@ struct Buffer {
         return this->memory[i];
     }
 
-    inline size_t size() const
+    inline size_t size_buffer(void) const
     {
-        return sizeof(T) * count;
+        return sizeof(T) * this->cap;
     }
 
-    inline size_t element_size() const
+    inline size_t size_element(void) const
     {
         return sizeof(T);
     }
+
+    typedef ArenaBuffer* iterator;
+    typedef const ArenaBuffer* const_iterator;
+    iterator begin() { return &this->array[0]; }
+    iterator end() { return &this->array[cap]; }
 };
-
-
-void Arena_Buffer_init_bytes(ArenaAllocator* arena, Buffer<char>* buffer, size_t count) 
-{
-    buffer->memory = (char*)ArenaAllocator_allocate(arena, count);
-    buffer->count = count;
-}
-
-template <typename T>
-void Arena_Buffer_init(ArenaAllocator* arena, Buffer<T>* buffer, size_t count) 
-{
-    buffer->memory = (T*)ArenaAllocator_allocate(arena, count * sizeof(T));
-    buffer->count = count;
-}
 
 
 typedef struct VertexBufferData {
@@ -438,15 +430,14 @@ typedef struct VertexBufferData {
 } VertexBufferData;
 
 
+// struct VertexBufferDataAlt {
+//     VertexBuffer vbo;
+//     ElementBuffer ebo;
+//     Buffer<GLfloat> vertices;
+//     Buffer<GLuint>  indices;
+// } VertexBufferDataAlt;
 
-struct VertexBufferDataAlt {
-    VertexBuffer vbo;
-    ElementBuffer ebo;
-    Buffer<GLfloat> vertices;
-    Buffer<GLuint>  indices;
-} VertexBufferDataAlt;
-
-typedef VertexBufferData VBData;
+// typedef VertexBufferData VBData;
 
 
 
@@ -465,11 +456,34 @@ void VertexBufferData_init(
     g->vertices = (GLfloat*)alloc(sizeof(GLfloat) * g->v_cap);
     g->indices  = (GLuint*)alloc(sizeof(GLuint) * g->i_cap);
 
-    g->v_count = 0;
-    g->i_count = 0;
+    g->v_count = g->v_cap;
+    g->i_count = g->i_cap;
 }
 
+
+#define STATIC_ARRAY_COUNT(array) (sizeof(array) / sizeof(*array))
+
 void VertexBufferData_init_inplace(
+    VertexBufferData* g,
+    const size_t v_cap,
+    GLfloat* vertices,
+    const size_t i_cap,
+    GLuint* indices
+) {
+    glGenBuffers(1, (GLBuffer*)&g->vbo);
+    glGenBuffers(1, (GLBuffer*)&g->ebo);
+
+    g->v_cap = v_cap;
+    g->i_cap = i_cap;
+
+    g->vertices = vertices;
+    g->indices  = indices;
+
+    g->v_count = g->v_cap;
+    g->i_count = g->i_cap;
+}
+
+void VertexBufferData_init_inplace_growing(
     VertexBufferData* g,
     const size_t v_cap,
     GLfloat* vertices,
@@ -500,6 +514,17 @@ void VertexBufferData_delete_inplace(VertexBufferData* g)
 {
     glDeleteBuffers(1, (GLBuffer*)&g->vbo);
     glDeleteBuffers(1, (GLBuffer*)&g->ebo);
+}
+
+void VertexBufferData_init_with_arenas(ArenaAllocator* v_arena, ArenaAllocator* i_arena, VertexBufferData* vbd, size_t v_count_elements, size_t i_count_elements) 
+{
+    VertexBufferData_init_inplace(
+        vbd, 
+        v_count_elements,
+        (GLfloat*)ArenaAllocator_allocate(v_arena, v_count_elements * sizeof(GLfloat)),
+        i_count_elements,
+        (GLuint*)ArenaAllocator_allocate(i_arena, i_count_elements * sizeof(GLuint))
+    );
 }
 
 
@@ -540,6 +565,24 @@ void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, size_t v_cap, size_t
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbd->ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, i_cap * sizeof(GLuint), vbd->indices, usage);            
+}
+
+void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, GLenum usage)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
+    glBufferData(GL_ARRAY_BUFFER, vbd->v_cap * sizeof(GLfloat), vbd->vertices, usage);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbd->ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, vbd->i_cap * sizeof(GLuint), vbd->indices, usage);           
+}
+
+void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, vbd->v_count * sizeof(GLfloat), vbd->vertices);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vbd->ebo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, vbd->i_count * sizeof(GLuint), vbd->indices);
 }
 
 
@@ -586,17 +629,19 @@ GLData gl_data;
 
 #define IMMEDIATE_MODE_GL
 
+#ifdef IMMEDIATE_MODE_GL
 
 namespace Colors {
     static const glm::vec4 RED = {1.0, 0.0, 0.0, 1.0};
     static const glm::vec4 GREEN = {0.0, 1.0, 0.0, 1.0};
     static const glm::vec4 BLUE = {0.0, 0.0, 1.0, 1.0};
     static const glm::vec4 MAGENTA = {1.0, 0.0, 1.0, 1.0};
-    static const glm::vec4 BLACK = {0.0, 0.0, 0.0, 1.0};
+    static const glm::vec4 BLACK = {0.0, 0.0, 0.0, 1.0};    
 }
 
 template <size_t N>
 struct GLImmediate {
+
     static constexpr GLuint ATTRIBUTE_STRIDE = 7;
 
     GLfloat vertices[N * ATTRIBUTE_STRIDE]; 
@@ -617,22 +662,33 @@ struct GLImmediate {
 
     GLenum primitive_type;
 
-    void begin() 
+
+    bool begun;
+
+    void begin(void) 
     {
+        assert(begun == false);
+        
         transform_matrix = glm::mat4(1.0f);
 
-        glBindVertexArray(vao.vao);
+        glBindVertexArray(vao);
         glUseProgram(shader);
 
         if (update_projection_matrix) {
             update_projection_matrix = false;
             glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(projection_matrix));
         }
+
+        begun = true;
     }
 
-    void end() 
+    void end(void) 
     {
-        gl_bind_buffers_and_upload_data(&line_buffer, N * ATTRIBUTE_STRIDE, N * 2, GL_STREAM_DRAW);
+        assert(begun == true);
+
+        gl_bind_buffers_and_upload_data(&line_buffer, GL_STREAM_DRAW);
+        gl_bind_buffers_and_upload_sub_data(&line_buffer);
+
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -645,12 +701,15 @@ struct GLImmediate {
 
         line_buffer.v_count = 0;
         line_buffer.i_count = 0;
+
+        begun = false;
     }
 
     bool init(glm::mat4 projection_matrix)
     {
-        this->projection_matrix = projection_matrix;
-        this->update_projection_matrix = false;
+        GLImmediate::projection_matrix = projection_matrix;
+        update_projection_matrix = false;
+        begun = false;
 
         primitive_type = GL_LINES;
 
@@ -673,15 +732,15 @@ struct GLImmediate {
 
         glBindVertexArray(vao.vao);
 
-            VertexBufferData_init_inplace(
+            VertexBufferData_init_inplace_growing(
                 &line_buffer, 
-                sizeof(vertices),
+                N * ATTRIBUTE_STRIDE,
                 vertices,
-                sizeof(indices),
+                N,
                 indices
             );
 
-            gl_bind_buffers_and_upload_data(&line_buffer, N * ATTRIBUTE_STRIDE, N * 2, GL_STREAM_DRAW);
+            gl_bind_buffers_and_upload_data(&line_buffer, GL_STREAM_DRAW);
             // POSITION
             gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &vao);
             // COLOR
@@ -695,12 +754,18 @@ struct GLImmediate {
         return true;
     }
 
+    void free(void)
+    {
+        VertexAttributeArray_delete(&vao);
+        VertexBufferData_delete_inplace(&line_buffer);
+    }
+
     void line(glm::vec3 a, glm::vec3 b)
     {
         const size_t v_count = line_buffer.v_count;
         const size_t i_count = line_buffer.i_count;
 
-        if (v_count + 2 > N) {
+        if (v_count + 2 > N * ATTRIBUTE_STRIDE || i_count + 2 > N * 2) {
             fprintf(stderr, "%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
             return;
         }
@@ -708,7 +773,7 @@ struct GLImmediate {
         a = glm::vec3(transform_matrix * glm::vec4(a, 1.0f));
         b = glm::vec3(transform_matrix * glm::vec4(b, 1.0f));
 
-        const size_t v_idx = v_count * ATTRIBUTE_STRIDE;
+        const size_t v_idx = v_count;
 
         memcpy(&vertices[v_idx], &a[0], sizeof(a[0]) * 3);
         memcpy(&vertices[v_idx + 3], &color[0], sizeof(color[0]) * 4);
@@ -720,7 +785,7 @@ struct GLImmediate {
         indices[i_count] = v_count;
         indices[i_count + 1] = v_count + 1;
 
-        line_buffer.v_count += 2;
+        line_buffer.v_count += (2 * ATTRIBUTE_STRIDE);
         line_buffer.i_count += 2;
 
         // std::cout << "BEGIN" << std::endl;
@@ -743,7 +808,7 @@ struct GLImmediate {
         const size_t v_count = line_buffer.v_count;
         const size_t i_count = line_buffer.i_count;
 
-        if (v_count + 2 > N) {
+        if (v_count + 2 > N * ATTRIBUTE_STRIDE || i_count + 2 > N * 2) {
             fprintf(stderr, "%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
             return;
         }
@@ -751,7 +816,7 @@ struct GLImmediate {
         a = glm::vec2(transform_matrix * glm::vec4(a, 0.0f, 1.0f));
         b = glm::vec2(transform_matrix * glm::vec4(b, 0.0f, 1.0f));
 
-        const size_t v_idx = v_count * ATTRIBUTE_STRIDE;
+        const size_t v_idx = v_count;
 
         memcpy(&vertices[v_idx], &a[0], sizeof(a[0]) * 2);
         vertices[v_idx + 2] = 0.0f;
@@ -765,7 +830,7 @@ struct GLImmediate {
         indices[i_count] = v_count;
         indices[i_count + 1] = v_count + 1;
 
-        line_buffer.v_count += 2;
+        line_buffer.v_count += (2 * ATTRIBUTE_STRIDE);
         line_buffer.i_count += 2;
     }
 
@@ -778,9 +843,9 @@ struct GLImmediate {
 
             const size_t v_count = line_buffer.v_count;
             const size_t i_count = line_buffer.i_count;
-            const size_t v_idx = v_count * ATTRIBUTE_STRIDE;
+            const size_t v_idx = v_count;
 
-            if (v_count + 1 > N) {
+            if (v_count + 1 > N * ATTRIBUTE_STRIDE || i_count > N * 2) {
                 fprintf(stderr, "%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
                 return;
             }
@@ -793,56 +858,20 @@ struct GLImmediate {
 
             indices[i_count] = v_count;
 
-            ++line_buffer.v_count;
+            line_buffer.v_count += ATTRIBUTE_STRIDE;
             ++line_buffer.i_count;
 
             break;
         }      
     }
 };
+#endif
 
 
 //////////////
 
 int main(int argc, char* argv[])
 {
-    // std::cout << std::boolalpha << std::is_pod<ArenaAllocator>::value  << std::endl;
-
-    // ArenaAllocator arena;
-    // ArenaAllocator_init(&arena);
-
-    // ArenaBuffer<char> buff;
-    // ArenaBuffer_init<char>(&arena, &buff, 26);
-    // ArenaBuffer<char> buffc;
-    // ArenaBuffer_init<char>(&arena, &buffc, 26);
-
-    // {
-    //     char* it = buff;
-    //     char* end = &buffc[buffc.count];
-    //     while (it != end) {
-    //         *it = '0';
-    //         ++it;
-    //     }
-    // }
-
-    // for (size_t i = 0; i < buff.count; ++i) {
-    //     buff[i] = 'a' + i;
-    // }
-    // for (size_t i = 0; i < buffc.count; ++i) {
-    //     buffc[i] = 'a' + i;
-    // }
-
-    // {
-    //     char* it = buff;
-    //     char* end = &buffc[buffc.count];
-    //     while (it != end) {
-    //         //std::cout << *it << std::endl;
-    //         ++it;
-    //     }
-    // }
-
-    // ArenaAllocator_delete(&arena);
-
     // initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "%s\n", "SDL could not initialize");
@@ -1110,7 +1139,6 @@ GLdouble tex_res = 4096.0;
 // TOTAL ALLOCATION
     const size_t BATCH_COUNT = 1024;
     const size_t GUESS_VERTS_PER_DRAW = 4;
-    const size_t BATCH_COUNT_EXTRA = BATCH_COUNT * GUESS_VERTS_PER_DRAW * STRIDE;
 
 //////////////////////////////////////////////////
 
@@ -1121,25 +1149,17 @@ GLdouble tex_res = 4096.0;
 
     glBindVertexArray(vao_2d2.vao);
 
-        GLfloat tris_VBO_data[sizeof(T)];
-        GLuint  tris_EBO_data[sizeof(TI) / sizeof(TI[0])];
-
         VertexBufferData_init_inplace(
             &tri_data, 
-            BATCH_COUNT_EXTRA,
-            tris_VBO_data,
-            BATCH_COUNT_EXTRA,
-            tris_EBO_data
+            STATIC_ARRAY_COUNT(T),
+            T,
+            STATIC_ARRAY_COUNT(TI),
+            TI
         );
-        tri_data.i_count = len_i_tris;
-
-        memcpy(tris_VBO_data, T, sizeof(T));
-        memcpy(tris_EBO_data, TI, sizeof(TI));
-
 
         //std::cout << b[0] << std::endl;
 
-        gl_bind_buffers_and_upload_data(&tri_data, sizeof(T) / sizeof(T[0]), sizeof(TI) / sizeof(TI[0]), GL_STATIC_DRAW);
+        gl_bind_buffers_and_upload_data(&tri_data, GL_STATIC_DRAW);
         // POSITION
         gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &vao_2d2);
         // UV
@@ -1475,10 +1495,10 @@ GLdouble tex_res = 4096.0;
 
         gl_imm.begin();
 
-        gl_imm.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+            gl_imm.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
 
-        gl_imm.color = Colors::BLACK;
-        gl_imm.line({0.0, 0.0, -2.0}, {1.0, 1.0, -2.0});
+            gl_imm.color = Colors::BLACK;
+            gl_imm.line({0.0, 0.0, 0.0}, {1.0, 1.0, 0.0});
 
         gl_imm.end();
 
@@ -1493,6 +1513,9 @@ GLdouble tex_res = 4096.0;
     
     VertexAttributeArray_delete(&vao_2d2);
     VertexBufferData_delete_inplace(&tri_data);
+    #ifdef IMMEDIATE_MODE_GL
+        gl_imm.free();
+    #endif
     SDL_GL_DeleteContext(gl_data.context);
     SDL_DestroyWindow(window);
     IMG_Quit();
