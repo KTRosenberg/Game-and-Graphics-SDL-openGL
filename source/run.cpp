@@ -381,7 +381,7 @@ void ArenaAllocator_delete(ArenaAllocator* arena)
 }
 
 template <typename T>
-struct ArenaBuffer {
+struct Buffer {
     T* memory;
     size_t count;
 
@@ -412,14 +412,14 @@ struct ArenaBuffer {
 };
 
 
-void ArenaBuffer_init_bytes(ArenaAllocator* arena, ArenaBuffer<char>* buffer, size_t count) 
+void Arena_Buffer_init_bytes(ArenaAllocator* arena, Buffer<char>* buffer, size_t count) 
 {
     buffer->memory = (char*)ArenaAllocator_allocate(arena, count);
     buffer->count = count;
 }
 
 template <typename T>
-void ArenaBuffer_init(ArenaAllocator* arena, ArenaBuffer<T>* buffer, size_t count) 
+void Arena_Buffer_init(ArenaAllocator* arena, Buffer<T>* buffer, size_t count) 
 {
     buffer->memory = (T*)ArenaAllocator_allocate(arena, count * sizeof(T));
     buffer->count = count;
@@ -442,20 +442,9 @@ typedef struct VertexBufferData {
 struct VertexBufferDataAlt {
     VertexBuffer vbo;
     ElementBuffer ebo;
-    CappedArray<GLfloat> vertices;
-    CappedArray<GLuint>  indices;
+    Buffer<GLfloat> vertices;
+    Buffer<GLuint>  indices;
 } VertexBufferDataAlt;
-
-struct VertexBufferDataBatches {
-    CappedArray<VertexBuffer> vbos;
-    CappedArray<ElementBuffer> ebos;
-
-    CappedArray<GLfloat> vertex_batches;
-    CappedArray<GLuint> vertex_batch_offsets;
-    
-    CappedArray<GLuint> index_batches; 
-    CappedArray<GLuint> index_batch_offsets;
-} VertexBufferDataBatches;
 
 typedef VertexBufferData VBData;
 
@@ -517,6 +506,9 @@ void VertexBufferData_delete_inplace(VertexBufferData* g)
 typedef struct VertexAttributeArray {
     VertexArray vao;
     size_t stride;
+
+    operator GLuint() { return vao; }
+
 } VertexAttributeArray;
 
 typedef VertexAttributeArray VAttribArr;
@@ -590,6 +582,224 @@ typedef struct GLData {
 } GLData;
 
 GLData gl_data;
+
+
+#define IMMEDIATE_MODE_GL
+
+
+namespace Colors {
+    static const glm::vec4 RED = {1.0, 0.0, 0.0, 1.0};
+    static const glm::vec4 GREEN = {0.0, 1.0, 0.0, 1.0};
+    static const glm::vec4 BLUE = {0.0, 0.0, 1.0, 1.0};
+    static const glm::vec4 MAGENTA = {1.0, 0.0, 1.0, 1.0};
+    static const glm::vec4 BLACK = {0.0, 0.0, 0.0, 1.0};
+}
+
+template <size_t N>
+struct GLImmediate {
+    static constexpr GLuint ATTRIBUTE_STRIDE = 7;
+
+    GLfloat vertices[N * ATTRIBUTE_STRIDE]; 
+    GLuint indices[N * 2];
+
+    VertexAttributeArray vao;
+    VertexBufferData line_buffer;
+    Shader shader;
+
+    UniformLocation MAT_LOC;
+
+    glm::mat4 projection_matrix;
+    glm::mat4 transform_matrix;
+
+    glm::vec4 color;
+
+    bool update_projection_matrix;
+
+    GLenum primitive_type;
+
+    void begin() 
+    {
+        transform_matrix = glm::mat4(1.0f);
+
+        glBindVertexArray(vao.vao);
+        glUseProgram(shader);
+
+        if (update_projection_matrix) {
+            update_projection_matrix = false;
+            glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(projection_matrix));
+        }
+    }
+
+    void end() 
+    {
+        gl_bind_buffers_and_upload_data(&line_buffer, N * ATTRIBUTE_STRIDE, N * 2, GL_STREAM_DRAW);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        if (line_buffer.i_count > 0) { 
+            glDrawElements(GL_LINES, line_buffer.i_count, GL_UNSIGNED_INT, 0);
+        }
+        
+        glBindVertexArray(0);
+        glUseProgram(0);
+
+        line_buffer.v_count = 0;
+        line_buffer.i_count = 0;
+    }
+
+    bool init(glm::mat4 projection_matrix)
+    {
+        this->projection_matrix = projection_matrix;
+        this->update_projection_matrix = false;
+
+        primitive_type = GL_LINES;
+
+        shader.load_from_file(
+            "shaders/default_2d/default_2d.vrts",
+            "shaders/default_2d/default_2d.frgs"
+        );
+
+        if (!shader.is_valid()) {
+            fprintf(stderr, "ERROR: immediate mode failed\n");
+            return false;
+        }
+
+        glUseProgram(shader);
+        MAT_LOC = glGetUniformLocation(shader, "u_matrix");
+        glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(projection_matrix));
+        glUseProgram(0);
+
+        VertexAttributeArray_init(&vao, ATTRIBUTE_STRIDE);
+
+        glBindVertexArray(vao.vao);
+
+            VertexBufferData_init_inplace(
+                &line_buffer, 
+                sizeof(vertices),
+                vertices,
+                sizeof(indices),
+                indices
+            );
+
+            gl_bind_buffers_and_upload_data(&line_buffer, N * ATTRIBUTE_STRIDE, N * 2, GL_STREAM_DRAW);
+            // POSITION
+            gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &vao);
+            // COLOR
+            gl_set_and_enable_vertex_attrib_ptr(1, 4, GL_FLOAT, GL_FALSE, 3, &vao);
+
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        glBindVertexArray(0);
+
+
+        return true;
+    }
+
+    void line(glm::vec3 a, glm::vec3 b)
+    {
+        const size_t v_count = line_buffer.v_count;
+        const size_t i_count = line_buffer.i_count;
+
+        if (v_count + 2 > N) {
+            fprintf(stderr, "%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
+            return;
+        }
+
+        a = glm::vec3(transform_matrix * glm::vec4(a, 1.0f));
+        b = glm::vec3(transform_matrix * glm::vec4(b, 1.0f));
+
+        const size_t v_idx = v_count * ATTRIBUTE_STRIDE;
+
+        memcpy(&vertices[v_idx], &a[0], sizeof(a[0]) * 3);
+        memcpy(&vertices[v_idx + 3], &color[0], sizeof(color[0]) * 4);
+
+
+        memcpy(&vertices[v_idx + ATTRIBUTE_STRIDE], &b[0], sizeof(b[0]) * 3);
+        memcpy(&vertices[v_idx + ATTRIBUTE_STRIDE + 3], &color[0], sizeof(color[0]) * 4);
+
+        indices[i_count] = v_count;
+        indices[i_count + 1] = v_count + 1;
+
+        line_buffer.v_count += 2;
+        line_buffer.i_count += 2;
+
+        // std::cout << "BEGIN" << std::endl;
+        // std::cout << "{" << std::endl;
+        // for (size_t i = 0; i < line_buffer.v_count * ATTRIBUTE_STRIDE; ++i) {
+        //     std::cout << line_buffer.vertices[i] << ", ";
+        // }
+        // std::cout << std::endl << "}" << std::endl;
+
+        // std::cout << "{" << std::endl;
+        // for (size_t i = 0; i < line_buffer.i_count; ++i) {
+        //     std::cout << line_buffer.indices[i] << ", ";
+        // }
+        // std::cout << std::endl << "}" << std::endl;
+        // std::cout << "END" << std::endl;
+    }
+
+    void line(glm::vec2 a, glm::vec2 b)
+    {
+        const size_t v_count = line_buffer.v_count;
+        const size_t i_count = line_buffer.i_count;
+
+        if (v_count + 2 > N) {
+            fprintf(stderr, "%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
+            return;
+        }
+
+        a = glm::vec2(transform_matrix * glm::vec4(a, 0.0f, 1.0f));
+        b = glm::vec2(transform_matrix * glm::vec4(b, 0.0f, 1.0f));
+
+        const size_t v_idx = v_count * ATTRIBUTE_STRIDE;
+
+        memcpy(&vertices[v_idx], &a[0], sizeof(a[0]) * 2);
+        vertices[v_idx + 2] = 0.0f;
+        memcpy(&vertices[v_idx + 3], &color[0], sizeof(color[0]) * 4);
+
+
+        memcpy(&vertices[v_idx + ATTRIBUTE_STRIDE], &b[0], sizeof(b[0]) * 2);
+        vertices[v_idx + ATTRIBUTE_STRIDE + 2] = 0.0f;
+        memcpy(&vertices[v_idx + ATTRIBUTE_STRIDE + 3], &color[0], sizeof(color[0]) * 4);
+
+        indices[i_count] = v_count;
+        indices[i_count + 1] = v_count + 1;
+
+        line_buffer.v_count += 2;
+        line_buffer.i_count += 2;
+    }
+
+    void vertex(glm::vec3 v)
+    {
+        switch (primitive_type) {
+        case GL_TRIANGLES:
+            break;
+        case GL_LINES:
+
+            const size_t v_count = line_buffer.v_count;
+            const size_t i_count = line_buffer.i_count;
+            const size_t v_idx = v_count * ATTRIBUTE_STRIDE;
+
+            if (v_count + 1 > N) {
+                fprintf(stderr, "%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
+                return;
+            }
+
+            v = glm::vec3(transform_matrix * glm::vec4(v, 1.0f));
+
+
+            memcpy(&vertices[v_idx], &v[0], sizeof(v[0]) * 3);
+            memcpy(&vertices[v_idx + 3], &color[0], sizeof(color[0]) * 4);
+
+            indices[i_count] = v_count;
+
+            ++line_buffer.v_count;
+            ++line_buffer.i_count;
+
+            break;
+        }      
+    }
+};
 
 
 //////////////
@@ -1053,6 +1263,14 @@ GLdouble tex_res = 4096.0;
     // glUniform1i(glGetUniformLocation(shader_2d, "tex1"), 1);
 
 
+    #ifdef IMMEDIATE_MODE_GL
+    GLImmediate<1024> gl_imm;
+    if (!gl_imm.init(mat_projection)) {
+        return EXIT_FAILURE;
+    }
+    #endif
+
+
     size_t display_mode_count = 0;
     SDL_DisplayMode mode;
 
@@ -1089,7 +1307,7 @@ GLdouble tex_res = 4096.0;
         t_now = SDL_GetPerformanceCounter();
         frequency = SDL_GetPerformanceFrequency();
 
-        t_delta_s       = (double)((t_now - t_prev) / frequency);
+        t_delta_s       = (double)((t_now - t_prev) / (double)frequency);
         t_delta_ms      = t_delta_s * MS_PER_S;
         t_elapsed_s     += t_delta_s;
         t_accumulator_ms += t_delta_ms;
@@ -1207,7 +1425,7 @@ GLdouble tex_res = 4096.0;
         glClearColor(97.0 / 255.0, 201.0 / 255.0, 255.0 / 255.0, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        //glUseProgram(shader_2d);
+        glUseProgram(shader_2d);
 
         //double t_overall = t_accumulator_ms_overall / MS_PER_S;
 
@@ -1242,17 +1460,34 @@ GLdouble tex_res = 4096.0;
 
         glUniform3fv(CAM_LOC, 1, glm::value_ptr(pos));
 
+        glEnable(GL_DEPTH_TEST);
+        glDepthRange(0, 1);
+        glDepthFunc(GL_LEQUAL);
+
         glBindVertexArray(vao_2d2.vao);
         glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
 
+        #ifdef IMMEDIATE_MODE_GL
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glDisable(GL_DEPTH_TEST);
+
+
+        gl_imm.begin();
+
+        gl_imm.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+
+        gl_imm.color = Colors::BLACK;
+        gl_imm.line({0.0, 0.0, -2.0}, {1.0, 1.0, -2.0});
+
+        gl_imm.end();
+
+        #endif
+
+
         //std::cout << (GLdouble) curr_time / MS_PER_S << std::endl;
 
         SDL_GL_SwapWindow(window);
-
-
-
-
     //////////////////
     }
     
