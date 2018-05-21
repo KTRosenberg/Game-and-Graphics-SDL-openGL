@@ -418,7 +418,7 @@ struct ArenaBuffer {
 };
 
 
-typedef struct VertexBufferData {
+struct VertexBufferData {
     VertexBuffer vbo;
     ElementBuffer ebo;
     size_t    v_cap;
@@ -427,8 +427,7 @@ typedef struct VertexBufferData {
     size_t    i_count;
     GLfloat*  vertices;
     GLuint*   indices;
-} VertexBufferData;
-
+};
 
 // struct VertexBufferDataAlt {
 //     VertexBuffer vbo;
@@ -445,7 +444,8 @@ void VertexBufferData_init(
     VertexBufferData* g,
     const size_t v_cap,
     const size_t i_cap,
-    Fn_MemoryAllocator alloc
+    Fn_MemoryAllocator alloc_v,
+    Fn_MemoryAllocator alloc_i
 ) {
     glGenBuffers(1, (GLBuffer*)&g->vbo);
     glGenBuffers(1, (GLBuffer*)&g->ebo);
@@ -453,37 +453,17 @@ void VertexBufferData_init(
     g->v_cap = v_cap;
     g->i_cap = i_cap;
 
-    g->vertices = (GLfloat*)alloc(sizeof(GLfloat) * g->v_cap);
-    g->indices  = (GLuint*)alloc(sizeof(GLuint) * g->i_cap);
+    g->vertices = (GLfloat*)alloc_v(sizeof(GLfloat) * g->v_cap);
+    g->indices  = (GLuint*)alloc_i(sizeof(GLuint) * g->i_cap);
 
-    g->v_count = g->v_cap;
-    g->i_count = g->i_cap;
+    g->v_count = 0;
+    g->i_count = 0;
 }
 
 
 #define STATIC_ARRAY_COUNT(array) (sizeof(array) / sizeof(*array))
 
 void VertexBufferData_init_inplace(
-    VertexBufferData* g,
-    const size_t v_cap,
-    GLfloat* vertices,
-    const size_t i_cap,
-    GLuint* indices
-) {
-    glGenBuffers(1, (GLBuffer*)&g->vbo);
-    glGenBuffers(1, (GLBuffer*)&g->ebo);
-
-    g->v_cap = v_cap;
-    g->i_cap = i_cap;
-
-    g->vertices = vertices;
-    g->indices  = indices;
-
-    g->v_count = g->v_cap;
-    g->i_count = g->i_cap;
-}
-
-void VertexBufferData_init_inplace_growing(
     VertexBufferData* g,
     const size_t v_cap,
     GLfloat* vertices,
@@ -525,6 +505,15 @@ void VertexBufferData_init_with_arenas(ArenaAllocator* v_arena, ArenaAllocator* 
         i_count_elements,
         (GLuint*)ArenaAllocator_allocate(i_arena, i_count_elements * sizeof(GLuint))
     );
+}
+
+void* GlobalArenaAlloc_vertex_attribute_data(size_t count) 
+{
+    return xmalloc(count * sizeof(GLfloat));
+}
+void* GlobalArenaAlloc_index_data(size_t count) 
+{
+    return xmalloc(count * sizeof(GLuint));    
 }
 
 
@@ -606,25 +595,75 @@ typedef struct Collider {
     Fn_CollisionHandler handler;
 } Collider; 
 
+
+struct GLData {
+    VertexAttributeArray vao;
+    VertexBufferData vbd;
+};
+
+void GLData_init(GLData* gl_data, size_t attribute_stride, const size_t v_cap, const size_t i_cap, Fn_MemoryAllocator alloc_v, Fn_MemoryAllocator alloc_i) 
+{
+    VertexAttributeArray_init(&gl_data->vao, attribute_stride);
+    VertexBufferData_init(&gl_data->vbd, v_cap, i_cap, alloc_v, alloc_i);
+}
+
+void GLData_init_inplace(GLData* gl_data, size_t attribute_stride, const size_t v_cap, GLfloat* vertices, const size_t i_cap, GLuint* indices) 
+{
+    VertexAttributeArray_init(&gl_data->vao, attribute_stride);
+    VertexBufferData_init_inplace(&gl_data->vbd, v_cap, vertices, i_cap, indices);    
+}
+
+inline void GLData_advance(GLData* const gl_data, const size_t i)
+{
+    gl_data->vbd.v_count += (i * gl_data->vao.stride);
+    gl_data->vbd.i_count += i;
+}
+
+inline void data_mark_filled(VertexBufferData* vbd)
+{
+    vbd->v_count = vbd->v_cap;
+    vbd->i_count = vbd->i_cap;
+}
+
+inline void data_mark_filled(GLData* gl_data)
+{
+    VertexBufferData* const vbd = &gl_data->vbd;
+    vbd->v_count = vbd->v_cap;
+    vbd->i_count = vbd->i_cap;
+}
+
+
+void GLData_delete(GLData* gl_data)
+{
+    VertexAttributeArray_delete(&gl_data->vao);
+    VertexBufferData_delete(&gl_data->vbd);
+}
+
+void GLData_delete_inplace(GLData* gl_data)
+{
+    VertexAttributeArray_delete(&gl_data->vao);
+    VertexBufferData_delete_inplace(&gl_data->vbd);    
+}
+
 // WORLD STATE
-typedef struct Room {
+struct Room {
     VertexBufferData  geometry;
     Collider* collision_data;
     glm::mat4 matrix;
-} Room;
+};
 
-typedef struct {
+struct World {
     Room* rooms;
     glm::mat4 m_view;
     glm::mat4 m_projection;
-} World;
+};
 
-typedef struct GLData {
+struct GlobalData {
     SDL_GLContext context;
     TextureData textures;
-} GLData;
+};
 
-GLData gl_data;
+GlobalData program_data;
 
 
 #define IMMEDIATE_MODE_GL
@@ -722,6 +761,9 @@ struct GLImmediate {
         begun = false;
     }
 
+    static constexpr const char* const SHADER_VERTEX_PATH = "shaders/default_2d/default_2d.vrts";
+    static constexpr const char* const SHADER_FRAGMENT_PATH = "shaders/default_2d/default_2d.frgs";
+
     bool init(glm::mat4 projection_matrix)
     {
         GLImmediate::projection_matrix = projection_matrix;
@@ -731,11 +773,11 @@ struct GLImmediate {
         index_triangles = 0;
         index_lines = 0;
 
-        draw_type = GL_LINES;
+        draw_type = GL_TRIANGLES;
 
         shader.load_from_file(
-            "shaders/default_2d/default_2d.vrts",
-            "shaders/default_2d/default_2d.frgs"
+            SHADER_VERTEX_PATH,
+            SHADER_FRAGMENT_PATH
         );
 
         if (!shader.is_valid()) {
@@ -751,7 +793,7 @@ struct GLImmediate {
         VertexAttributeArray_init(&vao_triangles, ATTRIBUTE_STRIDE);
         glBindVertexArray(vao_triangles);
 
-            VertexBufferData_init_inplace_growing(
+            VertexBufferData_init_inplace(
                 &triangle_buffer, 
                 N * ATTRIBUTE_STRIDE,
                 vertices_triangles,
@@ -770,7 +812,7 @@ struct GLImmediate {
 
         VertexAttributeArray_init(&vao_lines, ATTRIBUTE_STRIDE);
         glBindVertexArray(vao_lines);
-            VertexBufferData_init_inplace_growing(
+            VertexBufferData_init_inplace(
                 &line_buffer, 
                 N * ATTRIBUTE_STRIDE,
                 vertices_lines,
@@ -1102,7 +1144,7 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
     
-	gl_data.context = SDL_GL_CreateContext(window);
+	program_data.context = SDL_GL_CreateContext(window);
 
 	glewExperimental = GL_TRUE;
     glewInit();
@@ -1334,6 +1376,7 @@ GLdouble tex_res = 4096.0;
             STATIC_ARRAY_COUNT(TI),
             TI
         );
+        data_mark_filled(&tri_data);
 
         //std::cout << b[0] << std::endl;
 
@@ -1406,12 +1449,12 @@ GLdouble tex_res = 4096.0;
     const double POS_ACC = 1.06;
     const double NEG_ACC = 1.0 / POS_ACC;
 
-    double up_acc = 1.0;
-    double down_acc = 1.0;
-    double left_acc = 1.0;
-    double right_acc = 1.0;
-    double forwards_acc = 1.0;
-    double backwards_acc = 1.0;
+    double up_acc = 110.0;
+    double down_acc = 110.0;
+    double left_acc = 110.0;
+    double right_acc = 110.0;
+    double forwards_acc = 110.0;
+    double backwards_acc = 110.0;
 
 
 /////////////////
@@ -1532,60 +1575,60 @@ GLdouble tex_res = 4096.0;
 
                 if (*up) {
                     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
-                    up_acc *= POS_ACC;
+                    //up_acc *= POS_ACC;
                 } else {
-                    if (up_acc > 1.0) {
-                        FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
-                    }
-                    up_acc = glm::max(1.0, up_acc * NEG_ACC);
+                    // if (up_acc > 1.0) {
+                    //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
+                    // }
+                    // up_acc = glm::max(1.0, up_acc * NEG_ACC);
                 }
                 if (*down) {
                     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
-                    down_acc *= POS_ACC;
+                    //down_acc *= POS_ACC;
                 } else {
-                    if (down_acc > 1.0) {
-                        FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
-                    } 
-                    down_acc = glm::max(1.0, down_acc * NEG_ACC);  
+                    // if (down_acc > 1.0) {
+                    //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
+                    // } 
+                    // down_acc = glm::max(1.0, down_acc * NEG_ACC);  
                 }
 
                 if (*left) {
                     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
-                    left_acc *= POS_ACC;
+                    //left_acc *= POS_ACC;
                 } else {
-                    if (left_acc > 1.0) {
-                        FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
-                    }
-                    left_acc = glm::max(1.0, left_acc * NEG_ACC);
+                    // if (left_acc > 1.0) {
+                    //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
+                    // }
+                    // left_acc = glm::max(1.0, left_acc * NEG_ACC);
                 }
 
                 if (*right) {
                     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
-                    right_acc *= POS_ACC;
+                    //right_acc *= POS_ACC;
                 } else {
-                    if (right_acc > 1.0) {
-                        FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
-                    }
-                    right_acc = glm::max(1.0, right_acc * NEG_ACC);
+                    // if (right_acc > 1.0) {
+                    //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
+                    // }
+                    // right_acc = glm::max(1.0, right_acc * NEG_ACC);
                 }
 
                 if (*forwards) {
                     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
-                    forwards_acc *= POS_ACC;
+                    //forwards_acc *= POS_ACC;
                 } else {
-                    if (forwards_acc > 1.0) {
-                        FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
-                    }
-                    forwards_acc = glm::max(1.0, forwards_acc * NEG_ACC);
+                    // if (forwards_acc > 1.0) {
+                    //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
+                    // }
+                    // forwards_acc = glm::max(1.0, forwards_acc * NEG_ACC);
                 }
                 if (*backwards) {
                     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
-                    backwards_acc *= POS_ACC;
+                    //backwards_acc *= POS_ACC;
                 } else {
-                    if (backwards_acc > 1.0) {
-                        FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
-                    } 
-                    backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
+                    // if (backwards_acc > 1.0) {
+                    //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
+                    // } 
+                    // backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
                 }
 
                 if (*reset) {
@@ -1603,12 +1646,12 @@ GLdouble tex_res = 4096.0;
                     main_cam.position = start_pos;
                     main_cam.orientation = glm::quat();
 
-                    up_acc        = 1.0;
-                    down_acc      = 1.0;
-                    left_acc      = 1.0;
-                    right_acc     = 1.0;
-                    backwards_acc = 1.0;
-                    forwards_acc  = 1.0;
+                    // up_acc        = 1.0;
+                    // down_acc      = 1.0;
+                    // left_acc      = 1.0;
+                    // right_acc     = 1.0;
+                    // backwards_acc = 1.0;
+                    // forwards_acc  = 1.0;
                 }
             }
         }
@@ -1694,11 +1737,6 @@ GLdouble tex_res = 4096.0;
             gl_imm.color = Color::BLUE;
             gl_imm.circle(0.25, {1.0, 1.0, 0.0});
 
-            gl_imm.color = Color::RED;
-            gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f, -0.5f, 0.0f));
-            gl_imm.vertex({0.0, 0.0, -0.5});
-            gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, -0.5});
-            gl_imm.vertex({1.0, 0.0, -0.5});
 
             gl_imm.color = Color::BLUE;
             gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f, -0.5f, 0.0f));
@@ -1706,8 +1744,11 @@ GLdouble tex_res = 4096.0;
             gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, -0.5});
             gl_imm.vertex({1.0, 0.0, -0.5});
 
-
-
+            gl_imm.color = Color::RED;
+            gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f + glm::sin(t_elapsed_s), -0.5f, 0.0f));
+            gl_imm.vertex({0.0, 0.0, -0.5});
+            gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, -0.5});
+            gl_imm.vertex({1.0, 0.0, -0.5});
 
         gl_imm.end();
 
@@ -1724,7 +1765,7 @@ GLdouble tex_res = 4096.0;
     #ifdef IMMEDIATE_MODE_GL
         gl_imm.free();
     #endif
-    SDL_GL_DeleteContext(gl_data.context);
+    SDL_GL_DeleteContext(program_data.context);
     SDL_DestroyWindow(window);
     IMG_Quit();
     SDL_Quit();
