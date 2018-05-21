@@ -433,7 +433,7 @@ typedef struct VertexBufferData {
 // struct VertexBufferDataAlt {
 //     VertexBuffer vbo;
 //     ElementBuffer ebo;
-//     Buffer<GLfloat> vertices;
+//     Buffer<GLfloat> vertices_lines;
 //     Buffer<GLuint>  indices;
 // } VertexBufferDataAlt;
 
@@ -631,7 +631,7 @@ GLData gl_data;
 
 #ifdef IMMEDIATE_MODE_GL
 
-namespace Colors {
+namespace Color {
     static const glm::vec4 RED = {1.0, 0.0, 0.0, 1.0};
     static const glm::vec4 GREEN = {0.0, 1.0, 0.0, 1.0};
     static const glm::vec4 BLUE = {0.0, 0.0, 1.0, 1.0};
@@ -644,10 +644,15 @@ struct GLImmediate {
 
     static constexpr GLuint ATTRIBUTE_STRIDE = 7;
 
-    GLfloat vertices[N * ATTRIBUTE_STRIDE]; 
-    GLuint indices[N * 2];
+    GLfloat vertices_triangles[N * ATTRIBUTE_STRIDE]; 
+    GLuint indices_triangles[N * 2];
 
-    VertexAttributeArray vao;
+    GLfloat vertices_lines[N * ATTRIBUTE_STRIDE]; 
+    GLuint indices_lines[N * 2];
+
+    VertexAttributeArray vao_triangles;
+    VertexBufferData triangle_buffer;
+    VertexAttributeArray vao_lines;
     VertexBufferData line_buffer;
     Shader shader;
 
@@ -660,8 +665,11 @@ struct GLImmediate {
 
     bool update_projection_matrix;
 
-    GLenum primitive_type;
+    GLenum draw_type;
 
+
+    GLuint index_triangles;
+    GLuint index_lines;
 
     bool begun;
 
@@ -671,13 +679,15 @@ struct GLImmediate {
         
         transform_matrix = glm::mat4(1.0f);
 
-        glBindVertexArray(vao);
         glUseProgram(shader);
 
         if (update_projection_matrix) {
             update_projection_matrix = false;
             glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(projection_matrix));
         }
+
+        index_triangles = 0;
+        index_lines = 0;
 
         begun = true;
     }
@@ -686,18 +696,25 @@ struct GLImmediate {
     {
         assert(begun == true);
 
-        gl_bind_buffers_and_upload_data(&line_buffer, GL_STREAM_DRAW);
+        glBindVertexArray(vao_triangles);
+        gl_bind_buffers_and_upload_sub_data(&triangle_buffer);
+        if (triangle_buffer.i_count > 0) { 
+            glDrawElements(GL_TRIANGLES, triangle_buffer.i_count, GL_UNSIGNED_INT, 0);
+        }
+
+        glBindVertexArray(vao_lines);
         gl_bind_buffers_and_upload_sub_data(&line_buffer);
-
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
         if (line_buffer.i_count > 0) { 
             glDrawElements(GL_LINES, line_buffer.i_count, GL_UNSIGNED_INT, 0);
         }
         
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
         glUseProgram(0);
+
+
+        triangle_buffer.v_count = 0;
+        triangle_buffer.i_count = 0;
 
         line_buffer.v_count = 0;
         line_buffer.i_count = 0;
@@ -711,7 +728,10 @@ struct GLImmediate {
         update_projection_matrix = false;
         begun = false;
 
-        primitive_type = GL_LINES;
+        index_triangles = 0;
+        index_lines = 0;
+
+        draw_type = GL_LINES;
 
         shader.load_from_file(
             "shaders/default_2d/default_2d.vrts",
@@ -728,26 +748,43 @@ struct GLImmediate {
         glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(projection_matrix));
         glUseProgram(0);
 
-        VertexAttributeArray_init(&vao, ATTRIBUTE_STRIDE);
+        VertexAttributeArray_init(&vao_triangles, ATTRIBUTE_STRIDE);
+        glBindVertexArray(vao_triangles);
 
-        glBindVertexArray(vao.vao);
+            VertexBufferData_init_inplace_growing(
+                &triangle_buffer, 
+                N * ATTRIBUTE_STRIDE,
+                vertices_triangles,
+                N,
+                indices_triangles
+            );
 
+            gl_bind_buffers_and_upload_data(&triangle_buffer, GL_STREAM_DRAW);
+            // POSITION
+            gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &vao_triangles);
+            // COLOR
+            gl_set_and_enable_vertex_attrib_ptr(1, 4, GL_FLOAT, GL_FALSE, 3, &vao_triangles);
+
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+
+        VertexAttributeArray_init(&vao_lines, ATTRIBUTE_STRIDE);
+        glBindVertexArray(vao_lines);
             VertexBufferData_init_inplace_growing(
                 &line_buffer, 
                 N * ATTRIBUTE_STRIDE,
-                vertices,
+                vertices_lines,
                 N,
-                indices
+                indices_lines
             );
 
             gl_bind_buffers_and_upload_data(&line_buffer, GL_STREAM_DRAW);
             // POSITION
-            gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &vao);
+            gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &vao_lines);
             // COLOR
-            gl_set_and_enable_vertex_attrib_ptr(1, 4, GL_FLOAT, GL_FALSE, 3, &vao);
+            gl_set_and_enable_vertex_attrib_ptr(1, 4, GL_FLOAT, GL_FALSE, 3, &vao_lines);
 
             glBindBuffer(GL_ARRAY_BUFFER, 0);
-
         glBindVertexArray(0);
 
 
@@ -756,7 +793,9 @@ struct GLImmediate {
 
     void free(void)
     {
-        VertexAttributeArray_delete(&vao);
+        VertexAttributeArray_delete(&vao_triangles);
+        VertexAttributeArray_delete(&vao_lines);
+        VertexBufferData_delete_inplace(&triangle_buffer);
         VertexBufferData_delete_inplace(&line_buffer);
     }
 
@@ -765,7 +804,7 @@ struct GLImmediate {
         const size_t v_count = line_buffer.v_count;
         const size_t i_count = line_buffer.i_count;
 
-        if (v_count + 2 > N * ATTRIBUTE_STRIDE || i_count + 2 > N * 2) {
+        if (v_count + (2 * ATTRIBUTE_STRIDE) > N * ATTRIBUTE_STRIDE || i_count + 2 > N * 2) {
             fprintf(stderr, "%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
             return;
         }
@@ -775,22 +814,23 @@ struct GLImmediate {
 
         const size_t v_idx = v_count;
 
-        memcpy(&vertices[v_idx], &a[0], sizeof(a[0]) * 3);
-        memcpy(&vertices[v_idx + 3], &color[0], sizeof(color[0]) * 4);
+        memcpy(&vertices_lines[v_idx], &a[0], sizeof(a[0]) * 3);
+        memcpy(&vertices_lines[v_idx + 3], &color[0], sizeof(color[0]) * 4);
 
 
-        memcpy(&vertices[v_idx + ATTRIBUTE_STRIDE], &b[0], sizeof(b[0]) * 3);
-        memcpy(&vertices[v_idx + ATTRIBUTE_STRIDE + 3], &color[0], sizeof(color[0]) * 4);
+        memcpy(&vertices_lines[v_idx + ATTRIBUTE_STRIDE], &b[0], sizeof(b[0]) * 3);
+        memcpy(&vertices_lines[v_idx + ATTRIBUTE_STRIDE + 3], &color[0], sizeof(color[0]) * 4);
 
-        indices[i_count] = v_count;
-        indices[i_count + 1] = v_count + 1;
+        indices_lines[i_count] = index_lines;
+        indices_lines[i_count + 1] = index_lines + 1;
+        index_lines += 2;
 
         line_buffer.v_count += (2 * ATTRIBUTE_STRIDE);
         line_buffer.i_count += 2;
 
         // std::cout << "BEGIN" << std::endl;
         // std::cout << "{" << std::endl;
-        // for (size_t i = 0; i < line_buffer.v_count * ATTRIBUTE_STRIDE; ++i) {
+        // for (size_t i = 0; i < line_buffer.v_count; ++i) {
         //     std::cout << line_buffer.vertices[i] << ", ";
         // }
         // std::cout << std::endl << "}" << std::endl;
@@ -808,7 +848,7 @@ struct GLImmediate {
         const size_t v_count = line_buffer.v_count;
         const size_t i_count = line_buffer.i_count;
 
-        if (v_count + 2 > N * ATTRIBUTE_STRIDE || i_count + 2 > N * 2) {
+        if (v_count + (2 * ATTRIBUTE_STRIDE) > N * ATTRIBUTE_STRIDE || i_count + 2 > N * 2) {
             fprintf(stderr, "%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
             return;
         }
@@ -818,45 +858,183 @@ struct GLImmediate {
 
         const size_t v_idx = v_count;
 
-        memcpy(&vertices[v_idx], &a[0], sizeof(a[0]) * 2);
-        vertices[v_idx + 2] = 0.0f;
-        memcpy(&vertices[v_idx + 3], &color[0], sizeof(color[0]) * 4);
+        memcpy(&vertices_lines[v_idx], &a[0], sizeof(a[0]) * 2);
+        vertices_lines[v_idx + 2] = 0.0f;
+        memcpy(&vertices_lines[v_idx + 3], &color[0], sizeof(color[0]) * 4);
 
 
-        memcpy(&vertices[v_idx + ATTRIBUTE_STRIDE], &b[0], sizeof(b[0]) * 2);
-        vertices[v_idx + ATTRIBUTE_STRIDE + 2] = 0.0f;
-        memcpy(&vertices[v_idx + ATTRIBUTE_STRIDE + 3], &color[0], sizeof(color[0]) * 4);
+        memcpy(&vertices_lines[v_idx + ATTRIBUTE_STRIDE], &b[0], sizeof(b[0]) * 2);
+        vertices_lines[v_idx + ATTRIBUTE_STRIDE + 2] = 0.0f;
+        memcpy(&vertices_lines[v_idx + ATTRIBUTE_STRIDE + 3], &color[0], sizeof(color[0]) * 4);
 
-        indices[i_count] = v_count;
-        indices[i_count + 1] = v_count + 1;
+        indices_lines[i_count] = index_lines;
+        indices_lines[i_count + 1] = index_lines + 1;
+        index_lines += 2;
 
         line_buffer.v_count += (2 * ATTRIBUTE_STRIDE);
         line_buffer.i_count += 2;
     }
 
-    void vertex(glm::vec3 v)
+    void polygon_convex_regular(GLfloat radius, glm::vec3 center, const size_t count_sides)
     {
-        switch (primitive_type) {
+        size_t count_tris = count_sides - 2;
+
+        const size_t inc = ATTRIBUTE_STRIDE;
+
+        size_t v_count = 0;
+        size_t i_count = 0;
+        size_t v_idx = 0;
+        GLdouble angle_turn = angle_turn = (2 * glm::pi<GLdouble>()) / count_sides;
+
+        switch (draw_type) {
         case GL_TRIANGLES:
+            v_count = triangle_buffer.v_count;
+            i_count = triangle_buffer.i_count;
+            v_idx = v_count;
+
+            if (v_count + (ATTRIBUTE_STRIDE * count_sides) > N * ATTRIBUTE_STRIDE || i_count + (3 * count_tris) > N * 2) {
+                fprintf(stderr, "%s\n", "ERROR: polygon_convex_regular MAX TRIANGLES EXCEEDED");
+                return;
+            }
+
+            for (size_t p = 0, idx_off = 0; p < count_tris; ++p, idx_off += 3) {
+                indices_triangles[i_count + idx_off]     = index_triangles + 0;
+                indices_triangles[i_count + idx_off + 1] = index_triangles + p + 1;
+                indices_triangles[i_count + idx_off + 2] = index_triangles + p + 2;
+            }
+            triangle_buffer.i_count += (3 * count_tris);
+
+
+            for (size_t p = 0, off = 0; p < count_sides; ++p, off += inc) {
+                glm::vec3 point = glm::vec3(transform_matrix * 
+                    glm::vec4(
+                        (radius * glm::cos(p * angle_turn)) + center.x,
+                        (radius * glm::sin(p * angle_turn)) + center.y,
+                        center.z,
+                        1.0f
+                    )
+                );
+                vertices_triangles[v_idx + off]     = point.x;
+                vertices_triangles[v_idx + off + 1] = point.y;
+                vertices_triangles[v_idx + off + 2] = point.z;
+
+                memcpy(&vertices_triangles[v_idx + off + 3], &color[0], sizeof(color[0]) * 4);
+            }
+
+            triangle_buffer.v_count += (ATTRIBUTE_STRIDE * count_sides);
+
+            index_triangles += count_sides;
+
             break;
         case GL_LINES:
+            v_count = line_buffer.v_count;
+            i_count = line_buffer.i_count;
+            v_idx = v_count;
 
-            const size_t v_count = line_buffer.v_count;
-            const size_t i_count = line_buffer.i_count;
-            const size_t v_idx = v_count;
+            if (v_count + (ATTRIBUTE_STRIDE * count_sides) > N * ATTRIBUTE_STRIDE || i_count + (2 * count_sides) > N * 2) {
+                fprintf(stderr, "%s\n", "ERROR: polygon_convex_regular MAX LINES EXCEEDED");
+                return;
+            }
 
-            if (v_count + 1 > N * ATTRIBUTE_STRIDE || i_count > N * 2) {
-                fprintf(stderr, "%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
+            for (size_t p = 0, off = 0; p < count_sides; ++p, off += 2) {
+                indices_lines[i_count + off]     = index_lines + p;
+                indices_lines[i_count + off + 1] = index_lines + p + 1;
+            }
+            indices_lines[i_count + (count_sides * 2) - 1] = index_lines;
+
+            line_buffer.i_count += (2 * count_sides);
+
+            for (size_t p = 0, off = 0; p < count_sides; ++p, off += inc) {
+                glm::vec3 point = glm::vec3(transform_matrix * 
+                    glm::vec4(
+                        (radius * glm::cos(p * angle_turn)) + center.x,
+                        (radius * glm::sin(p * angle_turn)) + center.y,
+                        center.z,
+                        1.0f
+                    )
+                );
+                vertices_lines[v_idx + off]     = point.x;
+                vertices_lines[v_idx + off + 1] = point.y;
+                vertices_lines[v_idx + off + 2] = point.z;
+
+                memcpy(&vertices_lines[v_idx + off + 3], &color[0], sizeof(color[0]) * 4);
+            }
+
+            line_buffer.v_count += (ATTRIBUTE_STRIDE * count_sides);          
+
+            index_lines += count_sides; 
+
+            break;
+        }
+    }
+
+    void circle(GLfloat radius, glm::vec3 center)
+    {
+        polygon_convex_regular(radius, center, 37);
+    }
+
+    void vertex(glm::vec3 v)
+    {
+        size_t v_count = 0;
+        size_t i_count = 0;
+        size_t v_idx = 0;
+
+        switch (draw_type) {
+        case GL_TRIANGLES:
+            v_count = triangle_buffer.v_count;
+            i_count = triangle_buffer.i_count;
+            v_idx = v_count;
+
+            if (v_count + ATTRIBUTE_STRIDE > N * ATTRIBUTE_STRIDE || i_count + 1 > N * 2) {
+                fprintf(stderr, "%s\n", "ERROR: vertex MAX TRIANGLES EXCEEDED");
                 return;
             }
 
             v = glm::vec3(transform_matrix * glm::vec4(v, 1.0f));
 
 
-            memcpy(&vertices[v_idx], &v[0], sizeof(v[0]) * 3);
-            memcpy(&vertices[v_idx + 3], &color[0], sizeof(color[0]) * 4);
+            memcpy(&vertices_triangles[v_idx], &v[0], sizeof(v[0]) * 3);
+            memcpy(&vertices_triangles[v_idx + 3], &color[0], sizeof(color[0]) * 4);
 
-            indices[i_count] = v_count;
+            indices_triangles[i_count] = index_triangles;
+            ++index_triangles;
+
+            triangle_buffer.v_count += ATTRIBUTE_STRIDE;
+            ++triangle_buffer.i_count;
+
+            // std::cout << "BEGIN" << std::endl;
+            // std::cout << "{" << std::endl;
+            // for (size_t i = 0; i < triangle_buffer.v_count; ++i) {
+            //     std::cout << triangle_buffer.vertices[i] << ", ";
+            // }
+            // std::cout << std::endl << "}" << std::endl;
+
+            // std::cout << "{" << std::endl;
+            // for (size_t i = 0; i < triangle_buffer.i_count; ++i) {
+            //     std::cout << triangle_buffer.indices[i] << ", ";
+            // }
+            // std::cout << std::endl << "}" << std::endl;
+            // std::cout << "END" << std::endl;
+
+            break;
+        case GL_LINES:
+            v_count = line_buffer.v_count;
+            i_count = line_buffer.i_count;
+            v_idx = v_count;
+
+            if (v_count + ATTRIBUTE_STRIDE > N * ATTRIBUTE_STRIDE || i_count + 1 > N * 2) {
+                fprintf(stderr, "%s\n", "ERROR: vertex MAX LINES EXCEEDED");
+                return;
+            }
+
+            v = glm::vec3(transform_matrix * glm::vec4(v, 1.0f));
+
+
+            memcpy(&vertices_lines[v_idx], &v[0], sizeof(v[0]) * 3);
+            memcpy(&vertices_lines[v_idx + 3], &color[0], sizeof(color[0]) * 4);
+
+            indices_lines[i_count] = index_lines;
+            ++index_lines;
 
             line_buffer.v_count += ATTRIBUTE_STRIDE;
             ++line_buffer.i_count;
@@ -1490,22 +1668,52 @@ GLdouble tex_res = 4096.0;
 
         #ifdef IMMEDIATE_MODE_GL
         glClear(GL_DEPTH_BUFFER_BIT);
-        glDisable(GL_DEPTH_TEST);
 
 
         gl_imm.begin();
 
             gl_imm.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
 
-            gl_imm.color = Colors::BLACK;
-            gl_imm.line({0.0, 0.0, 0.0}, {1.0, 1.0, 0.0});
+
+            // gl_imm.draw_type = GL_LINES;
+            // gl_imm.color = Color::RED;
+            // gl_imm.vertex({0.5, 0.0, -1.0});
+            // gl_imm.vertex({1.0, 1.0, -1.0});
+            
+            // gl_imm.draw_type = GL_LINES;
+            // gl_imm.color = Color::GREEN;
+            // gl_imm.line({0.0, 0.0, -5.0}, {1.0, 1.0, -5.0});
+
+            gl_imm.draw_type = GL_LINES;
+
+            gl_imm.color = Color::GREEN;
+            gl_imm.circle(0.25, {0.0, 0.0, 0.0});
+
+            gl_imm.draw_type = GL_TRIANGLES;
+
+            gl_imm.color = Color::BLUE;
+            gl_imm.circle(0.25, {1.0, 1.0, 0.0});
+
+            gl_imm.color = Color::RED;
+            gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f, -0.5f, 0.0f));
+            gl_imm.vertex({0.0, 0.0, -0.5});
+            gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, -0.5});
+            gl_imm.vertex({1.0, 0.0, -0.5});
+
+            gl_imm.color = Color::BLUE;
+            gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f, -0.5f, 0.0f));
+            gl_imm.vertex({0.0, 0.0, -0.5});
+            gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, -0.5});
+            gl_imm.vertex({1.0, 0.0, -0.5});
+
+
+
 
         gl_imm.end();
 
         #endif
 
 
-        //std::cout << (GLdouble) curr_time / MS_PER_S << std::endl;
 
         SDL_GL_SwapWindow(window);
     //////////////////
