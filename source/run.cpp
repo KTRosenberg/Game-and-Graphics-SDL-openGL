@@ -547,22 +547,22 @@ void gl_set_and_enable_vertex_attrib_ptr(GLuint index, GLint size, GLenum type, 
     glEnableVertexAttribArray(index);
 }
 
-void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, size_t v_cap, size_t i_cap, GLenum usage)
+void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, GLenum usage, size_t v_cap, size_t i_cap, GLintptr v_begin_offset = 0, GLintptr i_begin_offset = 0)
 {
     glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
-    glBufferData(GL_ARRAY_BUFFER, v_cap * sizeof(GLfloat), vbd->vertices, usage);
+    glBufferData(GL_ARRAY_BUFFER, v_cap * sizeof(GLfloat), vbd->vertices + v_begin_offset, usage);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbd->ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, i_cap * sizeof(GLuint), vbd->indices, usage);            
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, i_cap * sizeof(GLuint), vbd->indices + i_begin_offset, usage);            
 }
 
-void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, GLenum usage)
+void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, GLenum usage, GLintptr v_begin_offset = 0, GLintptr i_begin_offset = 0)
 {
     glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
-    glBufferData(GL_ARRAY_BUFFER, vbd->v_cap * sizeof(GLfloat), vbd->vertices, usage);
+    glBufferData(GL_ARRAY_BUFFER, vbd->v_cap * sizeof(GLfloat), vbd->vertices + v_begin_offset, usage);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbd->ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, vbd->i_cap * sizeof(GLuint), vbd->indices, usage);           
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, vbd->i_cap * sizeof(GLuint), vbd->indices + i_begin_offset, usage);           
 }
 
 void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd)
@@ -1093,7 +1093,7 @@ struct GLImmediate {
 int main(int argc, char* argv[])
 {
     // initialize SDL
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC | SDL_INIT_AUDIO) < 0) {
         fprintf(stderr, "%s\n", "SDL could not initialize");
         return EXIT_FAILURE;
     }
@@ -1165,6 +1165,17 @@ int main(int argc, char* argv[])
     );
     if (!shader_2d.is_valid()) {
         fprintf(stderr, "ERROR: shader_2d\n");
+        return EXIT_FAILURE;
+    }
+
+
+    Shader shader_grid;
+    shader_grid.load_from_file(
+        "shaders/default_2d/grid.vrts",
+        "shaders/default_2d/grid.frgs"
+    );
+    if (!shader_grid.is_valid()) {
+        fprintf(stderr, "ERROR: shader_grid\n");
         return EXIT_FAILURE;
     }
 ///////////////
@@ -1390,6 +1401,26 @@ GLdouble tex_res = 4096.0;
 
     glBindVertexArray(0);
 
+    GLData grid;
+    GLData_init_inplace(&grid, STRIDE, STATIC_ARRAY_COUNT(T) / 15, T, STATIC_ARRAY_COUNT(TI) / 15, TI);
+    data_mark_filled(&grid);
+    glBindVertexArray(grid.vao);
+
+    std::cout << "WEE_START" << std::endl;
+
+        gl_bind_buffers_and_upload_data(&grid.vbd, GL_STATIC_DRAW, grid.vbd.v_cap, grid.vbd.i_cap, STATIC_ARRAY_COUNT(T) / 15, 0);
+    
+    std::cout << "WEE_END" << std::endl;
+
+        // POSITION
+        gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &grid.vao);
+        // UV
+        gl_set_and_enable_vertex_attrib_ptr(1, 2, GL_FLOAT, GL_FALSE, 3, &grid.vao);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glBindVertexArray(0);
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -1449,12 +1480,21 @@ GLdouble tex_res = 4096.0;
     const double POS_ACC = 1.06;
     const double NEG_ACC = 1.0 / POS_ACC;
 
-    double up_acc = 110.0;
-    double down_acc = 110.0;
-    double left_acc = 110.0;
-    double right_acc = 110.0;
-    double forwards_acc = 110.0;
-    double backwards_acc = 110.0;
+    // double up_acc = 110.0;
+    // double down_acc = 110.0;
+    // double left_acc = 110.0;
+    // double right_acc = 110.0;
+    // double forwards_acc = 110.0;
+    // double backwards_acc = 110.0;
+
+    double up_acc = 1.0;
+    double down_acc = 1.0;
+    double left_acc = 1.0;
+    double right_acc = 1.0;
+    double forwards_acc = 1.0;
+    double backwards_acc = 1.0;
+
+    double max_acc = 2000.0;
 
 
 /////////////////
@@ -1530,131 +1570,136 @@ GLdouble tex_res = 4096.0;
     SDL_Event event;
 
     Uint64 t_now      = SDL_GetPerformanceCounter();
-    Uint64 t_start    = t_now;
     Uint64 t_prev     = 0;
-    double t_delta_ms = 0.0;
+    Uint64 t_start    = t_now;
+    double t_delta    = 0.0;
     double t_delta_s  = 0.0;
-    double t_elapsed_s = 0.0;
-    double t_accumulator_ms = 0.0;
-    double t_accumulator_ms_overall = 0.0;
-    Uint64 t_accumulator_count = 0;
+    double t_delta_ms = 0.0;
     double frequency = 0.0;
-
-
-
 
     while (keep_running) {
         t_prev = t_now;
+
         t_now = SDL_GetPerformanceCounter();
         frequency = SDL_GetPerformanceFrequency();
+        Uint64 diff = (t_now - t_prev);
+        
+        t_delta    = (double)diff / (double)frequency;
+        t_delta_s  = (double)diff * 100000000 / (double)frequency;
+        t_delta_ms = (double)diff * 10000 / (double)frequency;
+        double t_since_start = (double)(t_now - t_start) / (double)frequency;
 
-        t_delta_s       = (double)((t_now - t_prev) / (double)frequency);
-        t_delta_ms      = t_delta_s * MS_PER_S;
-        t_elapsed_s     += t_delta_s;
-        t_accumulator_ms += t_delta_ms;
-        t_accumulator_ms_overall += t_delta_ms;
+        std::cout << t_since_start << std::endl;
 
+        // std::cout << "T_NOW: " << t_now << std::endl <<
+        //              " T_DELTA: " << t_delta << std::endl <<
+        //              " T_ELAPSED: " << (t_now - t_start) << std::endl <<
+        //              " T_ELAPSED: " << ((double)(t_now - t_start) / 1000000000) << std::endl;
+
+        // INPUT /////////////////////////////////
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 keep_running = false;
             }
         }
 
-        while (t_accumulator_ms > INTERVAL) {
-            t_accumulator_ms -= INTERVAL;
+        #define CONTROLS
 
-            ++t_accumulator_count;
+        #ifdef CONTROLS
+        {
 
-            double CHANGE = INTERVAL / MS_PER_S;
-            // TODO update world state
+            double CHANGE = t_delta;
+            main_cam.orientation = glm::quat();
 
-            ////////////////
-            //TEST INPUT
-            {
+            if (*up) {
+                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
+                up_acc *= POS_ACC;
+                up_acc = glm::min(max_acc, up_acc);
+            } else {
+                if (up_acc > 1.0) {
+                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
+                }
+                up_acc = glm::max(1.0, up_acc * NEG_ACC);
+            }
+            if (*down) {
+                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
+                down_acc *= POS_ACC;
+                down_acc = glm::min(max_acc, down_acc);
+            } else {
+                if (down_acc > 1.0) {
+                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
+                } 
+                down_acc = glm::max(1.0, down_acc * NEG_ACC);
+            }
+
+            if (*left) {
+                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
+                left_acc *= POS_ACC;
+                left_acc = glm::min(max_acc, left_acc);
+            } else {
+                if (left_acc > 1.0) {
+                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
+                }
+                left_acc = glm::max(1.0, left_acc * NEG_ACC);
+                left_acc = glm::min(max_acc, left_acc);
+            }
+
+            if (*right) {
+                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
+                right_acc *= POS_ACC;
+                right_acc = glm::min(max_acc, right_acc);
+            } else {
+                if (right_acc > 1.0) {
+                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
+                }
+                right_acc = glm::max(1.0, right_acc * NEG_ACC);
+            }
+
+            if (*forwards) {
+                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
+                forwards_acc *= POS_ACC;
+                forwards_acc = glm::min(max_acc, forwards_acc);
+            } else {
+                if (forwards_acc > 1.0) {
+                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
+                }
+                forwards_acc = glm::max(1.0, forwards_acc * NEG_ACC);
+            }
+            if (*backwards) {
+                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
+                backwards_acc *= POS_ACC;
+                backwards_acc = glm::min(max_acc, backwards_acc);
+            } else {
+                if (backwards_acc > 1.0) {
+                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
+                } 
+                backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
+            }
+
+            if (*reset) {
+                // FreeCamera_init(
+                //     &main_cam,
+                //     start_pos,
+                //     ViewCamera_default_speed,
+                //     -1000.0f,
+                //     1000.0f,
+                //     0.0f,
+                //     0.0f,
+                //     0.0f,
+                //     0.0f
+                // );
+                main_cam.position = start_pos;
                 main_cam.orientation = glm::quat();
 
-                if (*up) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
-                    //up_acc *= POS_ACC;
-                } else {
-                    // if (up_acc > 1.0) {
-                    //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
-                    // }
-                    // up_acc = glm::max(1.0, up_acc * NEG_ACC);
-                }
-                if (*down) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
-                    //down_acc *= POS_ACC;
-                } else {
-                    // if (down_acc > 1.0) {
-                    //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
-                    // } 
-                    // down_acc = glm::max(1.0, down_acc * NEG_ACC);  
-                }
-
-                if (*left) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
-                    //left_acc *= POS_ACC;
-                } else {
-                    // if (left_acc > 1.0) {
-                    //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
-                    // }
-                    // left_acc = glm::max(1.0, left_acc * NEG_ACC);
-                }
-
-                if (*right) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
-                    //right_acc *= POS_ACC;
-                } else {
-                    // if (right_acc > 1.0) {
-                    //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
-                    // }
-                    // right_acc = glm::max(1.0, right_acc * NEG_ACC);
-                }
-
-                if (*forwards) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
-                    //forwards_acc *= POS_ACC;
-                } else {
-                    // if (forwards_acc > 1.0) {
-                    //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
-                    // }
-                    // forwards_acc = glm::max(1.0, forwards_acc * NEG_ACC);
-                }
-                if (*backwards) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
-                    //backwards_acc *= POS_ACC;
-                } else {
-                    // if (backwards_acc > 1.0) {
-                    //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
-                    // } 
-                    // backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
-                }
-
-                if (*reset) {
-                    // FreeCamera_init(
-                    //     &main_cam,
-                    //     start_pos,
-                    //     ViewCamera_default_speed,
-                    //     -1000.0f,
-                    //     1000.0f,
-                    //     0.0f,
-                    //     0.0f,
-                    //     0.0f,
-                    //     0.0f
-                    // );
-                    main_cam.position = start_pos;
-                    main_cam.orientation = glm::quat();
-
-                    // up_acc        = 1.0;
-                    // down_acc      = 1.0;
-                    // left_acc      = 1.0;
-                    // right_acc     = 1.0;
-                    // backwards_acc = 1.0;
-                    // forwards_acc  = 1.0;
-                }
+                up_acc        = 1.0;
+                down_acc      = 1.0;
+                left_acc      = 1.0;
+                right_acc     = 1.0;
+                backwards_acc = 1.0;
+                forwards_acc  = 1.0;
             }
         }
+        #endif
 
 
 
@@ -1668,25 +1713,18 @@ GLdouble tex_res = 4096.0;
 
         glUseProgram(shader_2d);
 
-        //double t_overall = t_accumulator_ms_overall / MS_PER_S;
-
-        //const double t_left_over = glm::lerp(, ,  t_accumulator_ms / INTERVAL);
-
-
-        //std::cout << t << std::endl;
-
-        double T = (((t_accumulator_count * INTERVAL)) + t_accumulator_ms) / MS_PER_S;
 
         //glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(ViewCamera_calc_view_matrix(&main_cam) * mat_ident));
         glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(
-            mat_projection * 
+            mat_projection /*glm::translate(mat_ident, glm::vec3(glm::sin((float)t_since_start), 0.0f, 0.0f))
             /*FreeCamera_calc_view_matrix(&main_cam) * */ 
             /*glm::translate(mat_ident, glm::vec3(glm::sin(((double)t_now / frequency)), 0.0, 0.0)) * */
             /*glm::scale(mat_ident, glm::vec3(0.25, 0.25, 1.0))* */
-                        mat_ident)
+                        )
         );
 
-        glUniform1f(TIME_LOC, (double)t_accumulator_ms_overall / MS_PER_S);
+        //glUniform1f(TIME_LOC, t_since_start);
+        glUniform1f(TIME_LOC, 0.0);
 
         glm::vec3 pos = main_cam.position;
         #ifdef DEBUG_PRINT
@@ -1745,7 +1783,7 @@ GLdouble tex_res = 4096.0;
             gl_imm.vertex({1.0, 0.0, -0.5});
 
             gl_imm.color = Color::RED;
-            gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f + glm::sin(t_elapsed_s), -0.5f, 0.0f));
+            gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f + glm::sin(t_since_start), -0.5f, 0.0f));
             gl_imm.vertex({0.0, 0.0, -0.5});
             gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, -0.5});
             gl_imm.vertex({1.0, 0.0, -0.5});
@@ -1753,6 +1791,36 @@ GLdouble tex_res = 4096.0;
         gl_imm.end();
 
         #endif
+
+
+        //#define GRID
+
+
+        #ifdef GRID
+        glClear(GL_DEPTH_BUFFER_BIT);
+
+
+        glUseProgram(shader_grid);
+        UniformLocation MAT_LOC_GRID = glGetUniformLocation(shader_grid, "u_matrix");
+
+        glUniformMatrix4fv(MAT_LOC_GRID, 1, GL_FALSE, glm::value_ptr(
+                mat_projection
+            )
+        );
+
+        UniformLocation CAM_LOC_GRID = glGetUniformLocation(shader_grid, "u_position_cam");
+        glUniform3fv(CAM_LOC_GRID, 1, glm::value_ptr(pos));
+
+        UniformLocation COLOR_LOC_GRID = glGetUniformLocation(shader_grid, "u_color");
+        glUniform4fv(COLOR_LOC_GRID, 1, glm::value_ptr(glm::vec4(0.25f, 0.25f, 0.25f, 0.5f)));
+
+
+        glBindVertexArray(grid.vao);
+        glDrawElements(GL_TRIANGLES, grid.vbd.i_count, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
+
+        #endif
+
 
 
 

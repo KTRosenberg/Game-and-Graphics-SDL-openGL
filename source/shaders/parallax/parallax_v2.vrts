@@ -18,7 +18,8 @@ uniform int u_count_layers;
 
 void main(void) 
 {
-   float X = (2.0 * -u_time - u_position_cam.x) * (1.0 / pow(2.0, 5.0 - a_position.z));
+   
+   float X = (2.0 * (-u_time) - u_position_cam.x) * (1.0 / pow(2.0, 5.0 - a_position.z));
 
    X = mod(X, (u_aspect) * 2.0);
 
