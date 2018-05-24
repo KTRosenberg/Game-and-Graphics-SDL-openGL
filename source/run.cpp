@@ -1087,8 +1087,15 @@ struct GLImmediate {
 };
 #endif
 
+#define gl_get_errors() \
+    do { \
+        GLenum err = GL_NO_ERROR; \
+        while ((err = glGetError()) != GL_NO_ERROR) { \
+            fprintf(stderr, "ERROR: 0x%x\n", err); \
+        } \
+    } while (0) \
+\
 
-//////////////
 
 int main(int argc, char* argv[])
 {
@@ -1149,6 +1156,7 @@ int main(int argc, char* argv[])
 	glewExperimental = GL_TRUE;
     glewInit();
 
+
     bool status;
     std::string glsl_perlin_noise = Shader::retrieve_src_from_file("shaders/perlin_noise.glsl", &status);
     if (!status) {
@@ -1185,191 +1193,46 @@ int main(int argc, char* argv[])
     size_t STRIDE = 5;
 
 // QUADS
-    size_t COUNT_QUADS = 15;
     size_t POINTS_PER_QUAD = 4;
     size_t POINTS_PER_TRI = 3;
     size_t TRIS_PER_QUAD = 2;
-    size_t len_v_tris = STRIDE * COUNT_QUADS * POINTS_PER_QUAD;
-    size_t len_i_tris = COUNT_QUADS * TRIS_PER_QUAD * POINTS_PER_TRI;
 
-    const GLfloat wf = 1.0f;
-    const GLfloat hf = 1.0f;
+    GLfloat wf = 1.0f;
+    GLfloat hf = 1.0f * (512.0 / 360.0);
     const GLfloat OFF = 0.0f * wf * ASPECT;
 
-#define FOUR
+    const GLfloat y_off_left = (16.0f / 45.0f);
+    const GLfloat x_off_right = (512.0f / 640.0f);
 
-#ifdef FOUR
-GLdouble tex_res = 4096.0;
+    GLdouble tex_res = 1024.0;
     GLuint layers_per_row = (GLuint)(tex_res / SCREEN_WIDTH);
     GLfloat x_off = (GLfloat)(GLdouble)(SCREEN_WIDTH / tex_res);
     GLfloat y_off = (GLfloat)(GLdouble)(SCREEN_HEIGHT / tex_res);
-    GLfloat vx_off = 2 * wf * ASPECT;
+
 
     GLfloat T[] = {
-        // L 0
-       (-vx_off + (-wf * ASPECT)),  hf,  0.0f,    (GLfloat)x_off * 0.f, (GLfloat)y_off * 0.f,  // top left
-       (-vx_off + (-wf * ASPECT)), -hf,  0.0f,    (GLfloat)x_off * 0.f, (GLfloat)y_off * 1.f,  // bottom left
-       (-vx_off + (wf * ASPECT)), -hf,  0.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 1.f, // bottom right
-       (-vx_off + (wf * ASPECT)),  hf,  0.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 0.f, // top right
+       (-wf * ASPECT),  hf,  0.0f,    0.0f, 0.0f,  // top left
+       (-wf * ASPECT), -hf,  0.0f,    0.0f, 1.0f,  // bottom left
+       (wf * ASPECT) - (2.0f * y_off_left), -hf,  0.0f,     1.0f, 1.0f, // bottom right
+       (wf * ASPECT) - (2.0f * y_off_left),  hf,  0.0f,     1.0f, 0.0f, // top right
 
-       (-wf * ASPECT),  hf,  0.0f,    (GLfloat)x_off * 0.f, (GLfloat)y_off * 0.f,  // top left
-       (-wf * ASPECT), -hf,  0.0f,    (GLfloat)x_off * 0.f, (GLfloat)y_off * 1.f,  // bottom left
-       (wf * ASPECT), -hf,  0.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 1.f, // bottom right
-       (wf * ASPECT),  hf,  0.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 0.f, // top right
-
-       (vx_off + (-wf * ASPECT)),  hf,  0.0f,    (GLfloat)x_off * 0.f, (GLfloat)y_off * 0.f,  // top left
-       (vx_off + (-wf * ASPECT)), -hf,  0.0f,    (GLfloat)x_off * 0.f, (GLfloat)y_off * 1.f,  // bottom left
-       (vx_off + (wf * ASPECT)), -hf,  0.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 1.f, // bottom right
-       (vx_off + (wf * ASPECT)),  hf,  0.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 0.f, // top right
-
-
-       // L 1
-       (-vx_off + (-wf * ASPECT)),  hf,  1.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 0.f,  // top left
-       (-vx_off + (-wf * ASPECT)), -hf,  1.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 1.f,  // bottom left
-       (-vx_off + (wf * ASPECT)), -hf,  1.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 1.f, // bottom right
-       (-vx_off + (wf * ASPECT)),  hf,  1.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 0.f, // top right
-
-       (-wf * ASPECT),  hf,  1.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 0.f,  // top left
-       (-wf * ASPECT), -hf,  1.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 1.f,  // bottom left
-       (wf * ASPECT), -hf,  1.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 1.f, // bottom right
-       (wf * ASPECT),  hf,  1.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 0.f, // top right
-
-       (vx_off + (-wf * ASPECT)),  hf,  1.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 0.f,  // top left
-       (vx_off + (-wf * ASPECT)), -hf,  1.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 1.f,  // bottom left
-       (vx_off + (wf * ASPECT)), -hf,  1.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 1.f, // bottom right
-       (vx_off + (wf * ASPECT)),  hf,  1.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 0.f, // top right
-
-
-        // L 2
-       -vx_off + -wf * ASPECT + (2 * OFF),  hf,  2.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 0.f,  // top left
-       -vx_off + -wf * ASPECT + (2 * OFF), -hf,  2.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 1.f,  // bottom left
-       -vx_off +  wf * ASPECT + (2 * OFF), -hf,  2.0f,    (GLfloat)x_off * 3.f, (GLfloat)y_off * 1.f, // bottom right
-       -vx_off +  wf * ASPECT + (2 * OFF),  hf,  2.0f,    (GLfloat)x_off * 3.f, (GLfloat)y_off * 0.f, // top right
-
-       -wf * ASPECT + (2 * OFF),  hf,  2.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 0.f,  // top left
-       -wf * ASPECT + (2 * OFF), -hf,  2.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 1.f,  // bottom left
-        wf * ASPECT + (2 * OFF), -hf,  2.0f,    (GLfloat)x_off * 3.f, (GLfloat)y_off * 1.f, // bottom right
-        wf * ASPECT + (2 * OFF),  hf,  2.0f,    (GLfloat)x_off * 3.f, (GLfloat)y_off * 0.f, // top right
-
-       vx_off + -wf * ASPECT + (2 * OFF),  hf,  2.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 0.f,  // top left
-       vx_off + -wf * ASPECT + (2 * OFF), -hf,  2.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 1.f,  // bottom left
-       vx_off +  wf * ASPECT + (2 * OFF), -hf,  2.0f,    (GLfloat)x_off * 3.f, (GLfloat)y_off * 1.f, // bottom right
-       vx_off +  wf * ASPECT + (2 * OFF),  hf,  2.0f,    (GLfloat)x_off * 3.f, (GLfloat)y_off * 0.f, // top right
-
-
-        // L 3
-       -vx_off + -wf * ASPECT + (3 * OFF),  hf,  3.0f,    (GLfloat)x_off * 0.f, (GLfloat)y_off * 1.f,  // top left
-       -vx_off + -wf * ASPECT + (3 * OFF), -hf,  3.0f,    (GLfloat)x_off * 0.f, (GLfloat)y_off * 2.f,  // bottom left
-       -vx_off +  wf * ASPECT + (3 * OFF), -hf,  3.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 2.f, // bottom right
-       -vx_off +  wf * ASPECT + (3 * OFF),  hf,  3.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 1.f, // top right
-
-       -wf * ASPECT + (3 * OFF),  hf,  3.0f,    (GLfloat)x_off * 0.f, (GLfloat)y_off * 1.f,  // top left
-       -wf * ASPECT + (3 * OFF), -hf,  3.0f,    (GLfloat)x_off * 0.f, (GLfloat)y_off * 2.f,  // bottom left
-        wf * ASPECT + (3 * OFF), -hf,  3.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 2.f, // bottom right
-        wf * ASPECT + (3 * OFF),  hf,  3.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 1.f, // top right
-
-       vx_off + -wf * ASPECT + (3 * OFF),  hf,  3.0f,    (GLfloat)x_off * 0.f, (GLfloat)y_off * 1.f,  // top left
-       vx_off + -wf * ASPECT + (3 * OFF), -hf,  3.0f,    (GLfloat)x_off * 0.f, (GLfloat)y_off * 2.f,  // bottom left
-       vx_off +  wf * ASPECT + (3 * OFF), -hf,  3.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 2.f, // bottom right
-       vx_off +  wf * ASPECT + (3 * OFF),  hf,  3.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 1.f, // top right
-
-
-        // L 4
-       -vx_off + -wf * ASPECT + (4 * OFF),  hf,  4.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 1.f,  // top left
-       -vx_off + -wf * ASPECT + (4 * OFF), -hf,  4.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 2.f,  // bottom left
-       -vx_off +  wf * ASPECT + (4 * OFF), -hf,  4.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 2.f, // bottom right
-       -vx_off +  wf * ASPECT + (4 * OFF),  hf,  4.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 1.f, // top right
-
-       -wf * ASPECT + (4 * OFF),  hf,  4.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 1.f,  // top left
-       -wf * ASPECT + (4 * OFF), -hf,  4.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 2.f,  // bottom left
-        wf * ASPECT + (4 * OFF), -hf,  4.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 2.f, // bottom right
-        wf * ASPECT + (4 * OFF),  hf,  4.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 1.f, // top right
-
-       vx_off + -wf * ASPECT + (4 * OFF),  hf,  4.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 1.f,  // top left
-       vx_off + -wf * ASPECT + (4 * OFF), -hf,  4.0f,    (GLfloat)x_off * 1.f, (GLfloat)y_off * 2.f,  // bottom left
-       vx_off +  wf * ASPECT + (4 * OFF), -hf,  4.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 2.f, // bottom right
-       vx_off +  wf * ASPECT + (4 * OFF),  hf,  4.0f,    (GLfloat)x_off * 2.f, (GLfloat)y_off * 1.f, // top right
+       (ASPECT - (2.0f * y_off_left)),  hf,  0.0f,    0.0f, 0.0f,  // top left
+       (ASPECT - (2.0f * y_off_left)), -hf,  0.0f,    0.0f, 1.0f,  // bottom left
+       (ASPECT - (2.0f * y_off_left)) + ((ASPECT - y_off_left) * 2.0f) , -hf,  0.0f,     1.0f, 1.0f, // bottom right
+       (ASPECT - (2.0f * y_off_left)) + ((ASPECT - y_off_left) * 2.0f),  hf,  0.0f,     1.0f, 0.0f, // top right
     };
-#else
-    GLfloat T[] = {
-       -wf * ASPECT,  hf,  0.0f,    0.0, 0.0,  // top left
-       -wf * ASPECT, -hf,  0.0f,    0.0, 1.0,  // bottom left
-        wf * ASPECT, -hf,  0.0f,    1.0, 1.0, // bottom right
-        wf * ASPECT,  hf,  0.0f,    1.0, 0.0, // top right
 
-       -wf * ASPECT + (OFF),  hf,  1.0f,    0.0, 0.0,  // top left
-       -wf * ASPECT + (OFF), -hf,  1.0f,    0.0, 1.0,  // bottom left
-        wf * ASPECT + (OFF), -hf,  1.0f,    1.0, 1.0, // bottom right
-        wf * ASPECT + (OFF),  hf,  1.0f,    1.0, 0.0, // top right
-
-       -wf * ASPECT + (2 * OFF),  hf,  2.0f,    0.0, 0.0,  // top left
-       -wf * ASPECT + (2 * OFF), -hf,  2.0f,    0.0, 1.0,  // bottom left
-        wf * ASPECT + (2 * OFF), -hf,  2.0f,    1.0, 1.0, // bottom right
-        wf * ASPECT + (2 * OFF),  hf,  2.0f,    1.0, 0.0, // top right
-
-
-       -wf * ASPECT + (3 * OFF),  hf,  3.0f,    0.0, 0.0,  // top left
-       -wf * ASPECT + (3 * OFF), -hf,  3.0f,    0.0, 1.0,  // bottom left
-        wf * ASPECT + (3 * OFF), -hf,  3.0f,    1.0, 1.0, // bottom right
-        wf * ASPECT + (3 * OFF),  hf,  3.0f,    1.0, 0.0, // top right
-
-
-       -wf * ASPECT + (4 * OFF),  hf,  4.0f,    0.0, 0.0,  // top left
-       -wf * ASPECT + (4 * OFF), -hf,  4.0f,    0.0, 1.0,  // bottom left
-        wf * ASPECT + (4 * OFF), -hf,  4.0f,    1.0, 1.0, // bottom right
-        wf * ASPECT + (4 * OFF),  hf,  4.0f,    1.0, 0.0 // top right
-    };
-#endif
     GLuint TI[] = {
         0, 1, 2,
         2, 3, 0,
 
         4, 5, 6,
         6, 7, 4,
-
-        8, 9 ,10,
-        10, 11, 8,
-
-        12, 13, 14,
-        14, 15, 12,
-
-        16, 17, 18,
-        18, 19, 16,
-
-        20, 21, 22,
-        22, 23, 20,
-
-        24, 25, 26,
-        26, 27, 24,
-
-        28, 29, 30,
-        30, 31, 28,
-
-        32, 33, 34,
-        34, 35, 32,
-
-        36, 37, 38,
-        38, 39, 36,
-
-        40, 41, 42,
-        42, 43, 40,
-
-        44, 45, 46,
-        46, 47, 44,
-
-        48, 49, 50,
-        50, 51, 48,
-
-        52, 53, 54,
-        54, 55, 52,
-
-        56, 57, 58,
-        58, 59, 56,
     };
 
 // TOTAL ALLOCATION
-    const size_t BATCH_COUNT = 1024;
-    const size_t GUESS_VERTS_PER_DRAW = 4;
+    // const size_t BATCH_COUNT = 1024;
+    // const size_t GUESS_VERTS_PER_DRAW = 4;
 
 //////////////////////////////////////////////////
 
@@ -1406,11 +1269,7 @@ GLdouble tex_res = 4096.0;
     data_mark_filled(&grid);
     glBindVertexArray(grid.vao);
 
-    std::cout << "WEE_START" << std::endl;
-
         gl_bind_buffers_and_upload_data(&grid.vbd, GL_STATIC_DRAW, grid.vbd.v_cap, grid.vbd.i_cap, STATIC_ARRAY_COUNT(T) / 15, 0);
-    
-    std::cout << "WEE_END" << std::endl;
 
         // POSITION
         gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &grid.vao);
@@ -1424,20 +1283,26 @@ GLdouble tex_res = 4096.0;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	
-	glEnable(GL_DEPTH_TEST);
-    glDepthRange(0, 1);
-    glDepthFunc(GL_LEQUAL);
 
-	// glEnable(GL_MULTISAMPLE);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);	
+    glEnable(GL_CULL_FACE);
+	
+    glCullFace(GL_BACK);
+
+	// glEnable(GL_DEPTH_TEST);
+ //    glDepthRange(0, 1);
+ //    glDepthFunc(GL_LEQUAL);
+
+
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    //glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ONE, GL_ONE);
+    //glBlendEquationSeparate(GL_FUNC_ADD, GL_MAX);
 
     
     printf("USING GL VERSION: %s\n", glGetString(GL_VERSION));
 
     glm::mat4 mat_ident(1.0f);
-    glm::mat4 mat_projection = glm::ortho(-1.0f * ASPECT, 1.0f * ASPECT, -1.0f, 1.0f, -1.0f * 100.0f, 1.0f * 100.0f);
+    glm::mat4 mat_projection = glm::ortho(-1.0f * ASPECT, 1.0f * ASPECT, -1.0f, 1.0f, 1.0f * -10.0f, 1.0f * 10.0f);
     //glm::mat4 mat_projection = glm::perspective(glm::radians(45.0f), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
 
 //////////////////
@@ -1494,7 +1359,7 @@ GLdouble tex_res = 4096.0;
     double forwards_acc = 1.0;
     double backwards_acc = 1.0;
 
-    double max_acc = 2000.0;
+    double max_acc = 500.0;
 
 
 /////////////////
@@ -1503,10 +1368,24 @@ GLdouble tex_res = 4096.0;
     glm::vec3 prev_pos(0.0);
 #endif
 
-    Texture tex0;
-    if (GL_texture_gen_and_load_1(&tex0, "./textures/bg_test_3_3.png", GL_TRUE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE) == GL_FALSE) {
-        return EXIT_FAILURE;
+    // Texture tex0;
+    // if (GL_texture_gen_and_load_1(&tex0, "./textures/bg_test_3_3.png", GL_TRUE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE) == GL_FALSE) {
+    //     return EXIT_FAILURE;
+    // }
+
+
+    Texture bgs[5];
+    for (size_t i = 0; i < 5; ++i) {
+        if (GL_FALSE == GL_texture_gen_and_load_1(
+                &bgs[i], ("./textures/separate_test/i" + std::to_string(i) + ".png").c_str(), 
+                GL_TRUE, GL_REPEAT, GL_CLAMP_TO_EDGE
+        )) {
+            return EXIT_FAILURE;
+        }
     }
+
+    gl_get_errors();
+
 
     // Texture tex1;
     // if (GL_texture_gen_and_load_1(&tex1, "./textures/bla.png", GL_TRUE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE) == GL_FALSE) {
@@ -1522,26 +1401,41 @@ GLdouble tex_res = 4096.0;
 
     glUseProgram(shader_2d);
 
-    UniformLocation RES_LOC = glGetUniformLocation(shader_2d, "u_resolution");
-    UniformLocation COUNT_LAYERS_LOC = glGetUniformLocation(shader_2d, "u_count_layers");
+    //UniformLocation RES_LOC = glGetUniformLocation(shader_2d, "u_resolution");
+    //UniformLocation COUNT_LAYERS_LOC = glGetUniformLocation(shader_2d, "u_count_layers");
     UniformLocation MAT_LOC = glGetUniformLocation(shader_2d, "u_matrix");
-    UniformLocation TIME_LOC = glGetUniformLocation(shader_2d, "u_time");
+    //UniformLocation TIME_LOC = glGetUniformLocation(shader_2d, "u_time");
     UniformLocation CAM_LOC = glGetUniformLocation(shader_2d, "u_position_cam");
-    UniformLocation ASPECT_LOC = glGetUniformLocation(shader_2d, "u_aspect");
+    //UniformLocation ASPECT_LOC = glGetUniformLocation(shader_2d, "u_aspect");
 
-    const GLint UVAL_COUNT_LAYERS = COUNT_QUADS / 3;
+    const GLuint UVAL_COUNT_LAYERS = 5;
 
-    glUniform2fv(RES_LOC, 1, glm::value_ptr(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT)));
-    glUniform1i(COUNT_LAYERS_LOC, UVAL_COUNT_LAYERS);
-    glUniform1f(ASPECT_LOC, (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT);
+    //glUniform2fv(RES_LOC, 1, glm::value_ptr(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT)));
+    //glUniform1i(COUNT_LAYERS_LOC, UVAL_COUNT_LAYERS);
+    //glUniform1f(ASPECT_LOC, (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT);
     // TEXTURE 0
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, tex0);
+    glBindTexture(GL_TEXTURE_2D, bgs[0]);
     glUniform1i(glGetUniformLocation(shader_2d, "tex0"), 0);
-    // // TEXTURE 0
-    // glActiveTexture(GL_TEXTURE1);
-    // glBindTexture(GL_TEXTURE_2D, tex1);
-    // glUniform1i(glGetUniformLocation(shader_2d, "tex1"), 1);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, bgs[1]);
+    glUniform1i(glGetUniformLocation(shader_2d, "tex1"), 1);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, bgs[2]);
+    glUniform1i(glGetUniformLocation(shader_2d, "tex2"), 2);
+
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, bgs[3]);
+    glUniform1i(glGetUniformLocation(shader_2d, "tex3"), 3);
+
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, bgs[4]);
+    glUniform1i(glGetUniformLocation(shader_2d, "tex4"), 4);
+
+
+    gl_get_errors();
 
 
     #ifdef IMMEDIATE_MODE_GL
@@ -1589,7 +1483,7 @@ GLdouble tex_res = 4096.0;
         t_delta_ms = (double)diff * 10000 / (double)frequency;
         double t_since_start = (double)(t_now - t_start) / (double)frequency;
 
-        std::cout << t_since_start << std::endl;
+        //std::cout << t_since_start << std::endl;
 
         // std::cout << "T_NOW: " << t_now << std::endl <<
         //              " T_DELTA: " << t_delta << std::endl <<
@@ -1708,7 +1602,7 @@ GLdouble tex_res = 4096.0;
     // DRAW
 
                 
-        glClearColor(97.0 / 255.0, 201.0 / 255.0, 255.0 / 255.0, 1.0f);
+        glClearColor(97.0 / 255.0, 201.0 / 255.0, 255.0 / 255.0, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(shader_2d);
@@ -1716,15 +1610,14 @@ GLdouble tex_res = 4096.0;
 
         //glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(ViewCamera_calc_view_matrix(&main_cam) * mat_ident));
         glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(
-            mat_projection /*glm::translate(mat_ident, glm::vec3(glm::sin((float)t_since_start), 0.0f, 0.0f))
-            /*FreeCamera_calc_view_matrix(&main_cam) * */ 
+            mat_projection
+            /**FreeCamera_calc_view_matrix(&main_cam)*/
             /*glm::translate(mat_ident, glm::vec3(glm::sin(((double)t_now / frequency)), 0.0, 0.0)) * */
             /*glm::scale(mat_ident, glm::vec3(0.25, 0.25, 1.0))* */
                         )
         );
 
         //glUniform1f(TIME_LOC, t_since_start);
-        glUniform1f(TIME_LOC, 0.0);
 
         glm::vec3 pos = main_cam.position;
         #ifdef DEBUG_PRINT
@@ -1738,23 +1631,30 @@ GLdouble tex_res = 4096.0;
         #endif
 
         glUniform3fv(CAM_LOC, 1, glm::value_ptr(pos));
-
-        glEnable(GL_DEPTH_TEST);
-        glDepthRange(0, 1);
-        glDepthFunc(GL_LEQUAL);
-
+        // glEnable(GL_DEPTH_TEST);
+        //glClear(GL_DEPTH_BUFFER_BIT);
+        // glDepthRange(0, 1);
+        
+        //glEnable(GL_BLEND);
+        //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDisable(GL_DEPTH_TEST);
+        
         glBindVertexArray(vao_2d2.vao);
         glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, 0);
+        //glDrawElements(GL_TRIANGLES, tri_data.i_count / 2, GL_UNSIGNED_INT, (GLvoid*)(sizeof(GLuint) * 6));
         glBindVertexArray(0);
 
         #ifdef IMMEDIATE_MODE_GL
+
+        glEnable(GL_DEPTH_TEST);
+        glDepthRange(0, 1);
         glClear(GL_DEPTH_BUFFER_BIT);
 
 
         gl_imm.begin();
 
-            gl_imm.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
-
+            //gl_imm.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+            gl_imm.transform_matrix = glm::mat4(1.0f);
 
             // gl_imm.draw_type = GL_LINES;
             // gl_imm.color = Color::RED;
@@ -1778,15 +1678,16 @@ GLdouble tex_res = 4096.0;
 
             gl_imm.color = Color::BLUE;
             gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f, -0.5f, 0.0f));
-            gl_imm.vertex({0.0, 0.0, -0.5});
-            gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, -0.5});
-            gl_imm.vertex({1.0, 0.0, -0.5});
+            gl_imm.vertex({0.0, 0.0, 0.0});
+            gl_imm.vertex({1.0, 0.0, 0.0});
+            gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, 0.0});
 
             gl_imm.color = Color::RED;
             gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f + glm::sin(t_since_start), -0.5f, 0.0f));
             gl_imm.vertex({0.0, 0.0, -0.5});
-            gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, -0.5});
             gl_imm.vertex({1.0, 0.0, -0.5});
+            gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, -0.5});
+
 
         gl_imm.end();
 
@@ -1812,7 +1713,7 @@ GLdouble tex_res = 4096.0;
         glUniform3fv(CAM_LOC_GRID, 1, glm::value_ptr(pos));
 
         UniformLocation COLOR_LOC_GRID = glGetUniformLocation(shader_grid, "u_color");
-        glUniform4fv(COLOR_LOC_GRID, 1, glm::value_ptr(glm::vec4(0.25f, 0.25f, 0.25f, 0.5f)));
+        glUniform4fv(COLOR_LOC_GRID, 1, glm::value_ptr(glm::vec4(0.25f, 0.25f, 0.25f, 1.0f)));
 
 
         glBindVertexArray(grid.vao);
@@ -1833,6 +1734,7 @@ GLdouble tex_res = 4096.0;
     #ifdef IMMEDIATE_MODE_GL
         gl_imm.free();
     #endif
+    GLData_delete_inplace(&grid);
     SDL_GL_DeleteContext(program_data.context);
     SDL_DestroyWindow(window);
     IMG_Quit();

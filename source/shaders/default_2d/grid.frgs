@@ -14,6 +14,6 @@ void main(void)
    if (fract(v_position_cam.x + (v_position.x * 4.0)) < 0.04f || fract(v_position_cam.y + v_position.y * 4.0) < 0.04f) {
       color = vec4(sqrt(v_color.rgb), v_color.a);
    } else {
-      color = vec4(0.0);
+      discard;
    } 
 }

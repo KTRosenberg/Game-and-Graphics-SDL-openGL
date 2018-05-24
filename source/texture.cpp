@@ -3,6 +3,7 @@
 GLboolean GL_texture_load(Texture* texture_id, const char* const path, const GLboolean alpha, const GLint param_edge_x, const GLint param_edge_y)
 {
     // load image
+    std::cout << "loading" << path << std::endl;
     SDL_Surface* img = nullptr; 
     if (!(img = IMG_Load(path))) {
         fprintf(stderr, "SDL_image could not be loaded %s, SDL_image Error: %s\n", 
