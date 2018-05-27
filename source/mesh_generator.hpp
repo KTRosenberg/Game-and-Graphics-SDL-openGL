@@ -1,7 +1,7 @@
 #ifndef MESH_GENERATOR_HPP
 #define MESH_GENERATOR_HPP
 
-#include <GL/glew.h>
+//#include <GL/glew.h>
 
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>

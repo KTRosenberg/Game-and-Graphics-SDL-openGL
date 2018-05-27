@@ -1,7 +1,9 @@
 #ifndef MATERIAL_HPP
 #define MATERIAL_HPP
 
-#include <GL/glew.h>
+#include "opengl.hpp"
+
+//#include <GL/glew.h>
 
 #include <vector>
 

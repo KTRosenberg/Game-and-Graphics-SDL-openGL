@@ -1,5 +1,7 @@
 #include "opengl.hpp"
 
+#include <GLFW/glfw3.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -58,7 +60,7 @@ void debug_print(const char* const in)
 //#define SPHERES
 //#define TORI
 
-SDL_Window* window = NULL;
+
 
 // based on tutorial at 
 // http://headerphile.com/sdl2/opengl-part-1-sdl-opengl-awesome/
@@ -1097,64 +1099,51 @@ struct GLImmediate {
 \
 
 
+typedef uint64_t Uint64;
+typedef uint32_t Uint32;
+
+
+void process_input(GLFWwindow* window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) { 
+        glfwSetWindowShouldClose(window, true);
+    }
+}
+
 int main(int argc, char* argv[])
 {
-    // initialize SDL
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC | SDL_INIT_AUDIO) < 0) {
-        fprintf(stderr, "%s\n", "SDL could not initialize");
-        return EXIT_FAILURE;
-    }
-    
-    // MOUSE ///////////////////////////////////////////// 
-    // hide the cursor
-    SDL_ShowCursor(SDL_DISABLE);
-    
-    // ignore mouse movement events
-    #ifndef MOUSE_ON
-    SDL_SetEventFilter(ignore_mouse_movement, nullptr); ///////////////////////////
-    #endif
-    // openGL initialization ///////////////////////////////////////////////////
-    
-    if (argc >= 3) {
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, atoi(argv[1]));
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, atoi(argv[2]));
-    } else {
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);        
-    }
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    // SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
-    // SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
-    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
-    // SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-    // SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 2);
 
-    // create the window
-    if (NULL == (window = SDL_CreateWindow(
-        WINDOW_HEADER,
-        SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED,
-        SCREEN_WIDTH, SCREEN_HEIGHT,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI)))
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+
+
+    GLFWwindow* window = glfwCreateWindow((int)SCREEN_WIDTH, (int)SCREEN_HEIGHT, "TEST", NULL, NULL);
+    if (window == NULL)
     {
-        fprintf(stderr, "Window could not be created\n");
-        return EXIT_FAILURE;
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return -1;
     }
-
-    //SDL_SetWindowFullscreen(window, true);
+    glfwMakeContextCurrent(window);
     
     int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
     if(!(IMG_Init(imgFlags) & imgFlags)) {
      	fprintf(stderr, "SDL_image could not initialize, SDL_image Error: %s\n", IMG_GetError());
-        SDL_DestroyWindow(window);
         return EXIT_FAILURE;
     }
-    
-	program_data.context = SDL_GL_CreateContext(window);
 
-	glewExperimental = GL_TRUE;
-    glewInit();
+    
+
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        std::cout << "Failed to initialize GLAD" << std::endl;
+        return -1;
+    } 
+
+
 
 
     bool status;
@@ -1162,6 +1151,7 @@ int main(int argc, char* argv[])
     if (!status) {
         return false;
     } 
+
 
     // SHADERS
     Shader shader_2d;
@@ -1176,7 +1166,6 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-
     Shader shader_grid;
     shader_grid.load_from_file(
         "shaders/default_2d/grid.vrts",
@@ -1186,6 +1175,7 @@ int main(int argc, char* argv[])
         fprintf(stderr, "ERROR: shader_grid\n");
         return EXIT_FAILURE;
     }
+
 ///////////////
 
     const GLfloat ASPECT = (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT;
@@ -1324,23 +1314,7 @@ int main(int argc, char* argv[])
     //     0.0f
     // );
     
-    const Uint8* key_states = SDL_GetKeyboardState(NULL);
-
-    const Uint8* up         = &key_states[SDL_SCANCODE_W];
-    const Uint8* down       = &key_states[SDL_SCANCODE_S];
-    const Uint8* left       = &key_states[SDL_SCANCODE_A];
-    const Uint8* right      = &key_states[SDL_SCANCODE_D];
-    const Uint8* rot_r      = &key_states[SDL_SCANCODE_RIGHT];
-    const Uint8* rot_l      = &key_states[SDL_SCANCODE_LEFT];
-//  const Uint8& up_right   = key_states[SDL_SCANCODE_E];
-//  const Uint8& up_left    = key_states[SDL_SCANCODE_Q];
-//  const Uint8& down_right = key_states[SDL_SCANCODE_X];
-//  const Uint8& down_left  = key_states[SDL_SCANCODE_Z];
-    const Uint8* forwards = &key_states[SDL_SCANCODE_UP];
-    const Uint8* backwards = &key_states[SDL_SCANCODE_DOWN];
-
-    const Uint8* reset = &key_states[SDL_SCANCODE_0];
-    const Uint8* toggle_projection = &key_states[SDL_SCANCODE_P];
+ 
 
     const double POS_ACC = 1.06;
     const double NEG_ACC = 1.0 / POS_ACC;
@@ -1446,19 +1420,8 @@ int main(int argc, char* argv[])
     #endif
 
 
-    size_t display_mode_count = 0;
-    SDL_DisplayMode mode;
 
-    if (SDL_GetDisplayMode(0, 0, &mode) != 0) {
-        SDL_Log("SDL_GetDisplayMode failed: %s", SDL_GetError());
-        return EXIT_FAILURE;
-    }
-
-    printf("REFRESH_RATE: %d\n", mode.refresh_rate);
-
-
-    SDL_GL_SetSwapInterval(1);
-    const double INTERVAL = MS_PER_S / mode.refresh_rate;
+    const double INTERVAL = MS_PER_S / 60;
 
     bool keep_running = true;
     SDL_Event event;
@@ -1471,9 +1434,13 @@ int main(int argc, char* argv[])
     double t_delta_ms = 0.0;
     double frequency = 0.0;
 
-    while (keep_running) {
+    while (!glfwWindowShouldClose(window)) {
+
+        process_input(window);
+
         t_prev = t_now;
 
+/*
         t_now = SDL_GetPerformanceCounter();
         frequency = SDL_GetPerformanceFrequency();
         Uint64 diff = (t_now - t_prev);
@@ -1481,117 +1448,34 @@ int main(int argc, char* argv[])
         t_delta    = (double)diff / (double)frequency;
         t_delta_s  = (double)diff * 100000000 / (double)frequency;
         t_delta_ms = (double)diff * 10000 / (double)frequency;
-        double t_since_start = (double)(t_now - t_start) / (double)frequency;
+        double t_since_start = (t_now - t_start) / (double)frequency;
 
-        //std::cout << t_since_start << std::endl;
+        std::cout << "{ " << std::endl;
+        std::cout << "COUNT: " << t_now << std::endl;
+        std::cout << "FREQUENCY: " << frequency << std::endl;
+        std::cout << "SINCE_START_WO_FREQ_INT: " << (t_now - t_start) <<std::endl;
+        std::cout << "SINCE_START_WO_FREQ_DOUBLE: " << (double)(t_now - t_start) <<std::endl;
+        std::cout << "SINCE_START: " << t_since_start << std::endl;
+        std::cout << "DELTA: " << t_delta << std::endl;
+        std::cout << "}" << std::endl;
 
         // std::cout << "T_NOW: " << t_now << std::endl <<
         //              " T_DELTA: " << t_delta << std::endl <<
         //              " T_ELAPSED: " << (t_now - t_start) << std::endl <<
         //              " T_ELAPSED: " << ((double)(t_now - t_start) / 1000000000) << std::endl;
-
+*/
         // INPUT /////////////////////////////////
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                keep_running = false;
-            }
-        }
+        // while (SDL_PollEvent(&event)) {
+        //     if (event.type == SDL_QUIT) {
+        //         keep_running = false;
+        //     }
+        // }
 
         #define CONTROLS
 
         #ifdef CONTROLS
         {
 
-            double CHANGE = t_delta;
-            main_cam.orientation = glm::quat();
-
-            if (*up) {
-                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
-                up_acc *= POS_ACC;
-                up_acc = glm::min(max_acc, up_acc);
-            } else {
-                if (up_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
-                }
-                up_acc = glm::max(1.0, up_acc * NEG_ACC);
-            }
-            if (*down) {
-                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
-                down_acc *= POS_ACC;
-                down_acc = glm::min(max_acc, down_acc);
-            } else {
-                if (down_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
-                } 
-                down_acc = glm::max(1.0, down_acc * NEG_ACC);
-            }
-
-            if (*left) {
-                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
-                left_acc *= POS_ACC;
-                left_acc = glm::min(max_acc, left_acc);
-            } else {
-                if (left_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
-                }
-                left_acc = glm::max(1.0, left_acc * NEG_ACC);
-                left_acc = glm::min(max_acc, left_acc);
-            }
-
-            if (*right) {
-                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
-                right_acc *= POS_ACC;
-                right_acc = glm::min(max_acc, right_acc);
-            } else {
-                if (right_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
-                }
-                right_acc = glm::max(1.0, right_acc * NEG_ACC);
-            }
-
-            if (*forwards) {
-                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
-                forwards_acc *= POS_ACC;
-                forwards_acc = glm::min(max_acc, forwards_acc);
-            } else {
-                if (forwards_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
-                }
-                forwards_acc = glm::max(1.0, forwards_acc * NEG_ACC);
-            }
-            if (*backwards) {
-                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
-                backwards_acc *= POS_ACC;
-                backwards_acc = glm::min(max_acc, backwards_acc);
-            } else {
-                if (backwards_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
-                } 
-                backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
-            }
-
-            if (*reset) {
-                // FreeCamera_init(
-                //     &main_cam,
-                //     start_pos,
-                //     ViewCamera_default_speed,
-                //     -1000.0f,
-                //     1000.0f,
-                //     0.0f,
-                //     0.0f,
-                //     0.0f,
-                //     0.0f
-                // );
-                main_cam.position = start_pos;
-                main_cam.orientation = glm::quat();
-
-                up_acc        = 1.0;
-                down_acc      = 1.0;
-                left_acc      = 1.0;
-                right_acc     = 1.0;
-                backwards_acc = 1.0;
-                forwards_acc  = 1.0;
-            }
         }
         #endif
 
@@ -1611,7 +1495,7 @@ int main(int argc, char* argv[])
         //glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(ViewCamera_calc_view_matrix(&main_cam) * mat_ident));
         glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(
             mat_projection
-            /**FreeCamera_calc_view_matrix(&main_cam)*/
+            *FreeCamera_calc_view_matrix(&main_cam)
             /*glm::translate(mat_ident, glm::vec3(glm::sin(((double)t_now / frequency)), 0.0, 0.0)) * */
             /*glm::scale(mat_ident, glm::vec3(0.25, 0.25, 1.0))* */
                         )
@@ -1665,15 +1549,15 @@ int main(int argc, char* argv[])
             // gl_imm.color = Color::GREEN;
             // gl_imm.line({0.0, 0.0, -5.0}, {1.0, 1.0, -5.0});
 
-            gl_imm.draw_type = GL_LINES;
+            // gl_imm.draw_type = GL_LINES;
 
-            gl_imm.color = Color::GREEN;
-            gl_imm.circle(0.25, {0.0, 0.0, 0.0});
+            // gl_imm.color = Color::GREEN;
+            // gl_imm.circle(0.25, {0.0, 0.0, 0.0});
 
             gl_imm.draw_type = GL_TRIANGLES;
 
-            gl_imm.color = Color::BLUE;
-            gl_imm.circle(0.25, {1.0, 1.0, 0.0});
+            // gl_imm.color = Color::BLUE;
+            // gl_imm.circle(0.25, {1.0, 1.0, 0.0});
 
 
             gl_imm.color = Color::BLUE;
@@ -1683,7 +1567,7 @@ int main(int argc, char* argv[])
             gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, 0.0});
 
             gl_imm.color = Color::RED;
-            gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f + glm::sin(t_since_start), -0.5f, 0.0f));
+            gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f + glm::sin((float)glfwGetTime()), -0.5f, 0.0f));
             gl_imm.vertex({0.0, 0.0, -0.5});
             gl_imm.vertex({1.0, 0.0, -0.5});
             gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, -0.5});
@@ -1724,8 +1608,7 @@ int main(int argc, char* argv[])
 
 
 
-
-        SDL_GL_SwapWindow(window);
+        glfwSwapBuffers(window);
     //////////////////
     }
     
@@ -1735,10 +1618,8 @@ int main(int argc, char* argv[])
         gl_imm.free();
     #endif
     GLData_delete_inplace(&grid);
-    SDL_GL_DeleteContext(program_data.context);
-    SDL_DestroyWindow(window);
     IMG_Quit();
-    SDL_Quit();
+    glfwTerminate();
 
     return EXIT_SUCCESS;
 }
