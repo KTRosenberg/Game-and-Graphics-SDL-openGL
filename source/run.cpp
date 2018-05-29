@@ -7,7 +7,6 @@
 #   define GL3_PROTOTYPES 1
 #   define GLEW_STATIC
 #   include <GL/glew.h>
-#   include <OpenGL/gl.h>
 #endif
 
 // CONVENIENCE TYPEDEFS FOR GL DATA
