@@ -19,7 +19,9 @@ uniform int u_count_layers;
 void main(void) 
 {
    
-   float X = (2.0 * (-u_time) - u_position_cam.x) * (1.0 / pow(2.0, 5.0 - a_position.z));
+   //float X = (-u_position_cam.x) * (1.0 / pow(2.0, 5.0 - a_position.z));
+
+   float X = 0.0;
 
    X = mod(X, (u_aspect) * 2.0);
 
@@ -27,8 +29,8 @@ void main(void)
 
    float y_off = clamp(u_position_cam.y, 0.0, 2.0) * (1.0 / pow(2.0, u_count_layers - a_position.z));
 
-   gl_Position = u_matrix * vec4(X, a_position.y - y_off, a_position.z, 1.0);
-   //gl_Position = u_matrix * vec4(a_position, 1.0);
+   gl_Position = 2.0 * u_matrix * vec4(X, a_position.y - y_off, a_position.z, 1.0);
+
    v_position = a_position.xyz;
 
    v_uv = a_uv;
