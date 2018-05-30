@@ -1213,21 +1213,13 @@ int main(int argc, char* argv[])
     GLfloat T[] = {
        (-wf * ASPECT),  hf,  0.0f,    0.0f, 0.0f,  // top left
        (-wf * ASPECT), -hf,  0.0f,    0.0f, 1.0f,  // bottom left
-       (wf * ASPECT) - (2.0f * y_off_left), -hf,  0.0f,     1.0f, 1.0f, // bottom right
-       (wf * ASPECT) - (2.0f * y_off_left),  hf,  0.0f,     1.0f, 0.0f, // top right
-
-       (ASPECT - (2.0f * y_off_left)),  hf,  0.0f,    0.0f, 0.0f,  // top left
-       (ASPECT - (2.0f * y_off_left)), -hf,  0.0f,    0.0f, 1.0f,  // bottom left
-       (ASPECT - (2.0f * y_off_left)) + ((ASPECT - y_off_left) * 2.0f) , -hf,  0.0f,     1.0f, 1.0f, // bottom right
-       (ASPECT - (2.0f * y_off_left)) + ((ASPECT - y_off_left) * 2.0f),  hf,  0.0f,     1.0f, 0.0f, // top right
+       (wf * ASPECT), -hf,  0.0f,     1.25f, 1.0f, // bottom right
+       (wf * ASPECT),  hf,  0.0f,     1.25f, 0.0f, // top right
     };
 
     GLuint TI[] = {
         0, 1, 2,
         2, 3, 0,
-
-        4, 5, 6,
-        6, 7, 4,
     };
 
 // TOTAL ALLOCATION
@@ -1294,7 +1286,7 @@ int main(int argc, char* argv[])
  //    glDepthFunc(GL_LEQUAL);
 
 
-    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     //glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ONE, GL_ONE);
     //glBlendEquationSeparate(GL_FUNC_ADD, GL_MAX);
@@ -1637,12 +1629,11 @@ int main(int argc, char* argv[])
         // glDepthRange(0, 1);
         
         //glEnable(GL_BLEND);
-        //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDisable(GL_DEPTH_TEST);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        //glDisable(GL_DEPTH_TEST);
         
         glBindVertexArray(vao_2d2.vao);
         glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, 0);
-        //glDrawElements(GL_TRIANGLES, tri_data.i_count / 2, GL_UNSIGNED_INT, (GLvoid*)(sizeof(GLuint) * 6));
         glBindVertexArray(0);
 
         #ifdef IMMEDIATE_MODE_GL
