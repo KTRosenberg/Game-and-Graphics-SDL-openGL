@@ -17,14 +17,14 @@ void main(void)
     gl_Position = u_matrix * vec4(a_position, 1.0);
 
     float x_off = u_position_cam.x;
-    float y_off = -u_position_cam.y;
+    float y_off = -clamp(u_position_cam.y, -1.45, 1.45);
 
     t0c = a_uv;
     t0c.x += (x_off / 4.0);
 
     t1c = a_uv;
     t1c.x += (x_off / 3.5);
-    t1c.y += y_off / 15.0;
+    t1c.y += y_off / 10.0;
 
     t2c = a_uv;
     t2c.x += (x_off / 2.8);

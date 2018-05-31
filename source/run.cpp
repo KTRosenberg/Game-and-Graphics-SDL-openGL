@@ -381,10 +381,9 @@ void ArenaAllocator_delete(ArenaAllocator* arena)
 }
 
 template <typename T>
-struct ArenaBuffer {
+struct Array {
     T* memory;
-    size_t count;
-    size_t cap;
+    size_t length;
 
     operator T*(void)
     {
@@ -403,7 +402,7 @@ struct ArenaBuffer {
 
     inline size_t size_buffer(void) const
     {
-        return sizeof(T) * this->cap;
+        return sizeof(T) * this->length;
     }
 
     inline size_t size_element(void) const
@@ -411,10 +410,10 @@ struct ArenaBuffer {
         return sizeof(T);
     }
 
-    typedef ArenaBuffer* iterator;
-    typedef const ArenaBuffer* const_iterator;
-    iterator begin() { return &this->array[0]; }
-    iterator end() { return &this->array[cap]; }
+    typedef Array* iterator;
+    typedef const Array* const_iterator;
+    iterator begin() { return &this->memory[0]; }
+    iterator end() { return &this->memory[this->length]; }
 };
 
 
@@ -427,6 +426,22 @@ struct VertexBufferData {
     size_t    i_count;
     GLfloat*  vertices;
     GLuint*   indices;
+};
+
+struct Open_GL_Data {
+    VertexBuffer vbo;
+    ElementBuffer ebo;
+    Array<GLfloat> vertices;
+    Array<GLuint> indices;
+};
+
+struct Entity {
+    glm::vec3 position;
+    GLfloat rotation;
+};
+
+struct Player {
+    Entity* base;
 };
 
 // struct VertexBufferDataAlt {
@@ -456,8 +471,8 @@ void VertexBufferData_init(
     g->vertices = (GLfloat*)alloc_v(sizeof(GLfloat) * g->v_cap);
     g->indices  = (GLuint*)alloc_i(sizeof(GLuint) * g->i_cap);
 
-    g->v_count = 0;
-    g->i_count = 0;
+    g->v_count = v_cap;
+    g->i_count = i_cap;
 }
 
 
@@ -479,8 +494,8 @@ void VertexBufferData_init_inplace(
     g->vertices = vertices;
     g->indices  = indices;
 
-    g->v_count = 0;
-    g->i_count = 0;
+    g->v_count = v_cap;
+    g->i_count = i_cap;
 }
 
 void VertexBufferData_delete(VertexBufferData* g)
@@ -619,20 +634,6 @@ inline void GLData_advance(GLData* const gl_data, const size_t i)
     gl_data->vbd.i_count += i;
 }
 
-inline void data_mark_filled(VertexBufferData* vbd)
-{
-    vbd->v_count = vbd->v_cap;
-    vbd->i_count = vbd->i_cap;
-}
-
-inline void data_mark_filled(GLData* gl_data)
-{
-    VertexBufferData* const vbd = &gl_data->vbd;
-    vbd->v_count = vbd->v_cap;
-    vbd->i_count = vbd->i_cap;
-}
-
-
 void GLData_delete(GLData* gl_data)
 {
     VertexAttributeArray_delete(&gl_data->vao);
@@ -725,9 +726,6 @@ struct GLImmediate {
             glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(projection_matrix));
         }
 
-        index_triangles = 0;
-        index_lines = 0;
-
         begun = true;
     }
 
@@ -758,7 +756,33 @@ struct GLImmediate {
         line_buffer.v_count = 0;
         line_buffer.i_count = 0;
 
+        index_triangles = 0;
+        index_lines = 0;
+
         begun = false;
+    }
+
+    void end_no_reset(void) 
+    {
+        assert(begun == true);
+
+        glBindVertexArray(vao_triangles);
+        gl_bind_buffers_and_upload_sub_data(&triangle_buffer);
+        if (triangle_buffer.i_count > 0) { 
+            glDrawElements(GL_TRIANGLES, triangle_buffer.i_count, GL_UNSIGNED_INT, 0);
+        }
+
+        glBindVertexArray(vao_lines);
+        gl_bind_buffers_and_upload_sub_data(&line_buffer);
+        if (line_buffer.i_count > 0) { 
+            glDrawElements(GL_LINES, line_buffer.i_count, GL_UNSIGNED_INT, 0);
+        }
+        
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+        glUseProgram(0);
+
+        begun = false;        
     }
 
     static constexpr const char* const SHADER_VERTEX_PATH = "shaders/default_2d/default_2d.vrts";
@@ -800,6 +824,8 @@ struct GLImmediate {
                 N,
                 indices_triangles
             );
+            triangle_buffer.v_count = 0;
+            triangle_buffer.i_count = 0;
 
             gl_bind_buffers_and_upload_data(&triangle_buffer, GL_STREAM_DRAW);
             // POSITION
@@ -819,6 +845,8 @@ struct GLImmediate {
                 N,
                 indices_lines
             );
+            line_buffer.v_count = 0;
+            line_buffer.i_count = 0;
 
             gl_bind_buffers_and_upload_data(&line_buffer, GL_STREAM_DRAW);
             // POSITION
@@ -829,6 +857,8 @@ struct GLImmediate {
             glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
 
+        index_triangles = 0;
+        index_lines = 0;
 
         return true;
     }
@@ -1204,18 +1234,19 @@ int main(int argc, char* argv[])
     const GLfloat y_off_left = (16.0f / 45.0f);
     const GLfloat x_off_right = (512.0f / 640.0f);
 
-    GLdouble tex_res = 1024.0;
-    GLuint layers_per_row = (GLuint)(tex_res / SCREEN_WIDTH);
-    GLfloat x_off = (GLfloat)(GLdouble)(SCREEN_WIDTH / tex_res);
-    GLfloat y_off = (GLfloat)(GLdouble)(SCREEN_HEIGHT / tex_res);
+    glm::vec2 tex_res(2048.0f, 1024.0f);
 
-    GLfloat x_ratio = SCREEN_WIDTH / tex_res;
-    GLfloat y_ratio = SCREEN_HEIGHT / tex_res;
+    GLuint layers_per_row = (GLuint)(tex_res.x / SCREEN_WIDTH);
+    // GLfloat x_off = (GLfloat)(GLdouble)(SCREEN_WIDTH / tex_res.x);
+    // GLfloat y_off = (GLfloat)(GLdouble)(SCREEN_HEIGHT / tex_res.x);
+
+    GLfloat x_ratio = SCREEN_WIDTH / tex_res.x;
+    GLfloat y_ratio = SCREEN_HEIGHT / tex_res.y;
     GLfloat T[] = {
-       (-wf * ASPECT),  hf,  0.0f,    0.0f,    0.0f,    // top left
-       (-wf * ASPECT), -hf,  0.0f,    0.0f,    1.0f,    // bottom left
-       (wf * ASPECT),  -hf,  0.0f,    x_ratio, 1.0f,    // bottom right
-       (wf * ASPECT),   hf,  0.0f,    x_ratio, 0.0f,    // top right
+       (-2048.0f / 360.0f) / 2.0f,  (1024.0f / 360.0f) / 2.0f,  0.0f,    0.0f, 0.0f,    // top left
+       (-2048.0f / 360.0f) / 2.0f, (-1024.0f / 360.0f) / 2.0f,  0.0f,    0.0f, 1.0f,    // bottom left
+       (2048.0f / 360.0f) / 2.0f, (-1024.0f / 360.0f) / 2.0f,  0.0f,    1.0f, 1.0f,    // bottom right
+       (2048.0f / 360.0f) / 2.0f, (1024.0f / 360.0f) / 2.0f,  0.0f,    1.0f, 0.0f,    // top right
     };
 
     GLuint TI[] = {
@@ -1243,9 +1274,7 @@ int main(int argc, char* argv[])
             STATIC_ARRAY_COUNT(TI),
             TI
         );
-        data_mark_filled(&tri_data);
 
-        //std::cout << b[0] << std::endl;
 
         gl_bind_buffers_and_upload_data(&tri_data, GL_STATIC_DRAW);
         // POSITION
@@ -1259,7 +1288,6 @@ int main(int argc, char* argv[])
 
     GLData grid;
     GLData_init_inplace(&grid, STRIDE, STATIC_ARRAY_COUNT(T) / 15, T, STATIC_ARRAY_COUNT(TI) / 15, TI);
-    data_mark_filled(&grid);
     glBindVertexArray(grid.vao);
 
         gl_bind_buffers_and_upload_data(&grid.vbd, GL_STATIC_DRAW, grid.vbd.v_cap, grid.vbd.i_cap, STATIC_ARRAY_COUNT(T) / 15, 0);
@@ -1353,7 +1381,7 @@ int main(int argc, char* argv[])
     double forwards_acc = 1.0;
     double backwards_acc = 1.0;
 
-    double max_acc = 500.0;
+    double max_acc = 150.0;
 
 
 /////////////////
@@ -1371,7 +1399,7 @@ int main(int argc, char* argv[])
     Texture bgs[5];
     for (size_t i = 0; i < 5; ++i) {
         if (GL_FALSE == GL_texture_gen_and_load_1(
-                &bgs[i], ("./textures/separate_test/i" + std::to_string(i) + ".png").c_str(), 
+                &bgs[i], ("./textures/separate_test_2/" + std::to_string(i) + ".png").c_str(), 
                 GL_TRUE, GL_REPEAT, GL_CLAMP_TO_EDGE
         )) {
             return EXIT_FAILURE;
@@ -1379,18 +1407,6 @@ int main(int argc, char* argv[])
     }
 
     gl_get_errors();
-
-
-    // Texture tex1;
-    // if (GL_texture_gen_and_load_1(&tex1, "./textures/bla.png", GL_TRUE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE) == GL_FALSE) {
-    //     return EXIT_FAILURE;
-    // }
-    // TEXTURE 0
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, texture[0]);
-    // glUniform1i(glGetUniformLocation(prog_shader, "tex0"), 0);
-    // //
-    // glUniform1i(glGetUniformLocation(prog_shader, "tex0"), 0);
 
 
     glUseProgram(shader_2d);
@@ -1635,7 +1651,7 @@ int main(int argc, char* argv[])
         
         glBindVertexArray(vao_2d2.vao);
         glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
+        //glBindVertexArray(0);
 
         #ifdef IMMEDIATE_MODE_GL
 
@@ -1658,28 +1674,28 @@ int main(int argc, char* argv[])
             // gl_imm.color = Color::GREEN;
             // gl_imm.line({0.0, 0.0, -5.0}, {1.0, 1.0, -5.0});
 
-            gl_imm.draw_type = GL_LINES;
+            // gl_imm.draw_type = GL_LINES;
 
-            gl_imm.color = Color::GREEN;
-            gl_imm.circle(0.25, {0.0, 0.0, 0.0});
+            // gl_imm.color = Color::GREEN;
+            // gl_imm.circle(0.25, {0.0, 0.0, 0.0});
 
             gl_imm.draw_type = GL_TRIANGLES;
 
-            gl_imm.color = Color::BLUE;
-            gl_imm.circle(0.25, {1.0, 1.0, 0.0});
+            gl_imm.color = glm::vec4(252.0f / 255.0f, 212.0f / 255.0f, 64.0f / 255.0f, 1.0f);
 
+            //gl_imm.circle(0.25, {1.0, 1.0, 0.0});
+            
+            // gl_imm.color = Color::BLUE;
+            // gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f, -0.5f, 0.0f));
+            // gl_imm.vertex({0.0, 0.0, 0.0});
+            // gl_imm.vertex({1.0, 0.0, 0.0});
+            // gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, 0.0});
 
-            gl_imm.color = Color::BLUE;
-            gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f, -0.5f, 0.0f));
-            gl_imm.vertex({0.0, 0.0, 0.0});
-            gl_imm.vertex({1.0, 0.0, 0.0});
-            gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, 0.0});
-
-            gl_imm.color = Color::RED;
-            gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f + glm::sin(t_since_start), -0.5f, 0.0f));
-            gl_imm.vertex({0.0, 0.0, -0.5});
-            gl_imm.vertex({1.0, 0.0, -0.5});
-            gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, -0.5});
+            // gl_imm.color = Color::RED;
+            // gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f + glm::sin(t_since_start), -0.5f, 0.0f));
+            // gl_imm.vertex({0.0, 0.0, -0.5});
+            // gl_imm.vertex({1.0, 0.0, -0.5});
+            // gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, -0.5});
 
 
         gl_imm.end();
@@ -1687,33 +1703,33 @@ int main(int argc, char* argv[])
         #endif
 
 
-        //#define GRID
+        // #define GRID
 
 
-        #ifdef GRID
-        glClear(GL_DEPTH_BUFFER_BIT);
+        // #ifdef GRID
+        // glClear(GL_DEPTH_BUFFER_BIT);
 
 
-        glUseProgram(shader_grid);
-        UniformLocation MAT_LOC_GRID = glGetUniformLocation(shader_grid, "u_matrix");
+        // glUseProgram(shader_grid);
+        // UniformLocation MAT_LOC_GRID = glGetUniformLocation(shader_grid, "u_matrix");
 
-        glUniformMatrix4fv(MAT_LOC_GRID, 1, GL_FALSE, glm::value_ptr(
-                mat_projection
-            )
-        );
+        // glUniformMatrix4fv(MAT_LOC_GRID, 1, GL_FALSE, glm::value_ptr(
+        //         mat_projection
+        //     )
+        // );
 
-        UniformLocation CAM_LOC_GRID = glGetUniformLocation(shader_grid, "u_position_cam");
-        glUniform3fv(CAM_LOC_GRID, 1, glm::value_ptr(pos));
+        // UniformLocation CAM_LOC_GRID = glGetUniformLocation(shader_grid, "u_position_cam");
+        // glUniform3fv(CAM_LOC_GRID, 1, glm::value_ptr(pos));
 
-        UniformLocation COLOR_LOC_GRID = glGetUniformLocation(shader_grid, "u_color");
-        glUniform4fv(COLOR_LOC_GRID, 1, glm::value_ptr(glm::vec4(0.25f, 0.25f, 0.25f, 1.0f)));
+        // UniformLocation COLOR_LOC_GRID = glGetUniformLocation(shader_grid, "u_color");
+        // glUniform4fv(COLOR_LOC_GRID, 1, glm::value_ptr(glm::vec4(0.25f, 0.25f, 0.25f, 1.0f)));
 
 
-        glBindVertexArray(grid.vao);
-        glDrawElements(GL_TRIANGLES, grid.vbd.i_count, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
+        // glBindVertexArray(grid.vao);
+        // glDrawElements(GL_TRIANGLES, grid.vbd.i_count, GL_UNSIGNED_INT, 0);
+        // glBindVertexArray(0);
 
-        #endif
+        // #endif
 
 
 

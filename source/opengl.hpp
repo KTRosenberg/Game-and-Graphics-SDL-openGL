@@ -19,11 +19,11 @@
 typedef GLuint UniformLocation;
 typedef GLuint Texture;
 typedef GLuint VertexArray;
-typedef VertexArray Vao;
+typedef VertexArray VAO;
 typedef GLuint VertexBuffer;
-typedef VertexBuffer Vbo; 
+typedef VertexBuffer VBO; 
 typedef GLuint ElementBuffer;
-typedef ElementBuffer Ebo;
+typedef ElementBuffer EBO;
 typedef GLuint GLBuffer;
 
 #endif // OPEN_GL_HPP
