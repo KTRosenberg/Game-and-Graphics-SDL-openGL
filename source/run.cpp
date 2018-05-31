@@ -1209,12 +1209,13 @@ int main(int argc, char* argv[])
     GLfloat x_off = (GLfloat)(GLdouble)(SCREEN_WIDTH / tex_res);
     GLfloat y_off = (GLfloat)(GLdouble)(SCREEN_HEIGHT / tex_res);
 
-
+    GLfloat x_ratio = SCREEN_WIDTH / tex_res;
+    GLfloat y_ratio = SCREEN_HEIGHT / tex_res;
     GLfloat T[] = {
-       (-wf * ASPECT),  hf,  0.0f,    0.0f, 0.0f,  // top left
-       (-wf * ASPECT), -hf,  0.0f,    0.0f, 1.0f,  // bottom left
-       (wf * ASPECT), -hf,  0.0f,     1.25f, 1.0f, // bottom right
-       (wf * ASPECT),  hf,  0.0f,     1.25f, 0.0f, // top right
+       (-wf * ASPECT),  hf,  0.0f,    0.0f,    0.0f,    // top left
+       (-wf * ASPECT), -hf,  0.0f,    0.0f,    1.0f,    // bottom left
+       (wf * ASPECT),  -hf,  0.0f,    x_ratio, 1.0f,    // bottom right
+       (wf * ASPECT),   hf,  0.0f,    x_ratio, 0.0f,    // top right
     };
 
     GLuint TI[] = {
