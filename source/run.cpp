@@ -30,16 +30,14 @@
 
 //#define DISPLAY_FPS
 
-#define IMG_PATH_1 "textures/final_rush_walkway_2.png"
-#define IMG_PATH_2 "textures/brick.png"
-#define IMG_PATH_3 "textures/lavatile.jpg"
+#define GRID
 
 int ignore_mouse_movement(void* unused, SDL_Event* event)
 {
     return (event->type == SDL_MOUSEMOTION) ? 0 : 1;
 }
 
-//#define DEBUG_PRINT
+#define DEBUG_PRINT
 
 void debug_print(const char* const in);
 void debug_print(const char* const in) 
@@ -1196,8 +1194,8 @@ int main(int argc, char* argv[])
     // SHADERS
     Shader shader_2d;
     shader_2d.load_from_file(
-        "shaders/parallax/parallax_v2.vrts",
-        "shaders/parallax/parallax_v2.frgs",
+        "shaders/parallax/parallax_v2_vrt.glsl",
+        "shaders/parallax/parallax_v2_frg.glsl",
         glsl_perlin_noise,
         glsl_perlin_noise
     );
@@ -1209,8 +1207,8 @@ int main(int argc, char* argv[])
 
     Shader shader_grid;
     shader_grid.load_from_file(
-        "shaders/default_2d/grid.vrts",
-        "shaders/default_2d/grid.frgs"
+        "shaders/default_2d/grid_vrt.glsl",
+        "shaders/default_2d/grid_frg.glsl"
     );
     if (!shader_grid.is_valid()) {
         fprintf(stderr, "ERROR: shader_grid\n");
@@ -1235,6 +1233,8 @@ int main(int argc, char* argv[])
     const GLfloat x_off_right = (512.0f / 640.0f);
 
     glm::vec2 tex_res(2048.0f, 1024.0f);
+
+    glm::vec3 world_bguv_factor = glm::vec3(glm::vec2(SCREEN_HEIGHT * 0.5f) / tex_res, 1.0f);
 
     GLuint layers_per_row = (GLuint)(tex_res.x / SCREEN_WIDTH);
     // GLfloat x_off = (GLfloat)(GLdouble)(SCREEN_WIDTH / tex_res.x);
@@ -1286,20 +1286,20 @@ int main(int argc, char* argv[])
 
     glBindVertexArray(0);
 
-    GLData grid;
-    GLData_init_inplace(&grid, STRIDE, STATIC_ARRAY_COUNT(T) / 15, T, STATIC_ARRAY_COUNT(TI) / 15, TI);
-    glBindVertexArray(grid.vao);
+    // GLData grid;
+    // GLData_init_inplace(&grid, STRIDE, STATIC_ARRAY_COUNT(T) / 15, T, STATIC_ARRAY_COUNT(TI) / 15, TI);
+    // glBindVertexArray(grid.vao);
 
-        gl_bind_buffers_and_upload_data(&grid.vbd, GL_STATIC_DRAW, grid.vbd.v_cap, grid.vbd.i_cap, STATIC_ARRAY_COUNT(T) / 15, 0);
+    //     gl_bind_buffers_and_upload_data(&grid.vbd, GL_STATIC_DRAW, grid.vbd.v_cap, grid.vbd.i_cap, STATIC_ARRAY_COUNT(T) / 15, 0);
 
-        // POSITION
-        gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &grid.vao);
-        // UV
-        gl_set_and_enable_vertex_attrib_ptr(1, 2, GL_FLOAT, GL_FALSE, 3, &grid.vao);
+    //     // POSITION
+    //     gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &grid.vao);
+    //     // UV
+    //     gl_set_and_enable_vertex_attrib_ptr(1, 2, GL_FLOAT, GL_FALSE, 3, &grid.vao);
 
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    glBindVertexArray(0);
+    // glBindVertexArray(0);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1364,6 +1364,14 @@ int main(int argc, char* argv[])
     const Uint8* reset = &key_states[SDL_SCANCODE_0];
     const Uint8* toggle_projection = &key_states[SDL_SCANCODE_P];
 
+    
+#ifdef GRID
+    const Uint8* toggle_grid = &key_states[SDL_SCANCODE_G];
+    bool grid_held = false;
+    bool grid_active = false;
+#endif
+
+
     const double POS_ACC = 1.06;
     const double NEG_ACC = 1.0 / POS_ACC;
 
@@ -1381,7 +1389,7 @@ int main(int argc, char* argv[])
     double forwards_acc = 1.0;
     double backwards_acc = 1.0;
 
-    double max_acc = 150.0;
+    double max_acc = 1000.0;
 
 
 /////////////////
@@ -1479,7 +1487,7 @@ int main(int argc, char* argv[])
     double t_delta    = 0.0;
     double t_delta_s  = 0.0;
     double t_delta_ms = 0.0;
-    double frequency = 0.0;
+    double frequency  = 0.0;
 
     while (keep_running) {
         t_prev = t_now;
@@ -1640,13 +1648,13 @@ int main(int argc, char* argv[])
             prev_pos.z = pos.z;
         #endif
 
-        glUniform3fv(CAM_LOC, 1, glm::value_ptr(pos));
-        // glEnable(GL_DEPTH_TEST);
+        glUniform3fv(CAM_LOC, 1, glm::value_ptr(pos * world_bguv_factor));
+        glEnable(GL_DEPTH_TEST);
         //glClear(GL_DEPTH_BUFFER_BIT);
         // glDepthRange(0, 1);
         
         //glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         //glDisable(GL_DEPTH_TEST);
         
         glBindVertexArray(vao_2d2.vao);
@@ -1683,7 +1691,9 @@ int main(int argc, char* argv[])
 
             gl_imm.color = glm::vec4(252.0f / 255.0f, 212.0f / 255.0f, 64.0f / 255.0f, 1.0f);
 
-            //gl_imm.circle(0.25, {1.0, 1.0, 0.0});
+            gl_imm.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+
+            gl_imm.circle(0.25, {1.0, 1.0, 0.0});
             
             // gl_imm.color = Color::BLUE;
             // gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f, -0.5f, 0.0f));
@@ -1703,36 +1713,46 @@ int main(int argc, char* argv[])
         #endif
 
 
-        // #define GRID
+        #ifdef GRID
+
+        if (*toggle_grid) {
+            if (!grid_held) {
+                grid_active = !grid_active;
+                grid_held = true;
+            }
+        } else {
+            grid_held = false;
+        }
+
+        if (grid_active) {
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+            glClear(GL_DEPTH_BUFFER_BIT);
 
 
-        // #ifdef GRID
-        // glClear(GL_DEPTH_BUFFER_BIT);
+            glUseProgram(shader_grid);
+            UniformLocation MAT_LOC_GRID = glGetUniformLocation(shader_grid, "u_matrix");
+
+            glUniformMatrix4fv(MAT_LOC_GRID, 1, GL_FALSE, glm::value_ptr(
+                    mat_projection
+                )
+            );
+
+            UniformLocation CAM_LOC_GRID = glGetUniformLocation(shader_grid, "u_position_cam");
+            glUniform3fv(CAM_LOC_GRID, 1, glm::value_ptr(pos));
+
+            UniformLocation COLOR_LOC_GRID = glGetUniformLocation(shader_grid, "u_color");
+            glUniform4fv(COLOR_LOC_GRID, 1, glm::value_ptr(glm::vec4(0.25f, 0.25f, 0.25f, 0.5f)));
 
 
-        // glUseProgram(shader_grid);
-        // UniformLocation MAT_LOC_GRID = glGetUniformLocation(shader_grid, "u_matrix");
+            glBindVertexArray(vao_2d2.vao);
+            glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, 0);
 
-        // glUniformMatrix4fv(MAT_LOC_GRID, 1, GL_FALSE, glm::value_ptr(
-        //         mat_projection
-        //     )
-        // );
+            glDisable(GL_BLEND);
+        }
 
-        // UniformLocation CAM_LOC_GRID = glGetUniformLocation(shader_grid, "u_position_cam");
-        // glUniform3fv(CAM_LOC_GRID, 1, glm::value_ptr(pos));
-
-        // UniformLocation COLOR_LOC_GRID = glGetUniformLocation(shader_grid, "u_color");
-        // glUniform4fv(COLOR_LOC_GRID, 1, glm::value_ptr(glm::vec4(0.25f, 0.25f, 0.25f, 1.0f)));
-
-
-        // glBindVertexArray(grid.vao);
-        // glDrawElements(GL_TRIANGLES, grid.vbd.i_count, GL_UNSIGNED_INT, 0);
-        // glBindVertexArray(0);
-
-        // #endif
-
-
-
+        #endif
 
         SDL_GL_SwapWindow(window);
     //////////////////
@@ -1743,7 +1763,6 @@ int main(int argc, char* argv[])
     #ifdef IMMEDIATE_MODE_GL
         gl_imm.free();
     #endif
-    GLData_delete_inplace(&grid);
     SDL_GL_DeleteContext(program_data.context);
     SDL_DestroyWindow(window);
     IMG_Quit();
