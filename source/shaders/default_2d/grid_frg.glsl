@@ -13,8 +13,8 @@ out vec4 color;
 
 void main(void)
 {
-   if (mod(gl_FragCoord.x - v_position_cam.x, (1280.0 / (32.0 / 9.0))) < 5.0 ||
-       mod(gl_FragCoord.y - v_position_cam.y, (720.0 / (2.0))) < 5.0) {
+   if (mod(v_position.x - v_position_cam.x, 128.0) < 5.0 ||
+       mod(v_position.y - v_position_cam.y, 128.0) < 5.0) {
       color = v_color;
    } else {
       discard;

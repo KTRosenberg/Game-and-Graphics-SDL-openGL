@@ -1234,7 +1234,7 @@ int main(int argc, char* argv[])
 
     glm::vec2 tex_res(2048.0f, 1024.0f);
 
-    glm::vec3 world_bguv_factor = glm::vec3(glm::vec2(SCREEN_HEIGHT * 0.5f) / tex_res, 1.0f);
+    glm::vec3 world_bguv_factor = glm::vec3(glm::vec2(1.0f) / tex_res, 1.0f);
 
     GLuint layers_per_row = (GLuint)(tex_res.x / SCREEN_WIDTH);
     // GLfloat x_off = (GLfloat)(GLdouble)(SCREEN_WIDTH / tex_res.x);
@@ -1243,10 +1243,10 @@ int main(int argc, char* argv[])
     GLfloat x_ratio = SCREEN_WIDTH / tex_res.x;
     GLfloat y_ratio = SCREEN_HEIGHT / tex_res.y;
     GLfloat T[] = {
-       (-2048.0f / 360.0f) / 2.0f,  (1024.0f / 360.0f) / 2.0f,  0.0f,    0.0f, 0.0f,    // top left
-       (-2048.0f / 360.0f) / 2.0f, (-1024.0f / 360.0f) / 2.0f,  0.0f,    0.0f, 1.0f,    // bottom left
-       (2048.0f / 360.0f) / 2.0f, (-1024.0f / 360.0f) / 2.0f,  0.0f,    1.0f, 1.0f,    // bottom right
-       (2048.0f / 360.0f) / 2.0f, (1024.0f / 360.0f) / 2.0f,  0.0f,    1.0f, 0.0f,    // top right
+       -2048.0f / 2.0f,  1024.0f / 2.0f,  0.0f,    0.0f, 0.0f,    // top left
+       -2048.0f / 2.0f, -1024.0f / 2.0f,  0.0f,    0.0f, 1.0f,    // bottom left
+       2048.0f / 2.0f,  -1024.0f / 2.0f,  0.0f,    1.0f, 1.0f,    // bottom right
+       2048.0f / 2.0f,  1024.0f / 2.0f,  0.0f,    1.0f, 0.0f,    // top right
     };
 
     GLuint TI[] = {
@@ -1324,7 +1324,14 @@ int main(int argc, char* argv[])
     printf("USING GL VERSION: %s\n", glGetString(GL_VERSION));
 
     glm::mat4 mat_ident(1.0f);
-    glm::mat4 mat_projection = glm::ortho(-1.0f * ASPECT, 1.0f * ASPECT, -1.0f, 1.0f, 1.0f * -10.0f, 1.0f * 10.0f);
+    glm::mat4 mat_projection = glm::ortho(
+        -1.0f * ((GLfloat)SCREEN_WIDTH / 2.0f), 
+        1.0f * ((GLfloat)SCREEN_WIDTH / 2.0f), 
+        -1.0f * ((GLfloat)SCREEN_HEIGHT / 2.0f), 
+        1.0f * ((GLfloat)SCREEN_HEIGHT / 2.0f), 
+        1.0f * -10.0f, 
+        1.0f * 10.0f
+    );
     //glm::mat4 mat_projection = glm::perspective(glm::radians(45.0f), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
 
 //////////////////
@@ -1333,7 +1340,7 @@ int main(int argc, char* argv[])
     
     FreeCamera main_cam(start_pos);
     main_cam.orientation = glm::quat();
-    main_cam.speed = 0.01;
+    main_cam.speed = 0.01 * 360.0f;
     // ViewCamera_init(
     //     &main_cam,
     //     start_pos,
@@ -1693,7 +1700,7 @@ int main(int argc, char* argv[])
 
             gl_imm.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
 
-            gl_imm.circle(0.25, {1.0, 1.0, 0.0});
+            gl_imm.circle(90.0f, {0.0, 0.0, 0.0});
             
             // gl_imm.color = Color::BLUE;
             // gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f, -0.5f, 0.0f));
