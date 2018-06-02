@@ -2,6 +2,7 @@
 #define SDL_HPP
 
 #ifdef _WIN32
+#  define SDL_MAIN_HANDLED
 #	include <SDL.h>
 #	include <SDL_image.h>
 #else // __APPLE__

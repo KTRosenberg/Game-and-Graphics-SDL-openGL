@@ -4,7 +4,7 @@ GLboolean GL_texture_load(Texture* texture_id, const char* const path, const GLb
 {
     // load image
     std::cout << "loading" << path << std::endl;
-    SDL_Surface* img = nullptr; 
+    SDL_Surface* img = NULL; 
     if (!(img = IMG_Load(path))) {
         fprintf(stderr, "SDL_image could not be loaded %s, SDL_image Error: %s\n", 
                path, IMG_GetError());

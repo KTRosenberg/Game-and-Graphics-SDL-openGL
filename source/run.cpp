@@ -6,25 +6,21 @@
 #include <glm/ext.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#ifdef _WIN32
-#   define SDL_MAIN_HANDLED
-#endif
 #include "sdl.hpp"
 
 #include <iostream>
 #include <string>
-#include <array>
-#include <vector>
+//#include <array>
+//#include <vector>
 
 #include "shader.hpp"
 #include "texture.hpp"
 #include "camera.hpp"
-#include "mesh_generator.hpp"
 
 #define WINDOW_HEADER ("")
 
-#define SCREEN_WIDTH  1280.0
-#define SCREEN_HEIGHT 720.0
+#define SCREEN_WIDTH  (1280.0f)
+#define SCREEN_HEIGHT (720.0f)
 #define MS_PER_S 1000.0
 #define FRAMES_PER_SECOND 60.0
 
@@ -37,7 +33,7 @@ int ignore_mouse_movement(void* unused, SDL_Event* event)
     return (event->type == SDL_MOUSEMOTION) ? 0 : 1;
 }
 
-#define DEBUG_PRINT
+//#define DEBUG_PRINT
 
 void debug_print(const char* const in);
 void debug_print(const char* const in) 
@@ -1124,6 +1120,46 @@ struct GLImmediate {
     } while (0) \
 \
 
+// Credit to Handmade Network person for the following macros {
+typedef int8_t   int8;
+typedef int16_t  int16;
+typedef int32_t  int32;
+typedef int64_t  int64;
+
+typedef uint8_t  uint8;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+typedef uint64_t uint64;
+
+typedef float    float32; 
+typedef double   float64;
+
+typedef int8     i8;
+typedef int16    i16;
+typedef int32    i32;
+typedef int64    i64;
+
+typedef uint8    u8;
+typedef uint16   u16;
+typedef uint32   u32;
+typedef uint64   u64;
+
+typedef float32  f32; 
+typedef float64  f64;
+
+typedef u64 Count;
+
+
+#define bytes(n) (n * 1u)
+#define kb(n) (bytes(n) * 1024u)
+#define mb(n) (kb(n) * 1024u)
+#define gb(n) (mb(n) * 1024u)
+
+
+#define foreach(i, lim) for (u64 (i) = 0; (i) < (lim); ++(i))
+#define forrange(i, l, h) for (i64 (i) = (l); (i) < (h); ++(i))
+
+// }
 
 int main(int argc, char* argv[])
 {
@@ -1139,17 +1175,17 @@ int main(int argc, char* argv[])
     
     // ignore mouse movement events
     #ifndef MOUSE_ON
-    SDL_SetEventFilter(ignore_mouse_movement, nullptr); ///////////////////////////
+    SDL_SetEventFilter(ignore_mouse_movement, NULL); ///////////////////////////
     #endif
     // openGL initialization ///////////////////////////////////////////////////
     
-    if (argc >= 3) {
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, atoi(argv[1]));
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, atoi(argv[2]));
-    } else {
+    // if (argc >= 3) {
+    //     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, atoi(argv[1]));
+    //     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, atoi(argv[2]));
+    // } else {
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);        
-    }
+    // }
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     // SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
@@ -1247,10 +1283,10 @@ int main(int argc, char* argv[])
     GLfloat Y_OFF = (tex_res.y - SCREEN_HEIGHT) / 2.0f;
 
     GLfloat T[] = {
-       0.0f - X_OFF,      tex_res.y - Y_OFF, 0.0f,    0.0f, 0.0f,    // top left
-       0.0f - X_OFF,      0.0f - Y_OFF,      0.0f,    0.0f, 1.0f,    // bottom left
-       tex_res.x - X_OFF, 0.0f - Y_OFF,      0.0f,    1.0f, 1.0f,    // bottom right
-       tex_res.x - X_OFF, tex_res.y - Y_OFF, 0.0f,    1.0f, 0.0f,    // top right
+       0.0f - X_OFF,      tex_res.y - Y_OFF, 0.0f,    0.0f, 1.0f,    // top left
+       0.0f - X_OFF,      0.0f - Y_OFF,      0.0f,    0.0f, 0.0f,    // bottom left
+       tex_res.x - X_OFF, 0.0f - Y_OFF,      0.0f,    1.0f, 0.0f,    // bottom right
+       tex_res.x - X_OFF, tex_res.y - Y_OFF, 0.0f,    1.0f, 1.0f,    // top right
     };
 
     GLuint TI[] = {
@@ -1312,7 +1348,7 @@ int main(int argc, char* argv[])
     glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
 	
-    glCullFace(GL_BACK);
+    glCullFace(GL_FRONT);
 
 	// glEnable(GL_DEPTH_TEST);
  //    glDepthRange(0, 1);
@@ -1331,8 +1367,8 @@ int main(int argc, char* argv[])
     glm::mat4 mat_projection = glm::ortho(
         0.0f, 
         1.0f * ((GLfloat)SCREEN_WIDTH), 
-        0.0f, 
         1.0f * ((GLfloat)SCREEN_HEIGHT),
+        0.0f,
         0.0f, 
         1.0f * 10.0f
     );
@@ -1383,8 +1419,8 @@ int main(int argc, char* argv[])
 #endif
 
 
-    const double POS_ACC = 1.06;
-    const double NEG_ACC = 1.0 / POS_ACC;
+    const f64 POS_ACC = 1.08;
+    const f64 NEG_ACC = 1.0 / POS_ACC;
 
     // double up_acc = 110.0;
     // double down_acc = 110.0;
@@ -1416,7 +1452,7 @@ int main(int argc, char* argv[])
 
 
     Texture bgs[5];
-    for (size_t i = 0; i < 5; ++i) {
+    foreach(i, 5) {
         if (GL_FALSE == GL_texture_gen_and_load_1(
                 &bgs[i], ("./textures/separate_test_2/" + std::to_string(i) + ".png").c_str(), 
                 GL_TRUE, GL_REPEAT, GL_CLAMP_TO_EDGE
@@ -1693,18 +1729,32 @@ int main(int argc, char* argv[])
             // gl_imm.color = Color::GREEN;
             // gl_imm.line({0.0, 0.0, -5.0}, {1.0, 1.0, -5.0});
 
-            // gl_imm.draw_type = GL_LINES;
-
             // gl_imm.color = Color::GREEN;
             // gl_imm.circle(0.25, {0.0, 0.0, 0.0});
 
             gl_imm.draw_type = GL_TRIANGLES;
 
+            const GLfloat CX = (SCREEN_WIDTH / 2.0f);
+            const GLfloat CY = (SCREEN_HEIGHT / 2.0f);
+            glm::mat4 cam = FreeCamera_calc_view_matrix(&main_cam);
+
             gl_imm.color = glm::vec4(252.0f / 255.0f, 212.0f / 255.0f, 64.0f / 255.0f, 1.0f);
 
-            gl_imm.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+            gl_imm.transform_matrix = cam;
 
-            gl_imm.circle(90.0f, {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f, 0.0});
+            gl_imm.circle(90.0f, {CX, CY, -1.0});
+
+            gl_imm.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            gl_imm.transform_matrix = glm::translate(cam, glm::vec3(CX - 27.0f, CY - 25.0f, 0.0f));
+            gl_imm.circle(10.0f, {0.0f, 0.0f, 0.0f});
+
+            gl_imm.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            gl_imm.transform_matrix = glm::translate(cam, glm::vec3(CX + 27.0f, CY - 25.0f, 0.0f));
+            gl_imm.circle(10.0f, {0.0f, 0.0f, 0.0f});
+
+            gl_imm.draw_type = GL_LINES;
+
+
             
             // gl_imm.color = Color::BLUE;
             // gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f, -0.5f, 0.0f));

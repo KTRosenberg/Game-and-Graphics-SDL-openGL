@@ -234,13 +234,13 @@ void FreeCamera_process_directional_movement(FreeCamera* view, Movement_Directio
         #ifdef DB 
         std::cout << "UPWARDS" << std::endl; 
         #endif
-        p->y += velocity;
+        p->y -= velocity;
         break;
     case Movement_Direction::DOWNWARDS:
         #ifdef DB 
         std::cout << "DOWNWARDS" << std::endl; 
         #endif
-        p->y -= velocity;
+        p->y += velocity;
         break;
     }
 

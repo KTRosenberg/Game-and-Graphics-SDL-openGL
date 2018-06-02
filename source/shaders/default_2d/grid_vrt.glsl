@@ -21,8 +21,8 @@ void main(void)
    v_position =  a_position.xyz;
    
    v_position_cam = vec3(
-      -(u_position_cam.x - 640.0), 
-      -(u_position_cam.y - 360.0), 
+      -(u_position_cam.x), 
+      -(u_position_cam.y), 
       1.0
    );
 

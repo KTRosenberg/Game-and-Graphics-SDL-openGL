@@ -10,18 +10,19 @@ uniform vec3 u_position_cam;
 
 out vec4 color;
 
+#define THRESH (5.0)
+
 
 void main(void)
 {
-   if (mod(v_position.x - v_position_cam.x, 128.0) < 5.0 ||
-       mod(v_position.y - v_position_cam.y, 128.0) < 5.0) {
+   if (mod(v_position.x - v_position_cam.x, 128.0) < THRESH ||
+       mod(v_position.y - v_position_cam.y, 128.0) < THRESH) {
       color = v_color;
    } else {
       discard;
    }
-   // if (fract(v_position_cam.x + (v_position.x)) < 0.01f || fract(v_position_cam.y + v_position.y) < 0.01f) {
-   //    color = v_color;
-   // } else {
-   //    discard;
-   // } 
+
+   // color = v_color * vec4(float(mod(v_position.x - v_position_cam.x, 128.0) < 5.0 ||
+   //     mod(v_position.y - v_position_cam.y, 128.0) < 5.0));
+
 }
