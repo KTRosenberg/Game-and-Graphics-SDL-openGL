@@ -16,9 +16,9 @@ out vec4 color;
 
 void main(void)
 {
-   if (mod(v_position.x - v_position_cam.x, u_grid_square_pix) < THRESH ||
-       mod(v_position.y - v_position_cam.y, u_grid_square_pix) < THRESH) {
-      color = v_color;
+   if (mod(v_position.x - v_position_cam.x + (THRESH / 2.0), u_grid_square_pix) < THRESH ||
+       mod(v_position.y - v_position_cam.y + (THRESH / 2.0), u_grid_square_pix) < THRESH) {
+      color = v_color; 
    } else {
       discard;
    }
