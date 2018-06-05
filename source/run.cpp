@@ -1752,8 +1752,8 @@ int main(int argc, char* argv[])
 
             gl_imm.draw_type = GL_TRIANGLES;
 
-            const GLfloat CX = (SCREEN_WIDTH / 2.0f);
-            const GLfloat CY = 384.0f;
+            GLfloat CX = (SCREEN_WIDTH / 2.0f);
+            GLfloat CY = 384.0f;
             glm::mat4 cam = FreeCamera_calc_view_matrix(&main_cam);
 
             gl_imm.color = glm::vec4(252.0f / 255.0f, 212.0f / 255.0f, 64.0f / 255.0f, 1.0f);
@@ -1772,17 +1772,25 @@ int main(int argc, char* argv[])
 
             
             gl_imm.draw_type = GL_LINES;
+
+            #define BASE_TILE_SIZE (128.0f)
+            #define TILE_SCALE (2.0f)
+
+            CX = 5.0f / TILE_SCALE;
+            CY = 3.0f / TILE_SCALE;
             
             glm::mat4 model(1.0f);
+            model = glm::scale(model, glm::vec3(BASE_TILE_SIZE * TILE_SCALE, BASE_TILE_SIZE * TILE_SCALE, 1.0f));
             model = glm::translate(model, glm::vec3({CX, CY, 0.0}));
             model = glm::rotate(model, (GLfloat)t_since_start, glm::vec3(0.0f, 0.0f, 1.0f));
             model = glm::translate(model, glm::vec3({-CX, -CY, 0.0}));
+            
 
             gl_imm.transform_matrix = cam * model;
 
             gl_imm.color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
             {
-                GLfloat off = 256.0f;
+                GLfloat off = 2.0f;
                 // horizontal
                 gl_imm.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX + off, CY - off, 0.0f));
                 gl_imm.line(glm::vec3(CX - off, CY + off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
