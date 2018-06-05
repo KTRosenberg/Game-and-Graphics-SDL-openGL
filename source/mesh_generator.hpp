@@ -1,5 +1,5 @@
-#ifndef MESH_GENERATOR_HPP
-#define MESH_GENERATOR_HPP
+#ifndef MESH_GENERATOR_H
+#define MESH_GENERATOR_H
 
 #include <GL/glew.h>
 
@@ -97,4 +97,4 @@ struct platonic_solid {
 
 }
 
-#endif // MESH_GENERATOR_HPP
+#endif // MESH_GENERATOR_H

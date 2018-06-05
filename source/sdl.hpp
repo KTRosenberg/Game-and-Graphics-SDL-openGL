@@ -1,5 +1,5 @@
-#ifndef SDL_HPP
-#define SDL_HPP
+#ifndef SDL_H
+#define SDL_H
 
 #ifdef _WIN32
 #  define SDL_MAIN_HANDLED
@@ -10,4 +10,4 @@
 #	include <SDL2/SDL_image.h>
 #endif
 
-#endif // SDL_HPP
+#endif // SDL_H

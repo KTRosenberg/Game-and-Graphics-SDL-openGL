@@ -26,5 +26,14 @@ typedef GLuint ElementBuffer;
 typedef ElementBuffer EBO;
 typedef GLuint GLBuffer;
 
+#define gl_get_errors() \
+    do { \
+        GLenum err = GL_NO_ERROR; \
+        while ((err = glGetError()) != GL_NO_ERROR) { \
+            fprintf(stderr, "ERROR: 0x%x\n", err); \
+        } \
+    } while (0) \
+\
+
 #endif // OPEN_GL_HPP
 
