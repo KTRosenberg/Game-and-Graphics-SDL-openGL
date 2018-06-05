@@ -547,7 +547,7 @@ GlobalData program_data;
 
 int main(int argc, char* argv[])
 {
-    // c_func();
+    c_func();
 
     // ArenaAllocator aa;
 
@@ -802,6 +802,8 @@ int main(int argc, char* argv[])
 
     const Uint8* reset = &key_states[SDL_SCANCODE_0];
 
+
+
     
 #ifdef GRID
     const Uint8* toggle_grid = &key_states[SDL_SCANCODE_G];
@@ -938,25 +940,37 @@ int main(int argc, char* argv[])
     bool keep_running = true;
     SDL_Event event;
 
-    Uint64 t_now      = SDL_GetPerformanceCounter();
-    Uint64 t_prev     = 0;
-    Uint64 t_start    = t_now;
-    double t_delta    = 0.0;
-    double t_delta_s  = 0.0;
-    double t_delta_ms = 0.0;
-    double frequency  = 0.0;
+
+    f64 frequency  = SDL_GetPerformanceFrequency();
+
+    u64 t_now      = SDL_GetPerformanceCounter();
+    u64 t_prev     = 0.0;
+    u64 t_start    = t_now;
+    u64 t_delta    = 0;
+    
+    f64 t_now_s         = (f64)t_now / frequency;
+    f64 t_prev_s        = 0.0;
+    f64 t_since_start_s = 0.0;
+    f64 t_delta_s       = 0.0;
+
+    //#define FPS_COUNT
+    #ifdef FPS_COUNT
+    f64 frame_time = 0.0;
+    u32 frame_count = 0;
+    u32 fps = 0;
+    #endif
 
     while (keep_running) {
         t_prev = t_now;
+        t_prev_s = t_now_s;
 
         t_now = SDL_GetPerformanceCounter();
-        frequency = SDL_GetPerformanceFrequency();
-        Uint64 diff = (t_now - t_prev);
-        
-        t_delta    = (double)diff / (double)frequency;
-        t_delta_s  = (double)diff * 100000000 / (double)frequency;
-        t_delta_ms = (double)diff * 10000 / (double)frequency;
-        double t_since_start = (double)(t_now - t_start) / (double)frequency;
+        t_now_s = (f64)t_now / frequency;
+
+        t_delta = (t_now - t_prev);
+        t_delta_s = (f64)t_delta / frequency;
+
+        f64 t_since_start = ((f64)(t_now - t_start)) / frequency;
 
         //std::cout << t_since_start << std::endl;
 
@@ -977,7 +991,7 @@ int main(int argc, char* argv[])
         #ifdef CONTROLS
         {
 
-            double CHANGE = t_delta;
+            double CHANGE = t_delta_s;
             main_cam.orientation = glm::quat();
 
             if (*up) {
@@ -1067,6 +1081,13 @@ int main(int argc, char* argv[])
                 backwards_acc = 1.0;
                 forwards_acc  = 1.0;
             }
+
+            #ifdef MOUSE_ON
+            i32 mouse_x = 0;
+            i32 mouse_y = 0;
+
+            SDL_GetMouseState(&mouse_x, &mouse_y);
+            #endif
         }
         #endif
 
@@ -1276,6 +1297,16 @@ int main(int argc, char* argv[])
         #endif
 
         SDL_GL_SwapWindow(window);
+
+        #ifdef FPS_COUNT
+        frame_count += 1;
+        if (t_now_s - frame_time > 1.0) {
+            fps = frame_count;
+            frame_count = 0;
+            frame_time = t_now_s;
+            printf("%f\n", (double)fps);
+        }
+        #endif
     //////////////////
     }
     
