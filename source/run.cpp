@@ -1409,13 +1409,15 @@ int main(int argc, char* argv[])
     const Uint8* backwards = &key_states[SDL_SCANCODE_DOWN];
 
     const Uint8* reset = &key_states[SDL_SCANCODE_0];
-    const Uint8* toggle_projection = &key_states[SDL_SCANCODE_P];
 
     
 #ifdef GRID
     const Uint8* toggle_grid = &key_states[SDL_SCANCODE_G];
     bool grid_held = false;
     bool grid_active = false;
+
+    bool up_held = false;
+    bool down_held = false;
 #endif
 
 
@@ -1508,6 +1510,22 @@ int main(int argc, char* argv[])
     if (!gl_imm.init(mat_projection)) {
         return EXIT_FAILURE;
     }
+    #endif
+
+    #ifdef GRID
+    glUseProgram(shader_grid);
+
+    UniformLocation COLOR_LOC_GRID = glGetUniformLocation(shader_grid, "u_color");
+    glUniform4fv(COLOR_LOC_GRID, 1, glm::value_ptr(glm::vec4(0.25f, 0.25f, 0.25f, 0.5f)));
+
+    UniformLocation SQUARE_PIXEL_LOC_GRID = glGetUniformLocation(shader_grid, "u_grid_square_pix");
+
+    GLfloat grid_square_pixel_size = 16.0f;
+    glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
+
+    UniformLocation MAT_LOC_GRID = glGetUniformLocation(shader_grid, "u_matrix");
+
+    UniformLocation CAM_LOC_GRID = glGetUniformLocation(shader_grid, "u_position_cam");
     #endif
 
 
@@ -1614,26 +1632,26 @@ int main(int argc, char* argv[])
                 right_acc = glm::max(1.0, right_acc * NEG_ACC);
             }
 
-            if (*forwards) {
-                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
-                forwards_acc *= POS_ACC;
-                forwards_acc = glm::min(max_acc, forwards_acc);
-            } else {
-                if (forwards_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
-                }
-                forwards_acc = glm::max(1.0, forwards_acc * NEG_ACC);
-            }
-            if (*backwards) {
-                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
-                backwards_acc *= POS_ACC;
-                backwards_acc = glm::min(max_acc, backwards_acc);
-            } else {
-                if (backwards_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
-                } 
-                backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
-            }
+            // if (*forwards) {
+            //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
+            //     forwards_acc *= POS_ACC;
+            //     forwards_acc = glm::min(max_acc, forwards_acc);
+            // } else {
+            //     if (forwards_acc > 1.0) {
+            //         FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
+            //     }
+            //     forwards_acc = glm::max(1.0, forwards_acc * NEG_ACC);
+            // }
+            // if (*backwards) {
+            //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
+            //     backwards_acc *= POS_ACC;
+            //     backwards_acc = glm::min(max_acc, backwards_acc);
+            // } else {
+            //     if (backwards_acc > 1.0) {
+            //         FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
+            //     } 
+            //     backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
+            // }
 
             if (*reset) {
                 // FreeCamera_init(
@@ -1793,18 +1811,41 @@ int main(int argc, char* argv[])
 
 
             glUseProgram(shader_grid);
-            UniformLocation MAT_LOC_GRID = glGetUniformLocation(shader_grid, "u_matrix");
+
+
+            if (*forwards) {
+                if (!up_held) {
+                    up_held = true;
+
+                    grid_square_pixel_size *= 2;
+                    grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 64.0f);
+
+                    glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
+
+                }
+            } else {
+                up_held = false;
+            }
+            if (*backwards) {
+                if (!down_held) {
+                    down_held = true;
+
+                    grid_square_pixel_size /= 2;
+                    grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 64.0f);
+
+                    glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
+                }
+            } else {
+                down_held = false;
+            }
+
 
             glUniformMatrix4fv(MAT_LOC_GRID, 1, GL_FALSE, glm::value_ptr(
                     mat_projection
                 )
             );
 
-            UniformLocation CAM_LOC_GRID = glGetUniformLocation(shader_grid, "u_position_cam");
             glUniform3fv(CAM_LOC_GRID, 1, glm::value_ptr(pos));
-
-            UniformLocation COLOR_LOC_GRID = glGetUniformLocation(shader_grid, "u_color");
-            glUniform4fv(COLOR_LOC_GRID, 1, glm::value_ptr(glm::vec4(0.25f, 0.25f, 0.25f, 0.5f)));
 
 
             glBindVertexArray(vao_2d2.vao);
