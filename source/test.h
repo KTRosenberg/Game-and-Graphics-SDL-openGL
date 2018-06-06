@@ -1,7 +1,7 @@
 #ifndef C_TEST_H
 #define C_TEST_H
 
-#include "core_utils.h"
+#include "common_utils.h"
 
 // need extern "C" in shared (c/c++) 
 // headers or in .cpp files that define a 

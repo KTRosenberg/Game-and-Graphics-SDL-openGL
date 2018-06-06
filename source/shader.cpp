@@ -2,29 +2,23 @@
 
 using namespace file_io;
 
-void Shader::remove_program(void)
-{
-    this->_is_valid = false;
-    glDeleteProgram(this->_program);    
-}
-
-
-bool Shader::load_from_file(const std::string& vertex_path, const std::string& fragment_path,
+bool Shader_load_from_file(Shader* shader, const std::string& vertex_path, const std::string& fragment_path,
                         const std::string& vert_addons,
                         const std::string& frag_addons) 
 {
 
     bool status = false;
-    std::string vs = Shader::retrieve_src_from_file(vertex_path.c_str(), &status);
+    std::string vs = Shader_retrieve_src_from_file(vertex_path.c_str(), &status);
     if (!status) {
         return false;
     }
-    std::string fs = Shader::retrieve_src_from_file(fragment_path.c_str(), &status);
+    std::string fs = Shader_retrieve_src_from_file(fragment_path.c_str(), &status);
     if (!status) {
         return false;
     } 
     
-    return this->load_from_src(
+    return Shader_load_from_src(
+        shader,
         vs,
         fs,
         vert_addons,
@@ -32,7 +26,7 @@ bool Shader::load_from_file(const std::string& vertex_path, const std::string& f
     );
 }
 
-bool Shader::load_from_src(const std::string& vertex_src, const std::string& fragment_src,
+bool Shader_load_from_src(Shader* shader, const std::string& vertex_src, const std::string& fragment_src,
                         const std::string& vert_addons,
                         const std::string& frag_addons)
 {    
@@ -43,7 +37,7 @@ bool Shader::load_from_src(const std::string& vertex_src, const std::string& fra
         vertex_combined = vertex_src;
         std::string::size_type main_idx = vertex_combined.find("void main(");
         if (main_idx == std::string::npos) {
-            return this->_is_valid = false;
+            return false;
         }
         vertex_combined.insert(main_idx, vert_addons);
     }
@@ -51,18 +45,19 @@ bool Shader::load_from_src(const std::string& vertex_src, const std::string& fra
         fragment_combined = fragment_src;
         std::string::size_type main_idx = fragment_combined.find("void main(");
         if (main_idx == std::string::npos) {
-            return this->_is_valid = false;
+            return false;
         }
         fragment_combined.insert(main_idx, frag_addons);
     }
         
-    return this->_is_valid = this->init_program(
+    return Shader_init_program(
+        shader,
         (vertex_combined.length() > 0) ? vertex_combined.c_str() : vertex_src.c_str(), 
         (fragment_combined.length() > 0) ? fragment_combined.c_str() : fragment_src.c_str()
     );
 }
 
-bool Shader::init_program(const GLchar* vertex_src, const GLchar* fragment_src)
+bool Shader_init_program(Shader* shader, const GLchar* vertex_src, const GLchar* fragment_src)
 {	
     // for error checking:
     GLchar info_log[512];
@@ -80,12 +75,9 @@ bool Shader::init_program(const GLchar* vertex_src, const GLchar* fragment_src)
     glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
     if (success != GL_TRUE) {
         glGetShaderInfoLog(vertex_shader, 512, NULL, info_log);
-        fprintf(stderr, "%s %s\n", "ERROR::SHADER::VERTEX::COMPILATION_FAILED", info_log);
+        fprintf(stderr, "%s %s\n", "ERROR: VERTEX SHADER COMPILATION FAILED", info_log);
         return false;
-    } else {
-        puts("SHADER::VERTEX::COMPILATION_SUCCEEDED");
     }
-
     
     // FRAGMENT SHADER /////////////////////////////////////////////////////////
     
@@ -100,33 +92,29 @@ bool Shader::init_program(const GLchar* vertex_src, const GLchar* fragment_src)
     glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
     if (success != GL_TRUE) {
         glGetShaderInfoLog(fragment_shader, 512, NULL, info_log);
-        fprintf(stderr, "%s %s\n", "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED", info_log);
+        fprintf(stderr, "%s %s\n", "ERROR: FRAGMENT SHADER COMPILATION FAILED", info_log);
         return false;
-    } else {
-        puts("SHADER::FRAGMENT::COMPILATION_SUCCEEDED");
     }
        
     // create shader program
-    this->_program = glCreateProgram();
+    shader->program = glCreateProgram();
     // attach vertex shader
-    glAttachShader(this->_program, vertex_shader);
+    glAttachShader(shader->program, vertex_shader);
     // attach fragment shader
-    glAttachShader(this->_program, fragment_shader);
+    glAttachShader(shader->program, fragment_shader);
     // link the program
-    glLinkProgram(this->_program);
+    glLinkProgram(shader->program);
     
     // error checking
-    glGetProgramiv(this->_program, GL_LINK_STATUS, &success);
+    glGetProgramiv(shader->program, GL_LINK_STATUS, &success);
     if (success != GL_TRUE) {
-        glGetProgramInfoLog(this->_program, 512, NULL, info_log);
-        fprintf(stderr, "%s %s\n", "ERROR::SHADER::PROGRAM::LINK_FAILED", info_log);
+        glGetProgramInfoLog(shader->program, 512, NULL, info_log);
+        fprintf(stderr, "%s %s\n", "ERROR: SHADER PROGRAM LINK FAILED", info_log);
         return false;
-    } else {
-        puts("SHADER::PROGRAM::LINK_SUCCEEDED");
     }
     
-    glDetachShader(this->_program, vertex_shader);
-    glDetachShader(this->_program, fragment_shader);
+    glDetachShader(shader->program, vertex_shader);
+    glDetachShader(shader->program, fragment_shader);
     
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
@@ -134,7 +122,7 @@ bool Shader::init_program(const GLchar* vertex_src, const GLchar* fragment_src)
     return true;  
 }
 
-std::string Shader::retrieve_src_from_file(const GLchar* path, bool* is_valid)
+std::string Shader_retrieve_src_from_file(const GLchar* path, bool* is_valid)
 {
     FILE* shader_fd = fopen(path, "r");
     if (shader_fd == NULL) {
@@ -152,24 +140,3 @@ std::string Shader::retrieve_src_from_file(const GLchar* path, bool* is_valid)
 
     return out;
 }
-
-GLuint Shader::program(void) const
-{
-    return this->_program;
-}
-    
-void Shader::use(void) const
-{
-    glUseProgram(this->_program);
-}
-
-void Shader::stop_using(void) const
-{
-    glUseProgram(0);
-}
-
-bool Shader::is_valid(void) const
-{
-    return this->_is_valid;
-}
-

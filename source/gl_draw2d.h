@@ -121,11 +121,7 @@ struct GLDraw2D {
     static constexpr const char* const SHADER_VERTEX_PATH = "shaders/default_2d/default_2d.vrts";
     static constexpr const char* const SHADER_FRAGMENT_PATH = "shaders/default_2d/default_2d.frgs";
 
-    bool init(GLDraw2D* ctx, glm::mat4 projection_matrix)
-    {
-
-    }
-    bool init(glm::mat4 projection_matrix)
+    bool GLDraw2D_init(GLDraw2D* ctx, glm::mat4 projection_matrix)
     {
         GLDraw2D::projection_matrix = projection_matrix;
         update_projection_matrix = false;
@@ -138,12 +134,11 @@ struct GLDraw2D {
 
         color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
-        shader.load_from_file(
+        if (false == Shader_load_from_file(
+            &shader,
             SHADER_VERTEX_PATH,
             SHADER_FRAGMENT_PATH
-        );
-
-        if (!shader.is_valid()) {
+        )) {
             fprintf(stderr, "ERROR: immediate mode failed\n");
             return false;
         }
@@ -208,6 +203,7 @@ struct GLDraw2D {
         VertexAttributeArray_delete(&vao_lines);
         VertexBufferData_delete_inplace(&triangle_buffer);
         VertexBufferData_delete_inplace(&line_buffer);
+        glDeleteProgram(shader);
     }
 
     void line(glm::vec3 a, glm::vec3 b)

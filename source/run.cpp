@@ -1,7 +1,12 @@
 #include "test.h"
 
+
+#define COMMON_UTILS_IMPLEMENTATION
+#include "common_utils.h"
 #define CORE_UTILS_IMPLEMENTATION
 #include "core_utils.h"
+
+
 
 #include "opengl.hpp"
 
@@ -347,9 +352,6 @@ void VertexBufferData_init(
     g->i_count = i_cap;
 }
 
-
-#define STATIC_ARRAY_COUNT(array) (sizeof(array) / sizeof(*array))
-
 void VertexBufferData_init_inplace(
     VertexBufferData* g,
     const size_t v_cap,
@@ -613,32 +615,33 @@ int main(int argc, char* argv[])
     glewInit();
 
 
-    bool status;
-    std::string glsl_perlin_noise = Shader::retrieve_src_from_file("shaders/perlin_noise.glsl", &status);
+    bool status = false;
+    std::string glsl_perlin_noise = Shader_retrieve_src_from_file("shaders/perlin_noise.glsl", &status);
     if (!status) {
+        fprintf(stderr, "ERROR: failed to load shader addon source");
         return false;
     } 
 
     // SHADERS
     Shader shader_2d;
-    shader_2d.load_from_file(
+    if (false == Shader_load_from_file(
+        &shader_2d,
         "shaders/parallax/parallax_v2_vrt.glsl",
         "shaders/parallax/parallax_v2_frg.glsl",
         glsl_perlin_noise,
         glsl_perlin_noise
-    );
-    if (!shader_2d.is_valid()) {
+    )) {
         fprintf(stderr, "ERROR: shader_2d\n");
         return EXIT_FAILURE;
     }
 
 
     Shader shader_grid;
-    shader_grid.load_from_file(
+    if (false == Shader_load_from_file(
+        &shader_grid,
         "shaders/default_2d/grid_vrt.glsl",
         "shaders/default_2d/grid_frg.glsl"
-    );
-    if (!shader_grid.is_valid()) {
+    )) {
         fprintf(stderr, "ERROR: shader_grid\n");
         return EXIT_FAILURE;
     }
@@ -701,9 +704,9 @@ int main(int argc, char* argv[])
 
         VertexBufferData_init_inplace(
             &tri_data, 
-            STATIC_ARRAY_COUNT(T),
+            StaticArrayCount(T),
             T,
-            STATIC_ARRAY_COUNT(TI),
+            StaticArrayCount(TI),
             TI
         );
 
@@ -719,10 +722,10 @@ int main(int argc, char* argv[])
     glBindVertexArray(0);
 
     // GLData grid;
-    // GLData_init_inplace(&grid, STRIDE, STATIC_ARRAY_COUNT(T) / 15, T, STATIC_ARRAY_COUNT(TI) / 15, TI);
+    // GLData_init_inplace(&grid, STRIDE, StaticArrayCount(T) / 15, T, StaticArrayCount(TI) / 15, TI);
     // glBindVertexArray(grid.vao);
 
-    //     gl_bind_buffers_and_upload_data(&grid.vbd, GL_STATIC_DRAW, grid.vbd.v_cap, grid.vbd.i_cap, STATIC_ARRAY_COUNT(T) / 15, 0);
+    //     gl_bind_buffers_and_upload_data(&grid.vbd, GL_STATIC_DRAW, grid.vbd.v_cap, grid.vbd.i_cap, StaticArrayCount(T) / 15, 0);
 
     //     // POSITION
     //     gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &grid.vao);
@@ -900,8 +903,8 @@ int main(int argc, char* argv[])
 
 
     #ifdef GL_DRAW2D
-    GLDraw2D gl_imm;
-    if (!gl_imm.init(mat_projection)) {
+    GLDraw2D gl_draw2d;
+    if (!gl_draw2d.GLDraw2D_init(&gl_draw2d, mat_projection)) {
         return EXIT_FAILURE;
     }
     #endif
@@ -1146,45 +1149,45 @@ int main(int argc, char* argv[])
         glClear(GL_DEPTH_BUFFER_BIT);
 
 
-        gl_imm.begin();
+        gl_draw2d.begin();
 
-            //gl_imm.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
-            gl_imm.transform_matrix = glm::mat4(1.0f);
+            //gl_draw2d.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+            gl_draw2d.transform_matrix = glm::mat4(1.0f);
 
-            // gl_imm.draw_type = GL_LINES;
-            // gl_imm.color = Color::RED;
-            // gl_imm.vertex({0.5, 0.0, -1.0});
-            // gl_imm.vertex({1.0, 1.0, -1.0});
+            // gl_draw2d.draw_type = GL_LINES;
+            // gl_draw2d.color = Color::RED;
+            // gl_draw2d.vertex({0.5, 0.0, -1.0});
+            // gl_draw2d.vertex({1.0, 1.0, -1.0});
             
-            // gl_imm.draw_type = GL_LINES;
-            // gl_imm.color = Color::GREEN;
-            // gl_imm.line({0.0, 0.0, -5.0}, {1.0, 1.0, -5.0});
+            // gl_draw2d.draw_type = GL_LINES;
+            // gl_draw2d.color = Color::GREEN;
+            // gl_draw2d.line({0.0, 0.0, -5.0}, {1.0, 1.0, -5.0});
 
-            // gl_imm.color = Color::GREEN;
-            // gl_imm.circle(0.25, {0.0, 0.0, 0.0});
+            // gl_draw2d.color = Color::GREEN;
+            // gl_draw2d.circle(0.25, {0.0, 0.0, 0.0});
 
-            gl_imm.draw_type = GL_TRIANGLES;
+            gl_draw2d.draw_type = GL_TRIANGLES;
 
             GLfloat CX = (SCREEN_WIDTH / 2.0f);
             GLfloat CY = 384.0f;
             glm::mat4 cam = FreeCamera_calc_view_matrix(&main_cam);
 
-            gl_imm.color = glm::vec4(252.0f / 255.0f, 212.0f / 255.0f, 64.0f / 255.0f, 1.0f);
+            gl_draw2d.color = glm::vec4(252.0f / 255.0f, 212.0f / 255.0f, 64.0f / 255.0f, 1.0f);
 
-            gl_imm.transform_matrix = cam;
+            gl_draw2d.transform_matrix = cam;
 
-            gl_imm.circle(90.0f, {CX, CY, -1.0});
+            gl_draw2d.circle(90.0f, {CX, CY, -1.0});
 
-            gl_imm.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-            gl_imm.transform_matrix = glm::translate(cam, glm::vec3(CX - 27.0f, CY - 25.0f, 0.0f));
-            gl_imm.circle(10.0f, {0.0f, 0.0f, 0.0f});
+            gl_draw2d.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            gl_draw2d.transform_matrix = glm::translate(cam, glm::vec3(CX - 27.0f, CY - 25.0f, 0.0f));
+            gl_draw2d.circle(10.0f, {0.0f, 0.0f, 0.0f});
 
-            gl_imm.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-            gl_imm.transform_matrix = glm::translate(cam, glm::vec3(CX + 27.0f, CY - 25.0f, 0.0f));
-            gl_imm.circle(10.0f, {0.0f, 0.0f, 0.0f});
+            gl_draw2d.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            gl_draw2d.transform_matrix = glm::translate(cam, glm::vec3(CX + 27.0f, CY - 25.0f, 0.0f));
+            gl_draw2d.circle(10.0f, {0.0f, 0.0f, 0.0f});
 
             
-            gl_imm.draw_type = GL_LINES;
+            gl_draw2d.draw_type = GL_LINES;
 
             #define BASE_TILE_SIZE (128.0f)
             #define TILE_SCALE (2.0f)
@@ -1199,35 +1202,35 @@ int main(int argc, char* argv[])
             model = glm::translate(model, glm::vec3({-CX, -CY, 0.0}));
             
 
-            gl_imm.transform_matrix = cam * model;
+            gl_draw2d.transform_matrix = cam * model;
 
-            gl_imm.color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+            gl_draw2d.color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
             {
                 GLfloat off = 2.0f;
                 // horizontal
-                gl_imm.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX + off, CY - off, 0.0f));
-                gl_imm.line(glm::vec3(CX - off, CY + off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
+                gl_draw2d.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX + off, CY - off, 0.0f));
+                gl_draw2d.line(glm::vec3(CX - off, CY + off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
                 // vertical
-                gl_imm.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX - off, CY + off, 0.0f));
-                gl_imm.line(glm::vec3(CX + off, CY - off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
+                gl_draw2d.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX - off, CY + off, 0.0f));
+                gl_draw2d.line(glm::vec3(CX + off, CY - off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
             }   
 
 
             
-            // gl_imm.color = Color::BLUE;
-            // gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f, -0.5f, 0.0f));
-            // gl_imm.vertex({0.0, 0.0, 0.0});
-            // gl_imm.vertex({1.0, 0.0, 0.0});
-            // gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, 0.0});
+            // gl_draw2d.color = Color::BLUE;
+            // gl_draw2d.transform_matrix = glm::translate(gl_draw2d.transform_matrix, glm::vec3(-0.5f, -0.5f, 0.0f));
+            // gl_draw2d.vertex({0.0, 0.0, 0.0});
+            // gl_draw2d.vertex({1.0, 0.0, 0.0});
+            // gl_draw2d.vertex({0.5, glm::sqrt(3.0f) / 2.0f, 0.0});
 
-            // gl_imm.color = Color::RED;
-            // gl_imm.transform_matrix = glm::translate(gl_imm.transform_matrix, glm::vec3(-0.5f + glm::sin(t_since_start), -0.5f, 0.0f));
-            // gl_imm.vertex({0.0, 0.0, -0.5});
-            // gl_imm.vertex({1.0, 0.0, -0.5});
-            // gl_imm.vertex({0.5, glm::sqrt(3.0f) / 2.0f, -0.5});
+            // gl_draw2d.color = Color::RED;
+            // gl_draw2d.transform_matrix = glm::translate(gl_draw2d.transform_matrix, glm::vec3(-0.5f + glm::sin(t_since_start), -0.5f, 0.0f));
+            // gl_draw2d.vertex({0.0, 0.0, -0.5});
+            // gl_draw2d.vertex({1.0, 0.0, -0.5});
+            // gl_draw2d.vertex({0.5, glm::sqrt(3.0f) / 2.0f, -0.5});
 
 
-        gl_imm.end();
+        gl_draw2d.end();
 
         #endif
 
@@ -1313,8 +1316,12 @@ int main(int argc, char* argv[])
     VertexAttributeArray_delete(&vao_2d2);
     VertexBufferData_delete_inplace(&tri_data);
     #ifdef GL_DRAW2D
-        gl_imm.free();
+    gl_draw2d.free();
     #endif
+    #ifdef GRID
+    glDeleteProgram(shader_grid);
+    #endif
+    glDeleteProgram(shader_2d);
     SDL_GL_DeleteContext(program_data.context);
     SDL_DestroyWindow(window);
     IMG_Quit();

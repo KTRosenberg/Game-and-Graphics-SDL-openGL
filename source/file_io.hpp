@@ -11,6 +11,7 @@
 namespace file_io {
 
 std::string read_file(FILE* fp);
+std::string open_and_read_file(const char* path, bool* is_valid);
 void write_file(FILE* fp, const char* out);
 void flush_and_close_file(FILE* fp);
 
