@@ -37,7 +37,7 @@ typedef uint64   u64;
 typedef float32  f32; 
 typedef float64  f64;
 
-typedef u64 Count;
+typedef u64 usize;
 
 
 #define bytes(n) (n * 1ull)
@@ -86,6 +86,10 @@ void ArenaAllocator_delete(ArenaAllocator* arena);
 
 #define StaticArrayCount(array) (sizeof(array) / sizeof((array)[0]))
 #define PointerArraySize(ptr, count) (sizeof((*ptr)) * count)
+
+#define cast(type_, v_) ((type_)v_)
+
+#define Dref(ptr) (*ptr)
 
 #ifdef __cplusplus
 }

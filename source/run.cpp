@@ -34,8 +34,6 @@
 #define MS_PER_S (1000.0)
 #define FRAMES_PER_SECOND (60.0)
 
-//#define DISPLAY_FPS
-
 #define GRID
 
 int ignore_mouse_movement(void* unused, SDL_Event* event)
@@ -550,21 +548,16 @@ GlobalData program_data;
 #include <bitset>
 
 template<typename T>
-static std::string toBinaryString(const T& x)
+static std::string to_binary_string(const T& x)
 {
-    return std::bitset<sizeof(T)*8>(x).to_string();
+    return std::bitset<sizeof(T) * 8>(x).to_string();
 }
 
-std::string bin = "";
 using namespace input_sys;
 
 bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 {
-
-    u8* keys = input->keys;
-    u8* mouse = input->mouse;
-
-    std::cout << toBinaryString(keys[(u8)KEY::EDIT_GRID]) << std::endl;
+    //keys_print(input);
 
     keys_advance_history(input);
 
@@ -590,6 +583,7 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 #ifdef GRID
             case SDL_SCANCODE_G:
                 key_set_down(input, KEY::EDIT_GRID);
+                break;
 #endif
             case SDL_SCANCODE_UP:
                 key_set_down(input, KEY::ZOOM_IN);
@@ -616,6 +610,7 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 #ifdef GRID
             case SDL_SCANCODE_G:
                 key_set_up(input, KEY::EDIT_GRID);
+                break;
 #endif
             case SDL_SCANCODE_UP:
                 key_set_up(input, KEY::ZOOM_IN);
@@ -629,150 +624,59 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 
     }
 
-
-
-    //std::cout << input_state_map[keys[(u8)KEY::UP]] << std::endl;
-
     return true;
 }
 
 int main(int argc, char* argv[])
 {
-    
-
-    u8 val    = 0x00;
-    u8 fifth  = 0x00;
-    u8 comp   = 0x00;
-    u8 negate = 0x00;
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    std::cout << "KEY_DOWN" << std::endl;
-
-    fifth = (val & (1 << 5)) << 2;
-
-    comp = (val & (1 << 7)) ^ fifth;
-
-    negate = ~comp;
-
-    val = (val & 0x7F) | (1 << 6) | (negate & (1 << 7));
-
-    std::cout << "NEGATE & (1 << 7): " << toBinaryString(negate) << std::endl;
-    std::cout << "(VAL & 0x7F): " << toBinaryString(val & 0x7F) << std::endl;
-
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    std::cout << "KEY_UP" << std::endl;
-
-    val = (val & 0xBF);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
-
-
-    std::cout << "KEY_DOWN" << std::endl;
-
-    fifth = (val & (1 << 5)) << 2;
-
-    comp = (val & (1 << 7)) ^ fifth;
-
-    negate = ~comp;
-
-    val = (val & 0x7F) | (1 << 6) | (negate & (1 << 7));
-
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    std::cout << "KEY_UP" << std::endl;
-
-    val = (val & 0xBF);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
-
-    std::cout << toBinaryString(val) << std::endl;
-
-    std::cout << "KEY_DOWN" << std::endl;
-
-    fifth = (val & (1 << 5)) << 2;
-
-    comp = (val & (1 << 7)) ^ fifth;
-
-    negate = ~comp;
-
-    val = (val & 0x7F) | (1 << 6) | (negate & (1 << 7));
-
-    std::cout << toBinaryString(val) << std::endl;
-
-
-
-
-
-    return 0;
-    c_func();
+    // u8 val    = 0x00;
+    // u8 fifth  = 0x00;
+    // u8 comp   = 0x00;
+    // u8 negate = 0x00;
+
+    // u8 prev[1] = {0};
+    // u8 curr[1] = {0};
+    // u8 togg[1] = {0};
+
+    // #define ADVANCE()  { prev[0] = curr[0]; }
+    // #define RELEASED() (prev[0] > curr[0])
+    // #define HELD()     (prev[0] && curr[0])
+    // #define PRESSED()  (prev[0] < curr[0])
+    // #define PRESS()    do { printf("PRESS\n"); curr[0] = 1; togg[0] = togg[0] ^ (!(prev[0] && curr[0])); } while (0)
+    // #define RELEASE()  do { printf("RELEASE\n"); curr[0] = 0; } while (0)
+    // #define PRINT() do { printf("{P : %u}, {C : %u}, {T : %u}\n", prev[0], curr[0], togg[0]); } while (0)
+
+    // PRINT();
+    // ADVANCE();
+    // PRESS();
+    // PRINT();
+    // ADVANCE();
+    // PRESS();
+    // PRINT();
+    // ADVANCE();
+    // PRESS();
+    // PRINT();
+    // ADVANCE();
+    // PRESS();
+    // PRINT();
+    // ADVANCE();
+    // RELEASE();
+    // PRINT();
+    // ADVANCE();
+    // PRESS();
+    // PRINT();
+    // ADVANCE();
+    // PRESS();
+    // PRINT();
+    // ADVANCE();
+    // RELEASE();
+    // PRINT();
+
+
+
+
+    // return 0;
+    // c_func();
 
     // ArenaAllocator aa;
 
@@ -1175,8 +1079,6 @@ int main(int argc, char* argv[])
     input_sys::Input input = {};
     input_sys::init(&input);
 
-    printf("%u\n", input.keys[1]);
-
     bool is_running = true;
     SDL_Event event;
 
@@ -1463,10 +1365,10 @@ int main(int argc, char* argv[])
         #ifdef GRID
 
 
-        if (key_toggled(&input, KEY::EDIT_GRID)) {
-            std::cout << "TOGGLING" << std::endl;
-            grid_active = !grid_active;
-        }
+        // if (key_is_toggled_down(&input, KEY::EDIT_GRID)) {
+        //     std::cout << "TOGGLING" << std::endl;
+        //     grid_active = !grid_active;
+        // }
 
         // if (*toggle_grid) {
         //     if (!grid_held) {
@@ -1477,7 +1379,7 @@ int main(int argc, char* argv[])
         //     grid_held = false;
         // }
 
-        if (grid_active) {
+        if (key_is_toggled(&input, KEY::EDIT_GRID)) {
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -1487,30 +1389,16 @@ int main(int argc, char* argv[])
             glUseProgram(shader_grid);
 
 
-            if (*forwards) {
-                if (!up_held) {
-                    up_held = true;
+            if (key_is_pressed(&input, KEY::ZOOM_IN)) {
+                grid_square_pixel_size *= 2;
+                grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 64.0f);
 
-                    grid_square_pixel_size *= 2;
-                    grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 64.0f);
+                glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
+            } else if (key_is_pressed(&input, KEY::ZOOM_OUT)) {
+                grid_square_pixel_size /= 2;
+                grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 64.0f);
 
-                    glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
-
-                }
-            } else {
-                up_held = false;
-            }
-            if (*backwards) {
-                if (!down_held) {
-                    down_held = true;
-
-                    grid_square_pixel_size /= 2;
-                    grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 64.0f);
-
-                    glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
-                }
-            } else {
-                down_held = false;
+                glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
             }
 
 

@@ -44,10 +44,22 @@ static std::string const input_state_map[(u8)INPUT_STATE::COUNT] = {
     "HELD" 
 };
 
-struct Input {
-    u8 keys[(Count)KEY::COUNT];
+#define InputStateInfo(type, count, element_type) \
+element_type type##_curr[(usize)count]; \
+element_type type##_prev[(usize)count]; \
+element_type type##_togg[(usize)count]
 
-    u8 mouse[(Count)MOUSE_BUTTON::COUNT];
+// struct KeyState {
+//     u8 curr[(usize)KEY::COUNT];
+//     u8 prev[(usize)KEY::COUNT];
+//     u8 togg[(usize)KEY::COUNT];
+// };
+
+
+
+struct Input {
+    InputStateInfo(keys, KEY::COUNT, u8);
+    InputStateInfo(mouse_buttons, MOUSE_BUTTON::COUNT, u8);
     u32 mouse_x;
     u32 mouse_y;
 };
@@ -60,23 +72,26 @@ static inline void init(struct Input* input);
 //static inline bool key_toggled(struct Input* input, KEY key);
 
 
-// highest bit represents toggle state
-// second-highest bit represents on state
-// remaining bits represent history
 
-static inline void keys_advance_history(struct Input* in);
+static void keys_advance_history(struct Input* in);
+
 static inline void key_set_up(struct Input* in, KEY key);
+
 static inline void key_set_down(struct Input* in, KEY key);
-static inline bool key_toggled(struct Input* in, KEY key);
-static inline bool key_down(struct Input* in, KEY key);
-static inline bool key_toggle_state_on(struct Input* in, KEY key);
+
+static inline bool key_is_pressed(struct Input* in, KEY key);
+
+static inline bool key_is_held(struct Input* in, KEY key);
+
+static inline bool key_is_toggled(struct Input* in, KEY key);
+static inline bool key_is_toggled_pressed(struct Input* in, KEY key);
+static inline bool key_is_toggled_held(struct Input* in, KEY key);
+
+static inline bool key_is_released(struct Input* in, KEY key);
+
+static void keys_print(struct Input* in);
 
 
-// #define MOUSE_ADVANCE_HISTORY(in) do { \
-//     foreach (i, (Count)MOUSE_BUTTON::COUNT) { \
-//         in->mouse[i] = (in->mouse[i]) | ((in->mouse[i] & (~(1 << 7))) >> 1); \
-//     } \
-// } while (0)
 
 
 }
@@ -96,49 +111,92 @@ static inline bool key_toggle_state_on(struct Input* in, KEY key);
 
 namespace input_sys {
 
-static inline void keys_advance_history(struct Input* in)
+#define ADVANCE()  { prev[0] = curr[0]; }
+#define RELEASED() (prev[0] > curr[0])
+#define HELD()     (prev[0] && curr[0])
+#define PRESSED()  (prev[0] < curr[0])
+#define PRESS()    do { printf("PRESS\n"); curr[0] = 1; togg[0] = togg[0] ^ (!(prev[0] && curr[0])); } while (0)
+#define RELEASE()  do { printf("RELEASE\n"); curr[0] = 0; } while (0)
+#define PRINT() do { printf("{P : %u}, {C : %u}, {T : %u}\n", prev[0], curr[0], togg[0]); } while (0)
+
+static void keys_advance_history(struct Input* in)
 {
-    foreach (i, (Count)KEY::COUNT) {
-        in->keys[i] = (in->keys[i]) | ((in->keys[i] & (~(1 << 7))) >> 1);
+    u8* curr = in->keys_curr;
+    u8* prev = in->keys_prev;
+    foreach (i, (usize)KEY::COUNT) {
+        prev[i] = curr[i];
     }
 }
 
 static inline void key_set_up(struct Input* in, KEY key)
 {
-    u8 val = in->keys[(u8)key] & 0xBF;
-
-    u8 fifth = (val & (1 << 5)) << 2;
-
-    u8 comp = val ^ fifth;
-
-    u8 negate = ~comp;
-
-    in->keys[(u8)key] = (1 << 6) | (negate & (1 << 7));
+    in->keys_curr[(u8)key] = 0;
 }
 
 static inline void key_set_down(struct Input* in, KEY key)
 {
-    in->keys[(u8)key] |= (1 << 6);
+    u8* k_curr = &in->keys_curr[cast(u8, key)];
+    u8* k_prev = &in->keys_prev[cast(u8, key)];
+    u8* k_togg = &in->keys_togg[cast(u8, key)];
+
+    *k_curr = 1;
+    *k_togg ^= (!(k_curr[0] && k_prev[0]));
 }
 
-static inline bool key_toggled(struct Input* in, KEY key)
+static inline bool key_is_pressed(struct Input* in, KEY key)
 {
-    return (in->keys[(u8)key] & (1 << 6)) && !(in->keys[(u8)key] & (1 << 5));
+    return in->keys_curr[cast(u8, key)] && !in->keys_prev[cast(u8, key)];
 }
 
-static inline bool key_down(struct Input* in, KEY key)
+static inline bool key_is_held(struct Input* in, KEY key)
 {
-    return in->keys[(u8)key] & (1 << 6);
+    return in->keys_curr[cast(u8, key)];
 }
 
-static inline bool key_toggle_state_on(struct Input* in, KEY key)
+static inline bool key_is_toggled(struct Input* in, KEY key)
 {
-    return (in->keys[(u8)key] & (1 << 7)) && key_toggled(in, key);
+    return in->keys_togg[cast(u8, key)]; 
+}
+
+static inline bool key_is_toggled_pressed(struct Input* in, KEY key)
+{
+    return in->keys_curr[cast(u8, key)] && (!in->keys_prev[cast(u8, key)]) && in->keys_togg[cast(u8, key)];
+}
+
+static inline bool key_is_toggled_held(struct Input* in, KEY key)
+{
+    return in->keys_curr[cast(u8, key)] && in->keys_togg[cast(u8, key)]; 
+}
+
+static inline bool key_is_released(struct Input* in, KEY key)
+{
+    return !in->keys_curr[cast(u8, key)] && in->keys_prev[cast(u8, key)];  
+}
+
+static void keys_print(struct Input* in)
+{
+    u8* k_curr = in->keys_curr;
+    u8* k_prev = in->keys_prev;
+    u8* k_togg = in->keys_togg;
+
+    printf("{\n\tCURR: [ ");
+    for (usize i = 0; i < (usize)KEY::COUNT; ++i) {
+        printf("%u, ", k_curr[i]);
+    }
+    printf("]\n\tPREV: [ ");
+    for (usize i = 0; i < (usize)KEY::COUNT; ++i) {
+        printf("%u, ", k_prev[i]);        
+    }
+    printf("]\n\tTOGG: [ ");
+    for (usize i = 0; i < (usize)KEY::COUNT; ++i) {
+        printf("%u, ", k_togg[i]);        
+    }
+    printf("]\n}\n");
 }
 
 static inline void init(struct Input* input) 
 {
-    memset(input, 0x80, sizeof(struct Input));
+    memset(input, 0x00, sizeof(struct Input));
 }
 
 // static inline bool key_down(struct Input* input, KEY key) 
