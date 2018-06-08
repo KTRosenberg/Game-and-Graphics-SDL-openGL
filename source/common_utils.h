@@ -87,9 +87,6 @@ void ArenaAllocator_delete(ArenaAllocator* arena);
 #define StaticArrayCount(array) (sizeof(array) / sizeof((array)[0]))
 #define PointerArraySize(ptr, count) (sizeof((*ptr)) * count)
 
-#define INLINE static inline
-
-
 #ifdef __cplusplus
 }
 #endif
@@ -199,6 +196,8 @@ void ArenaAllocator_delete(ArenaAllocator* arena)
 #ifdef __cplusplus
 }
 #endif
+
+#undef COMMON_UTILS_IMPLEMENTATION
 
 #endif
 

@@ -547,8 +547,231 @@ GlobalData program_data;
 #include "gl_draw2d.h"
 #endif
 
+#include <bitset>
+
+template<typename T>
+static std::string toBinaryString(const T& x)
+{
+    return std::bitset<sizeof(T)*8>(x).to_string();
+}
+
+std::string bin = "";
+using namespace input_sys;
+
+bool poll_input_events(input_sys::Input* input, SDL_Event* event)
+{
+
+    u8* keys = input->keys;
+    u8* mouse = input->mouse;
+
+    std::cout << toBinaryString(keys[(u8)KEY::EDIT_GRID]) << std::endl;
+
+    keys_advance_history(input);
+
+    while (SDL_PollEvent(event)) {
+
+        switch (event->type) {
+        case SDL_QUIT:
+            return false;
+        case SDL_KEYDOWN:
+            switch (event->key.keysym.scancode) {
+            case SDL_SCANCODE_W:
+                key_set_down(input, KEY::UP);
+                break;
+            case SDL_SCANCODE_S:
+                key_set_down(input, KEY::DOWN);
+                break;
+            case SDL_SCANCODE_A:
+                key_set_down(input, KEY::LEFT);
+                break;
+            case SDL_SCANCODE_D:
+                key_set_down(input, KEY::RIGHT);
+                break;
+#ifdef GRID
+            case SDL_SCANCODE_G:
+                key_set_down(input, KEY::EDIT_GRID);
+#endif
+            case SDL_SCANCODE_UP:
+                key_set_down(input, KEY::ZOOM_IN);
+                break;
+            case SDL_SCANCODE_DOWN:
+                key_set_down(input, KEY::ZOOM_OUT);
+                break;
+            }
+            break;
+        case SDL_KEYUP:
+            switch (event->key.keysym.scancode) {
+            case SDL_SCANCODE_W:
+                key_set_up(input, KEY::UP);
+                break;
+            case SDL_SCANCODE_S:
+                key_set_up(input, KEY::DOWN);
+                break;
+            case SDL_SCANCODE_A:
+                key_set_up(input, KEY::LEFT);
+                break;
+            case SDL_SCANCODE_D:
+                key_set_up(input, KEY::RIGHT);
+                break;
+#ifdef GRID
+            case SDL_SCANCODE_G:
+                key_set_up(input, KEY::EDIT_GRID);
+#endif
+            case SDL_SCANCODE_UP:
+                key_set_up(input, KEY::ZOOM_IN);
+                break;
+            case SDL_SCANCODE_DOWN:
+                key_set_up(input, KEY::ZOOM_OUT);
+                break;
+            }
+            break;
+        }
+
+    }
+
+
+
+    //std::cout << input_state_map[keys[(u8)KEY::UP]] << std::endl;
+
+    return true;
+}
+
 int main(int argc, char* argv[])
 {
+    
+
+    u8 val    = 0x00;
+    u8 fifth  = 0x00;
+    u8 comp   = 0x00;
+    u8 negate = 0x00;
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    std::cout << "KEY_DOWN" << std::endl;
+
+    fifth = (val & (1 << 5)) << 2;
+
+    comp = (val & (1 << 7)) ^ fifth;
+
+    negate = ~comp;
+
+    val = (val & 0x7F) | (1 << 6) | (negate & (1 << 7));
+
+    std::cout << "NEGATE & (1 << 7): " << toBinaryString(negate) << std::endl;
+    std::cout << "(VAL & 0x7F): " << toBinaryString(val & 0x7F) << std::endl;
+
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    std::cout << "KEY_UP" << std::endl;
+
+    val = (val & 0xBF);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
+
+
+    std::cout << "KEY_DOWN" << std::endl;
+
+    fifth = (val & (1 << 5)) << 2;
+
+    comp = (val & (1 << 7)) ^ fifth;
+
+    negate = ~comp;
+
+    val = (val & 0x7F) | (1 << 6) | (negate & (1 << 7));
+
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    std::cout << "KEY_UP" << std::endl;
+
+    val = (val & 0xBF);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    val = (val & (1 << 7)) | (val & (1 << 6)) | ((val & (~(1 << 7))) >> 1);
+
+    std::cout << toBinaryString(val) << std::endl;
+
+    std::cout << "KEY_DOWN" << std::endl;
+
+    fifth = (val & (1 << 5)) << 2;
+
+    comp = (val & (1 << 7)) ^ fifth;
+
+    negate = ~comp;
+
+    val = (val & 0x7F) | (1 << 6) | (negate & (1 << 7));
+
+    std::cout << toBinaryString(val) << std::endl;
+
+
+
+
+
+    return 0;
     c_func();
 
     // ArenaAllocator aa;
@@ -571,6 +794,7 @@ int main(int argc, char* argv[])
     #ifndef MOUSE_ON
     SDL_SetEventFilter(ignore_mouse_movement, NULL); ///////////////////////////
     #endif
+
     // openGL initialization ///////////////////////////////////////////////////
     
     // if (argc >= 3) {
@@ -787,35 +1011,6 @@ int main(int argc, char* argv[])
     //     0.0f,
     //     0.0f
     // );
-    
-    const Uint8* key_states = SDL_GetKeyboardState(NULL);
-
-    const Uint8* up         = &key_states[SDL_SCANCODE_W];
-    const Uint8* down       = &key_states[SDL_SCANCODE_S];
-    const Uint8* left       = &key_states[SDL_SCANCODE_A];
-    const Uint8* right      = &key_states[SDL_SCANCODE_D];
-    const Uint8* rot_r      = &key_states[SDL_SCANCODE_RIGHT];
-    const Uint8* rot_l      = &key_states[SDL_SCANCODE_LEFT];
-//  const Uint8& up_right   = key_states[SDL_SCANCODE_E];
-//  const Uint8& up_left    = key_states[SDL_SCANCODE_Q];
-//  const Uint8& down_right = key_states[SDL_SCANCODE_X];
-//  const Uint8& down_left  = key_states[SDL_SCANCODE_Z];
-    const Uint8* forwards = &key_states[SDL_SCANCODE_UP];
-    const Uint8* backwards = &key_states[SDL_SCANCODE_DOWN];
-
-    const Uint8* reset = &key_states[SDL_SCANCODE_0];
-
-
-
-    
-#ifdef GRID
-    const Uint8* toggle_grid = &key_states[SDL_SCANCODE_G];
-    bool grid_held = false;
-    bool grid_active = false;
-
-    bool up_held = false;
-    bool down_held = false;
-#endif
 
 
     const f64 POS_ACC = 1.08;
@@ -940,10 +1135,6 @@ int main(int argc, char* argv[])
     SDL_GL_SetSwapInterval(1);
     const double INTERVAL = MS_PER_S / mode.refresh_rate;
 
-    bool keep_running = true;
-    SDL_Event event;
-
-
     f64 frequency  = SDL_GetPerformanceFrequency();
 
     u64 t_now      = SDL_GetPerformanceCounter();
@@ -963,7 +1154,42 @@ int main(int argc, char* argv[])
     u32 fps = 0;
     #endif
 
-    while (keep_running) {
+    const Uint8* key_states = SDL_GetKeyboardState(NULL);
+
+    const Uint8* up         = &key_states[SDL_SCANCODE_W];
+    const Uint8* down       = &key_states[SDL_SCANCODE_S];
+    const Uint8* left       = &key_states[SDL_SCANCODE_A];
+    const Uint8* right      = &key_states[SDL_SCANCODE_D];
+    const Uint8* rot_r      = &key_states[SDL_SCANCODE_RIGHT];
+    const Uint8* rot_l      = &key_states[SDL_SCANCODE_LEFT];
+//  const Uint8& up_right   = key_states[SDL_SCANCODE_E];
+//  const Uint8& up_left    = key_states[SDL_SCANCODE_Q];
+//  const Uint8& down_right = key_states[SDL_SCANCODE_X];
+//  const Uint8& down_left  = key_states[SDL_SCANCODE_Z];
+    const Uint8* forwards = &key_states[SDL_SCANCODE_UP];
+    const Uint8* backwards = &key_states[SDL_SCANCODE_DOWN];
+
+    const Uint8* reset = &key_states[SDL_SCANCODE_0];
+
+
+    input_sys::Input input = {};
+    input_sys::init(&input);
+
+    printf("%u\n", input.keys[1]);
+
+    bool is_running = true;
+    SDL_Event event;
+
+#ifdef GRID
+    const Uint8* toggle_grid = &key_states[SDL_SCANCODE_G];
+    bool grid_held = false;
+    bool grid_active = false;
+
+    bool up_held = false;
+    bool down_held = false;
+#endif
+
+    while (is_running) {
         t_prev = t_now;
         t_prev_s = t_now_s;
 
@@ -983,10 +1209,9 @@ int main(int argc, char* argv[])
         //              " T_ELAPSED: " << ((double)(t_now - t_start) / 1000000000) << std::endl;
 
         // INPUT /////////////////////////////////
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                keep_running = false;
-            }
+        if (!poll_input_events(&input, &event)) {
+            is_running = false;
+            continue;
         }
 
         #define CONTROLS
@@ -1237,14 +1462,20 @@ int main(int argc, char* argv[])
 
         #ifdef GRID
 
-        if (*toggle_grid) {
-            if (!grid_held) {
-                grid_active = !grid_active;
-                grid_held = true;
-            }
-        } else {
-            grid_held = false;
+
+        if (key_toggled(&input, KEY::EDIT_GRID)) {
+            std::cout << "TOGGLING" << std::endl;
+            grid_active = !grid_active;
         }
+
+        // if (*toggle_grid) {
+        //     if (!grid_held) {
+        //         grid_active = !grid_active;
+        //         grid_held = true;
+        //     }
+        // } else {
+        //     grid_held = false;
+        // }
 
         if (grid_active) {
             glEnable(GL_BLEND);
