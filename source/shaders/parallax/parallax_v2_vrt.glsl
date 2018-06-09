@@ -23,7 +23,7 @@ void main(void)
     t0c.x += (x_off / 4.0);
 
     t1c = a_uv;
-    t1c.x += (x_off / 3.5);
+    t1c.x += (x_off / 4.0);
     t1c.y += y_off / 10.0;
 
     t2c = a_uv;

@@ -557,8 +557,6 @@ using namespace input_sys;
 
 bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 {
-    //keys_print(input);
-
     keys_advance_history(input);
 
     while (SDL_PollEvent(event)) {
@@ -569,55 +567,65 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
         case SDL_KEYDOWN:
             switch (event->key.keysym.scancode) {
             case SDL_SCANCODE_W:
-                key_set_down(input, KEY::UP);
+                key_set_down(input, CONTROL::UP);
                 break;
             case SDL_SCANCODE_S:
-                key_set_down(input, KEY::DOWN);
+                key_set_down(input, CONTROL::DOWN);
                 break;
             case SDL_SCANCODE_A:
-                key_set_down(input, KEY::LEFT);
+                key_set_down(input, CONTROL::LEFT);
                 break;
             case SDL_SCANCODE_D:
-                key_set_down(input, KEY::RIGHT);
+                key_set_down(input, CONTROL::RIGHT);
+                break;
+            case SDL_SCANCODE_0:
+                key_set_down(input, CONTROL::RESET_POSITION);
                 break;
 #ifdef GRID
             case SDL_SCANCODE_G:
-                key_set_down(input, KEY::EDIT_GRID);
+                key_set_down(input, CONTROL::EDIT_GRID);
                 break;
 #endif
             case SDL_SCANCODE_UP:
-                key_set_down(input, KEY::ZOOM_IN);
+                key_set_down(input, CONTROL::ZOOM_IN);
                 break;
             case SDL_SCANCODE_DOWN:
-                key_set_down(input, KEY::ZOOM_OUT);
+                key_set_down(input, CONTROL::ZOOM_OUT);
+                break;
+            default:
                 break;
             }
             break;
         case SDL_KEYUP:
             switch (event->key.keysym.scancode) {
             case SDL_SCANCODE_W:
-                key_set_up(input, KEY::UP);
+                key_set_up(input, CONTROL::UP);
                 break;
             case SDL_SCANCODE_S:
-                key_set_up(input, KEY::DOWN);
+                key_set_up(input, CONTROL::DOWN);
                 break;
             case SDL_SCANCODE_A:
-                key_set_up(input, KEY::LEFT);
+                key_set_up(input, CONTROL::LEFT);
                 break;
             case SDL_SCANCODE_D:
-                key_set_up(input, KEY::RIGHT);
+                key_set_up(input, CONTROL::RIGHT);
+                break;
+            case SDL_SCANCODE_0:
+                key_set_up(input, CONTROL::RESET_POSITION);
                 break;
 #ifdef GRID
             case SDL_SCANCODE_G:
-                key_set_up(input, KEY::EDIT_GRID);
+                key_set_up(input, CONTROL::EDIT_GRID);
                 break;
 #endif
             case SDL_SCANCODE_UP:
-                key_set_up(input, KEY::ZOOM_IN);
+                key_set_up(input, CONTROL::ZOOM_IN);
                 break;
             case SDL_SCANCODE_DOWN:
-                key_set_up(input, KEY::ZOOM_OUT);
+                key_set_up(input, CONTROL::ZOOM_OUT);
                 break;
+            default:
+                break;            
             }
             break;
         }
@@ -627,63 +635,9 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
     return true;
 }
 
+
 int main(int argc, char* argv[])
 {
-    // u8 val    = 0x00;
-    // u8 fifth  = 0x00;
-    // u8 comp   = 0x00;
-    // u8 negate = 0x00;
-
-    // u8 prev[1] = {0};
-    // u8 curr[1] = {0};
-    // u8 togg[1] = {0};
-
-    // #define ADVANCE()  { prev[0] = curr[0]; }
-    // #define RELEASED() (prev[0] > curr[0])
-    // #define HELD()     (prev[0] && curr[0])
-    // #define PRESSED()  (prev[0] < curr[0])
-    // #define PRESS()    do { printf("PRESS\n"); curr[0] = 1; togg[0] = togg[0] ^ (!(prev[0] && curr[0])); } while (0)
-    // #define RELEASE()  do { printf("RELEASE\n"); curr[0] = 0; } while (0)
-    // #define PRINT() do { printf("{P : %u}, {C : %u}, {T : %u}\n", prev[0], curr[0], togg[0]); } while (0)
-
-    // PRINT();
-    // ADVANCE();
-    // PRESS();
-    // PRINT();
-    // ADVANCE();
-    // PRESS();
-    // PRINT();
-    // ADVANCE();
-    // PRESS();
-    // PRINT();
-    // ADVANCE();
-    // PRESS();
-    // PRINT();
-    // ADVANCE();
-    // RELEASE();
-    // PRINT();
-    // ADVANCE();
-    // PRESS();
-    // PRINT();
-    // ADVANCE();
-    // PRESS();
-    // PRINT();
-    // ADVANCE();
-    // RELEASE();
-    // PRINT();
-
-
-
-
-    // return 0;
-    // c_func();
-
-    // ArenaAllocator aa;
-
-    // ArenaAllocator_init(&aa);
-    // ArenaAllocator_delete(&aa);
-
-
     // initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC | SDL_INIT_AUDIO) < 0) {
         fprintf(stderr, "%s\n", "SDL could not initialize");
@@ -1051,7 +1005,7 @@ int main(int argc, char* argv[])
     f64 t_since_start_s = 0.0;
     f64 t_delta_s       = 0.0;
 
-    //#define FPS_COUNT
+    #define FPS_COUNT
     #ifdef FPS_COUNT
     f64 frame_time = 0.0;
     u32 frame_count = 0;
@@ -1083,12 +1037,7 @@ int main(int argc, char* argv[])
     SDL_Event event;
 
 #ifdef GRID
-    const Uint8* toggle_grid = &key_states[SDL_SCANCODE_G];
-    bool grid_held = false;
-    bool grid_active = false;
-
-    bool up_held = false;
-    bool down_held = false;
+    Toggle grid_toggle = false;
 #endif
 
     while (is_running) {
@@ -1102,13 +1051,6 @@ int main(int argc, char* argv[])
         t_delta_s = (f64)t_delta / frequency;
 
         f64 t_since_start = ((f64)(t_now - t_start)) / frequency;
-
-        //std::cout << t_since_start << std::endl;
-
-        // std::cout << "T_NOW: " << t_now << std::endl <<
-        //              " T_DELTA: " << t_delta << std::endl <<
-        //              " T_ELAPSED: " << (t_now - t_start) << std::endl <<
-        //              " T_ELAPSED: " << ((double)(t_now - t_start) / 1000000000) << std::endl;
 
         // INPUT /////////////////////////////////
         if (!poll_input_events(&input, &event)) {
@@ -1124,7 +1066,7 @@ int main(int argc, char* argv[])
             double CHANGE = t_delta_s;
             main_cam.orientation = glm::quat();
 
-            if (*up) {
+            if (key_is_held(&input, CONTROL::UP)) {
                 FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
                 up_acc *= POS_ACC;
                 up_acc = glm::min(max_acc, up_acc);
@@ -1134,7 +1076,7 @@ int main(int argc, char* argv[])
                 }
                 up_acc = glm::max(1.0, up_acc * NEG_ACC);
             }
-            if (*down) {
+            if (key_is_held(&input, CONTROL::DOWN)) {
                 FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
                 down_acc *= POS_ACC;
                 down_acc = glm::min(max_acc, down_acc);
@@ -1145,7 +1087,7 @@ int main(int argc, char* argv[])
                 down_acc = glm::max(1.0, down_acc * NEG_ACC);
             }
 
-            if (*left) {
+            if (key_is_held(&input, CONTROL::LEFT)) {
                 FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
                 left_acc *= POS_ACC;
                 left_acc = glm::min(max_acc, left_acc);
@@ -1157,7 +1099,7 @@ int main(int argc, char* argv[])
                 left_acc = glm::min(max_acc, left_acc);
             }
 
-            if (*right) {
+            if (key_is_held(&input, CONTROL::RIGHT)) {
                 FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
                 right_acc *= POS_ACC;
                 right_acc = glm::min(max_acc, right_acc);
@@ -1189,7 +1131,7 @@ int main(int argc, char* argv[])
             //     backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
             // }
 
-            if (*reset) {
+            if (key_is_pressed(&input, CONTROL::RESET_POSITION)) {
                 // FreeCamera_init(
                 //     &main_cam,
                 //     start_pos,
@@ -1365,21 +1307,7 @@ int main(int argc, char* argv[])
         #ifdef GRID
 
 
-        // if (key_is_toggled_down(&input, KEY::EDIT_GRID)) {
-        //     std::cout << "TOGGLING" << std::endl;
-        //     grid_active = !grid_active;
-        // }
-
-        // if (*toggle_grid) {
-        //     if (!grid_held) {
-        //         grid_active = !grid_active;
-        //         grid_held = true;
-        //     }
-        // } else {
-        //     grid_held = false;
-        // }
-
-        if (key_is_toggled(&input, KEY::EDIT_GRID)) {
+        if (key_is_toggled(&input, CONTROL::EDIT_GRID, &grid_toggle)) {
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -1389,12 +1317,12 @@ int main(int argc, char* argv[])
             glUseProgram(shader_grid);
 
 
-            if (key_is_pressed(&input, KEY::ZOOM_IN)) {
+            if (key_is_pressed(&input, CONTROL::ZOOM_IN)) {
                 grid_square_pixel_size *= 2;
                 grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 64.0f);
 
                 glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
-            } else if (key_is_pressed(&input, KEY::ZOOM_OUT)) {
+            } else if (key_is_pressed(&input, CONTROL::ZOOM_OUT)) {
                 grid_square_pixel_size /= 2;
                 grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 64.0f);
 
