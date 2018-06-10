@@ -258,4 +258,9 @@ glm::mat4 FreeCamera_calc_view_matrix(FreeCamera* view)
     return glm::translate(glm::mat4_cast(view->orientation), -view->position);    
 }
 
+glm::mat4 FreeCamera_calc_view_matrix_reverse(FreeCamera* view)
+{
+    return glm::translate(glm::mat4_cast(view->orientation), view->position);    
+}
+
         

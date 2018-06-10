@@ -151,6 +151,8 @@ void FreeCamera_init(FreeCamera* view, glm::vec3 start_position = glm::vec3(0.0)
 void FreeCamera_process_directional_movement(FreeCamera* view, Movement_Direction direction, GLfloat delta_time);
 
 glm::mat4 FreeCamera_calc_view_matrix(FreeCamera* view);
+glm::mat4 FreeCamera_calc_view_matrix_reverse(FreeCamera* view);
+
 
 
 

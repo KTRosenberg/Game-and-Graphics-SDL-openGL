@@ -1,16 +1,20 @@
 #ifndef GL_DRAW2D_H
 #define GL_DRAW2D_H
 
-
+#include "common_utils.h"
 #include "opengl.hpp"
 #include "shader.hpp"
+#include "sdl.hpp"
+#include <queue>
 
 namespace Color {
     static const glm::vec4 RED = {1.0, 0.0, 0.0, 1.0};
     static const glm::vec4 GREEN = {0.0, 1.0, 0.0, 1.0};
     static const glm::vec4 BLUE = {0.0, 0.0, 1.0, 1.0};
     static const glm::vec4 MAGENTA = {1.0, 0.0, 1.0, 1.0};
-    static const glm::vec4 BLACK = {0.0, 0.0, 0.0, 1.0};    
+    static const glm::vec4 BLACK = {0.0, 0.0, 0.0, 1.0};
+    static const glm::vec4 WHITE = {1.0, 1.0, 1.0, 1.0};
+
 }
 
 struct GLDraw2D {
@@ -450,5 +454,88 @@ struct GLDraw2D {
         }      
     }
 };
+
+// #define MAX_IMG_SIZE (128 * 128)
+// static bool draw_lines_from_image_visited[MAX_IMG_SIZE];
+
+// static void draw_lines_from_image_bfs(GLDraw2D* ctx, std::vector<glm::vec3>& bgr_colors_to_ignore, u8* pixels, u32 w, u32 h, u32 pitch, u32 pixels_per_move)
+// {
+//     // ((w / pixels_per_move) + 1) * ((h / pixels_per_move) + 1)
+//     bool* const visited = draw_lines_from_image_visited;
+//     memset(visited, 0x00, MAX_IMG_SIZE * sizeof(bool));
+
+//     const u32 bytes_per_pixel = pitch / w;
+
+//     u32 px = 0;
+//     u32 py = 0;
+
+//     typedef std::pair<u32, u32> Point;
+//     std::queue<Point> Q;
+
+
+//     #define IDX(py, px) (((py * (w + pixels_per_move)) / (pixels_per_move * pixels_per_move)) + (px / pixels_per_move))
+
+//     visited[IDX(py, px)] = true;
+//     Q.push({py, px});
+
+//     while (!Q.empty()) {
+//         Point p = Q.front();
+
+//         std::cout << "VISIT: P:{" << p.first << ", " << p.second << "}" << std::endl;
+//         Q.pop();
+
+//         //if () {
+//             // TODO
+//         //}
+//     }
+
+//     //std::cout << w << " : " << h << std::endl;
+
+
+//     #undef IDX
+// }
+
+// static bool draw_lines_from_image(GLDraw2D* ctx, std::string path,  std::vector<glm::vec3> bgr_colors_to_ignore)
+// {
+//     return false;
+//     SDL_RWops *rwop;
+
+//     rwop = SDL_RWFromFile(path.c_str(), "rb");
+//     if(!IMG_isBMP(rwop)) {
+//         fprintf(stderr, "sample.bmp is not a BMP file, or BMP support is not available.\n");
+//         return false;
+//     }
+
+//     SDL_Surface* img = NULL; 
+//     if (!(img = IMG_Load(path.c_str()))) {
+//         fprintf(stderr, "SDL_image could not be loaded %s, SDL_image Error: %s\n", 
+//                path.c_str(), IMG_GetError());
+//         return false;
+//     }
+
+//     u8* pixels = (u8*)img->pixels;
+
+//     draw_lines_from_image_bfs(ctx, bgr_colors_to_ignore, (u8*)img->pixels, img->w, img->h, img->pitch, 64);
+//     // printf("|||| BMP (bgr format)\n");
+//     // printf("W: %d H: %d P: %d \n", img->w, img->h, img->pitch);
+//     // for (usize i = 0; i < img->h; ++i) {
+//     //     printf("{");
+//     //     for (usize j = 0; j < img->w; ++j) {
+//     //         printf("[");
+//     //         for (usize k = 0; k < img->pitch / img->w; ++k) {
+//     //             printf("%u, ", pixels[(i * img->pitch) + (j * (img->pitch / img->w)) + k]);
+//     //         }
+//     //         printf("], ");
+//     //     }
+//     //     printf("}\n");
+//     // } 
+//     // printf("||||\n");
+
+
+//     SDL_FreeSurface(img);
+
+//     return true;
+
+// }
 
 #endif // GL_DRAW_H

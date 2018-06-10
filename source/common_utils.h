@@ -88,8 +88,8 @@ void ArenaAllocator_delete(ArenaAllocator* arena);
 #define PointerArraySize(ptr, count) (sizeof((*ptr)) * count)
 
 #define cast(type_, v_) ((type_)v_)
+#define dref(ptr) (*ptr)
 
-#define Dref(ptr) (*ptr)
 
 #ifdef __cplusplus
 }

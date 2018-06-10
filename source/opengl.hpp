@@ -35,5 +35,7 @@ typedef GLuint GLBuffer;
     } while (0) \
 \
 
+
+
 #endif // OPEN_GL_HPP
 

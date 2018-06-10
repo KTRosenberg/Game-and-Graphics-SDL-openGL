@@ -34,7 +34,7 @@
 #define MS_PER_S (1000.0)
 #define FRAMES_PER_SECOND (60.0)
 
-#define GRID
+#define EDITOR
 
 int ignore_mouse_movement(void* unused, SDL_Event* event)
 {
@@ -53,8 +53,6 @@ void debug_print(const char* const in)
 
 #define FP_CAM
 // #define FREE_CAM
-
-#define MOUSE_ON
 
 
 SDL_Window* window = NULL;
@@ -559,6 +557,10 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 {
     keys_advance_history(input);
 
+#ifdef EDITOR
+    mouse_advance_history(input);
+#endif
+
     while (SDL_PollEvent(event)) {
 
         switch (event->type) {
@@ -581,7 +583,7 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
             case SDL_SCANCODE_0:
                 key_set_down(input, CONTROL::RESET_POSITION);
                 break;
-#ifdef GRID
+#ifdef EDITOR
             case SDL_SCANCODE_G:
                 key_set_down(input, CONTROL::EDIT_GRID);
                 break;
@@ -613,7 +615,7 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
             case SDL_SCANCODE_0:
                 key_set_up(input, CONTROL::RESET_POSITION);
                 break;
-#ifdef GRID
+#ifdef EDITOR
             case SDL_SCANCODE_G:
                 key_set_up(input, CONTROL::EDIT_GRID);
                 break;
@@ -627,6 +629,28 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
             default:
                 break;            
             }
+            break;
+        case SDL_MOUSEBUTTONDOWN:
+            switch (event->button.button) {
+            case SDL_BUTTON_LEFT:
+                mouse_set_down(input, MOUSE_BUTTON::LEFT);
+                break;
+            case SDL_BUTTON_RIGHT:
+                mouse_set_down(input, MOUSE_BUTTON::RIGHT);
+                break;
+            }
+            break;
+        case SDL_MOUSEBUTTONUP:
+            switch (event->button.button) {
+            case SDL_BUTTON_LEFT:
+                mouse_set_up(input, MOUSE_BUTTON::LEFT);
+                break;
+            case SDL_BUTTON_RIGHT:
+                mouse_set_up(input, MOUSE_BUTTON::RIGHT);
+                break;
+            }
+            break;
+        default:
             break;
         }
 
@@ -646,10 +670,10 @@ int main(int argc, char* argv[])
     
     // MOUSE ///////////////////////////////////////////// 
     // hide the cursor
-    SDL_ShowCursor(SDL_DISABLE);
     
     // ignore mouse movement events
-    #ifndef MOUSE_ON
+    #ifndef EDITOR
+    SDL_ShowCursor(SDL_DISABLE);
     SDL_SetEventFilter(ignore_mouse_movement, NULL); ///////////////////////////
     #endif
 
@@ -962,7 +986,7 @@ int main(int argc, char* argv[])
     }
     #endif
 
-    #ifdef GRID
+    #ifdef EDITOR
     glUseProgram(shader_grid);
 
     UniformLocation COLOR_LOC_GRID = glGetUniformLocation(shader_grid, "u_color");
@@ -976,6 +1000,19 @@ int main(int argc, char* argv[])
     UniformLocation MAT_LOC_GRID = glGetUniformLocation(shader_grid, "u_matrix");
 
     UniformLocation CAM_LOC_GRID = glGetUniformLocation(shader_grid, "u_position_cam");
+
+
+    GLDraw2D existing;
+    GLDraw2D in_prog;
+    Toggle drawing = false;
+    if (!existing.GLDraw2D_init(&gl_draw2d, mat_projection)) {
+        fprintf(stderr, "FAILED TO INITIALIZE EDITOR DATA \"existing\"\n");
+        return EXIT_FAILURE;
+    }
+    if (!in_prog.GLDraw2D_init(&gl_draw2d, mat_projection)) {
+        fprintf(stderr, "FAILED TO INITIALIZE EDITOR DATA \"in_prog\"\n");
+        return EXIT_FAILURE;
+    }
     #endif
 
 
@@ -1005,29 +1042,12 @@ int main(int argc, char* argv[])
     f64 t_since_start_s = 0.0;
     f64 t_delta_s       = 0.0;
 
-    #define FPS_COUNT
+    //#define FPS_COUNT
     #ifdef FPS_COUNT
     f64 frame_time = 0.0;
     u32 frame_count = 0;
     u32 fps = 0;
     #endif
-
-    const Uint8* key_states = SDL_GetKeyboardState(NULL);
-
-    const Uint8* up         = &key_states[SDL_SCANCODE_W];
-    const Uint8* down       = &key_states[SDL_SCANCODE_S];
-    const Uint8* left       = &key_states[SDL_SCANCODE_A];
-    const Uint8* right      = &key_states[SDL_SCANCODE_D];
-    const Uint8* rot_r      = &key_states[SDL_SCANCODE_RIGHT];
-    const Uint8* rot_l      = &key_states[SDL_SCANCODE_LEFT];
-//  const Uint8& up_right   = key_states[SDL_SCANCODE_E];
-//  const Uint8& up_left    = key_states[SDL_SCANCODE_Q];
-//  const Uint8& down_right = key_states[SDL_SCANCODE_X];
-//  const Uint8& down_left  = key_states[SDL_SCANCODE_Z];
-    const Uint8* forwards = &key_states[SDL_SCANCODE_UP];
-    const Uint8* backwards = &key_states[SDL_SCANCODE_DOWN];
-
-    const Uint8* reset = &key_states[SDL_SCANCODE_0];
 
 
     input_sys::Input input = {};
@@ -1036,7 +1056,7 @@ int main(int argc, char* argv[])
     bool is_running = true;
     SDL_Event event;
 
-#ifdef GRID
+#ifdef EDITOR
     Toggle grid_toggle = false;
 #endif
 
@@ -1058,9 +1078,6 @@ int main(int argc, char* argv[])
             continue;
         }
 
-        #define CONTROLS
-
-        #ifdef CONTROLS
         {
 
             double CHANGE = t_delta_s;
@@ -1130,7 +1147,6 @@ int main(int argc, char* argv[])
             //     } 
             //     backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
             // }
-
             if (key_is_pressed(&input, CONTROL::RESET_POSITION)) {
                 // FreeCamera_init(
                 //     &main_cam,
@@ -1153,15 +1169,7 @@ int main(int argc, char* argv[])
                 backwards_acc = 1.0;
                 forwards_acc  = 1.0;
             }
-
-            #ifdef MOUSE_ON
-            i32 mouse_x = 0;
-            i32 mouse_y = 0;
-
-            SDL_GetMouseState(&mouse_x, &mouse_y);
-            #endif
         }
-        #endif
 
 
 
@@ -1301,10 +1309,22 @@ int main(int argc, char* argv[])
 
         gl_draw2d.end();
 
+
+        gl_draw2d.begin();
+        gl_draw2d.draw_type = GL_LINES;
+
+        //draw_lines_from_image(&gl_draw2d, "./test_paths/C.bmp", {glm::vec3(1.0f), glm::vec3(0.0f)});
+
+        gl_draw2d.end();
         #endif
 
 
-        #ifdef GRID
+        #ifdef EDITOR
+
+        i32 mouse_x = 0;
+        i32 mouse_y = 0;
+
+        SDL_GetMouseState(&mouse_x, &mouse_y);
 
 
         if (key_is_toggled(&input, CONTROL::EDIT_GRID, &grid_toggle)) {
@@ -1315,6 +1335,8 @@ int main(int argc, char* argv[])
 
 
             glUseProgram(shader_grid);
+
+            //printf("CURSOR: [x: %f, y: %f]\n", mouse.x, mouse.y);
 
 
             if (key_is_pressed(&input, CONTROL::ZOOM_IN)) {
@@ -1327,6 +1349,38 @@ int main(int argc, char* argv[])
                 grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 64.0f);
 
                 glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
+            }
+
+
+            glm::mat4 rev_view = FreeCamera_calc_view_matrix_reverse(&main_cam);
+
+            glm::vec4 mouse = glm::vec4((int)mouse_x, (int)mouse_y, 0.0f, 1.0f);
+
+            mouse = rev_view * mouse;
+
+
+            // if (mouse_is_toggled(&input, MOUSE_BUTTON::LEFT, &drawing)) {
+            //     printf("TOGGLED DRAWING ON\n");
+            // } else if (mouse_is_pressed(&input, MOUSE_BUTTON::LEFT) && !drawing) {
+            //     printf("ENDING DRAWING\n");
+            // }
+            // if (drawing) {
+            //     printf("DRAWING\n");
+            // }
+
+
+            switch (mouse_is_toggled_4_states(&input, MOUSE_BUTTON::LEFT, &drawing)) {
+            case TOGGLE_BRANCH::PRESSED_ON:
+                printf("TOGGLED DRAWING ON\n");
+            case TOGGLE_BRANCH::ON:
+                //printf("\tDRAWING\n");
+                break;
+            case TOGGLE_BRANCH::PRESSED_OFF:
+                printf("ENDING DRAWING\n");
+            case TOGGLE_BRANCH::OFF:
+                break;
+            default:
+                break;
             }
 
 
@@ -1365,7 +1419,7 @@ int main(int argc, char* argv[])
     #ifdef GL_DRAW2D
     gl_draw2d.free();
     #endif
-    #ifdef GRID
+    #ifdef EDITOR
     glDeleteProgram(shader_grid);
     #endif
     glDeleteProgram(shader_2d);
