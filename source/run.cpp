@@ -696,8 +696,8 @@ int main(int argc, char* argv[])
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);        
     // }
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     // SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
     // SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
@@ -720,14 +720,14 @@ int main(int argc, char* argv[])
     
     int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
     if(!(IMG_Init(imgFlags) & imgFlags)) {
-     	fprintf(stderr, "SDL_image could not initialize, SDL_image Error: %s\n", IMG_GetError());
+      fprintf(stderr, "SDL_image could not initialize, SDL_image Error: %s\n", IMG_GetError());
         SDL_DestroyWindow(window);
         return EXIT_FAILURE;
     }
     
-	program_data.context = SDL_GL_CreateContext(window);
+   program_data.context = SDL_GL_CreateContext(window);
 
-	glewExperimental = GL_TRUE;
+   glewExperimental = GL_TRUE;
     glewInit();
 
 
@@ -858,10 +858,10 @@ int main(int argc, char* argv[])
 
     glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
-	
+   
     glCullFace(GL_FRONT);
 
-	// glEnable(GL_DEPTH_TEST);
+   // glEnable(GL_DEPTH_TEST);
  //    glDepthRange(0, 1);
  //    glDepthFunc(GL_LEQUAL);
 
@@ -1418,14 +1418,6 @@ int main(int argc, char* argv[])
                         glm::vec3(
                             snap_to_grid(mouse.x, grid_len), 
                             snap_to_grid(mouse.y, grid_len),
-                            1.0f
-                        )
-                    );
-                    in_prog.circle(
-                        5.0f,
-                        glm::vec3(
-                            snap_to_grid(in_progress_line[0].x, grid_len), 
-                            snap_to_grid(in_progress_line[0].y, grid_len),
                             1.0f
                         )
                     );
