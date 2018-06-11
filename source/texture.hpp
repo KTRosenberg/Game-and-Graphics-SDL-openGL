@@ -7,7 +7,12 @@
 
 #include <string>
 
- GLboolean GL_texture_load(Texture* texture_id, const char* const path, const GLboolean alpha);
- GLboolean GL_texture_gen_and_load_1(Texture* texture_id, const char* const path, const GLboolean alpha);
+#include <stdio.h>
+
+// must generate first, then pass id
+GLboolean GL_texture_load(Texture* texture_id, const char* const path, const GLboolean alpha, const GLint param_edge_x, const GLint param_edge_y);
+// generates one texture automatically
+GLboolean GL_texture_gen_and_load_1(Texture* texture_id, const char* const path, const GLboolean alpha, const GLint param_edge_x, const GLint param_edge_y);
+
 
 #endif // TEXTURE_HPP

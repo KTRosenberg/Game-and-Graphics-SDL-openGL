@@ -1,44 +1,47 @@
+#include "test.h"
+
+
+#define COMMON_UTILS_IMPLEMENTATION
+#include "common_utils.h"
+#define CORE_UTILS_IMPLEMENTATION
+#include "core_utils.h"
+
+
+
 #include "opengl.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/ext.hpp>
+#include <glm/gtc/quaternion.hpp>
 
-#ifdef _WIN32
-#   define SDL_MAIN_HANDLED
-#endif
 #include "sdl.hpp"
 
 #include <iostream>
 #include <string>
-#include <array>
-#include <vector>
+//#include <array>
+//#include <vector>
 
 #include "shader.hpp"
 #include "texture.hpp"
 #include "camera.hpp"
-#include "mesh_generator.hpp"
 
 #define WINDOW_HEADER ("")
 
-#define SCREEN_WIDTH  720
-#define SCREEN_HEIGHT 480
-#define TIME_UNIT_TO_SECONDS 1000
-#define FRAMES_PER_SECOND 60
+#define SCREEN_WIDTH  (1280.0f)
+#define SCREEN_HEIGHT (720.0f)
+#define MS_PER_S (1000.0)
+#define FRAMES_PER_SECOND (60.0)
 
-//#define DISPLAY_FPS
-
-#define IMG_PATH_1 "textures/final_rush_walkway_2.png"
-#define IMG_PATH_2 "textures/brick.png"
-#define IMG_PATH_3 "textures/lavatile.jpg"
+#define EDITOR
 
 int ignore_mouse_movement(void* unused, SDL_Event* event)
 {
     return (event->type == SDL_MOUSEMOTION) ? 0 : 1;
 }
 
-#define DEBUG_PRINT
+//#define DEBUG_PRINT
 
 void debug_print(const char* const in);
 void debug_print(const char* const in) 
@@ -51,27 +54,11 @@ void debug_print(const char* const in)
 #define FP_CAM
 // #define FREE_CAM
 
-#define MOUSE_ON
-
-#define CUBES
-//#define SPHERES
-//#define TORI
 
 SDL_Window* window = NULL;
 
-// based on tutorial at 
-// http://headerphile.com/sdl2/opengl-part-1-sdl-opengl-awesome/
+typedef void* (*Fn_MemoryAllocator)(size_t bytes);
 
-void* xmalloc(size_t bytes);
-void* xmalloc(size_t bytes)
-{
-    void* mem = malloc(bytes);
-    if (mem == NULL) {
-        abort();
-    }
-
-    return mem;
-}
 
 // TEXTURES, GEOMETRY
 typedef struct TextureData {
@@ -79,26 +66,26 @@ typedef struct TextureData {
     size_t count;
 } TextureData;
 
-void create_TextureData(TextureData* t, const size_t id_count) 
+void TextureData_init(TextureData* t, const size_t id_count) 
 {
     t->ids = (Texture*)xmalloc(id_count * sizeof(t->ids));
     t->count = id_count;
     glGenTextures(t->count, t->ids);
 }
 
-void create_static_TextureData(TextureData* t, const size_t id_count, Texture* buffer)
+void TextureData_init_inplace(TextureData* t, const size_t id_count, Texture* buffer)
 {
     t->ids = buffer;
     t->count = id_count;
     glGenTextures(id_count, t->ids);
 }
 
-void delete_TextureData(TextureData* t)
+void TextureData_delete(TextureData* t)
 {
     glDeleteTextures(t->count, t->ids);
     free(t);
 }
-void delete_static_TextureData(TextureData* t)
+void TextureData_delete_inplace(TextureData* t)
 {
     glDeleteTextures(t->count, t->ids);
 }
@@ -109,15 +96,96 @@ struct sceneData {
     glm::mat4 m_projection;
 } scene;
 
+template <typename T>
 struct CappedArray {
     size_t cap;
     size_t count;
-    void*  array;
+    T*  array;
 
-    operator void*()
+    operator T*()
     {
         return this->array;
     }
+
+    T& operator[](size_t i)
+    {
+        return this->array[i];
+    }
+     
+    const T& operator[](size_t i) const 
+    {
+        return this->array[i];
+    }
+
+    inline size_t element_count() const
+    {
+        return this->count;
+    }
+
+    inline size_t element_size() const
+    {
+        return sizeof(T);
+    }
+
+    inline size_t size() const
+    {
+        return this->cap;
+    }
+
+
+    typedef CappedArray* iterator;
+    typedef const CappedArray* const_iterator;
+    iterator begin() { return &this->array[0]; }
+    iterator end() { return &this->array[this->cap]; }
+};
+
+template <typename T>
+void CappedArray_init(CappedArray<T>* arr, size_t cap, Fn_MemoryAllocator alloc) {
+    arr->array = (T*)alloc(sizeof(T) * cap);
+    arr->count = 0;
+    arr->cap = cap;
+}
+
+template <typename T, size_t N>
+struct CappedArrayStatic {
+    size_t cap;
+    size_t count;
+    T array[N];
+
+    operator T*()
+    {
+        return this->array;
+    }
+
+    T& operator[](size_t i)
+    {
+        return this->array[i];
+    }
+     
+    const T& operator[](size_t i) const 
+    {
+        return this->array[i];
+    }
+
+    inline size_t element_count() const
+    {
+        return this->count;
+    }
+
+    inline size_t element_size() const
+    {
+        return sizeof(T);
+    }
+
+    inline size_t size() const
+    {
+        return N;
+    }
+
+    typedef CappedArrayStatic* iterator;
+    typedef const CappedArrayStatic* const_iterator;
+    iterator begin() { return &this->array[0]; }
+    iterator end() { return &this->array[N]; }
 };
 
 // ATTRIBUTES AND VERTEX ARRAYS
@@ -132,7 +200,7 @@ typedef struct AttributeData {
     GLchar*   name;
 } AttributeData;
 
-void create_AttributeData(
+void AttributeData_init(
     AttributeData* a,
     GLuint index,
     GLint size,
@@ -167,7 +235,62 @@ void create_AttributeData(
 
 // VERTEX BUFFERS
 
-typedef struct VertexBufferData {
+
+// struct MemoryAllocator {
+//     void* type;
+//     Fn_MemoryAllocator fn_alloc;
+    
+//     void* alloc(size_t bytes)
+//     {
+//         return Fn_MemoryAllocator(type, bytes);
+//     }
+// };
+
+// void MemoryAllocator_init(MemoryAllocator* ma, void* type, Fn_MemoryAllocator* fn_alloc, Fn_MemoryAllocatorType_init fn_init, void* args)
+// {
+//     ma->fn_alloc = fn_alloc;
+//     ma->type = alloc;
+//     fn_init(fn_alloc, args);
+// }
+
+template <typename T>
+struct Array {
+    T* memory;
+    size_t length;
+
+    operator T*(void)
+    {
+        return this->memory;
+    }
+
+    inline T& operator[](size_t i)
+    {
+        return this->memory[i];
+    }
+     
+    inline const T& operator[](size_t i) const 
+    {
+        return this->memory[i];
+    }
+
+    inline size_t size_buffer(void) const
+    {
+        return sizeof(T) * this->length;
+    }
+
+    inline size_t size_element(void) const
+    {
+        return sizeof(T);
+    }
+
+    typedef Array* iterator;
+    typedef const Array* const_iterator;
+    iterator begin() { return &this->memory[0]; }
+    iterator end() { return &this->memory[this->length]; }
+};
+
+
+struct VertexBufferData {
     VertexBuffer vbo;
     ElementBuffer ebo;
     size_t    v_cap;
@@ -176,49 +299,64 @@ typedef struct VertexBufferData {
     size_t    i_count;
     GLfloat*  vertices;
     GLuint*   indices;
-} VertexBufferData;
+};
 
-
-
-struct VertexBufferDataAlt {
+struct Open_GL_Data {
     VertexBuffer vbo;
     ElementBuffer ebo;
-    std::vector<GLfloat> vertices;
-    std::vector<GLuint>  indices;
-} VertexBufferDataAlt;
+    Array<GLfloat> vertices;
+    Array<GLuint> indices;
+};
 
-typedef VertexBufferData VBData;
+struct Entity {
+    glm::vec3 position;
+    GLfloat rotation;
+};
+
+struct Player {
+    Entity* base;
+};
+
+// struct VertexBufferDataAlt {
+//     VertexBuffer vbo;
+//     ElementBuffer ebo;
+//     Buffer<GLfloat> vertices_lines;
+//     Buffer<GLuint>  indices;
+// } VertexBufferDataAlt;
+
+// typedef VertexBufferData VBData;
 
 
 
-typedef void* (*Fn_MemoryAllocator)(size_t bytes);
-
-void create_VertexBufferData(
+void VertexBufferData_init(
     VertexBufferData* g,
     const size_t v_cap,
     const size_t i_cap,
-    Fn_MemoryAllocator alloc
+    Fn_MemoryAllocator alloc_v,
+    Fn_MemoryAllocator alloc_i
 ) {
-    glGenBuffers(2, (GLBuffer*)&g->vbo);
+    glGenBuffers(1, (GLBuffer*)&g->vbo);
+    glGenBuffers(1, (GLBuffer*)&g->ebo);
 
     g->v_cap = v_cap;
     g->i_cap = i_cap;
 
-    g->vertices = (GLfloat*)alloc(sizeof(GLfloat) * g->v_cap);
-    g->indices  = (GLuint*)alloc(sizeof(GLuint) * g->i_cap);
+    g->vertices = (GLfloat*)alloc_v(sizeof(GLfloat) * g->v_cap);
+    g->indices  = (GLuint*)alloc_i(sizeof(GLuint) * g->i_cap);
 
-    g->v_count = 0;
-    g->i_count = 0;
+    g->v_count = v_cap;
+    g->i_count = i_cap;
 }
 
-void create_static_VertexBufferData(
+void VertexBufferData_init_inplace(
     VertexBufferData* g,
     const size_t v_cap,
     GLfloat* vertices,
     const size_t i_cap,
     GLuint* indices
 ) {
-    glGenBuffers(2, (GLBuffer*)&g->vbo);
+    glGenBuffers(1, (GLBuffer*)&g->vbo);
+    glGenBuffers(1, (GLBuffer*)&g->ebo);
 
     g->v_cap = v_cap;
     g->i_cap = i_cap;
@@ -226,60 +364,99 @@ void create_static_VertexBufferData(
     g->vertices = vertices;
     g->indices  = indices;
 
-    g->v_count = 0;
-    g->i_count = 0;
+    g->v_count = v_cap;
+    g->i_count = i_cap;
 }
 
-void delete_VertexBufferData(VertexBufferData* g)
+void VertexBufferData_delete(VertexBufferData* g)
 {
-    glDeleteBuffers(2, (GLBuffer*)&g->vbo);
+    glDeleteBuffers(1, (GLBuffer*)&g->vbo);
+    glDeleteBuffers(1, (GLBuffer*)&g->ebo);
     free(g->vertices);
     free(g->indices);
 }
-void delete_static_VertexBufferData(VertexBufferData* g)
+void VertexBufferData_delete_inplace(VertexBufferData* g)
 {
-    glDeleteBuffers(2, (GLBuffer*)&g->vbo);
+    glDeleteBuffers(1, (GLBuffer*)&g->vbo);
+    glDeleteBuffers(1, (GLBuffer*)&g->ebo);
+}
+
+void VertexBufferData_init_with_arenas(ArenaAllocator* v_arena, ArenaAllocator* i_arena, VertexBufferData* vbd, size_t v_count_elements, size_t i_count_elements) 
+{
+    VertexBufferData_init_inplace(
+        vbd, 
+        v_count_elements,
+        (GLfloat*)ArenaAllocator_allocate(v_arena, v_count_elements * sizeof(GLfloat)),
+        i_count_elements,
+        (GLuint*)ArenaAllocator_allocate(i_arena, i_count_elements * sizeof(GLuint))
+    );
+}
+
+void* GlobalArenaAlloc_vertex_attribute_data(size_t count) 
+{
+    return xmalloc(count * sizeof(GLfloat));
+}
+void* GlobalArenaAlloc_index_data(size_t count) 
+{
+    return xmalloc(count * sizeof(GLuint));    
 }
 
 
 typedef struct VertexAttributeArray {
     VertexArray vao;
     size_t stride;
+
+    operator GLuint() { return vao; }
+
 } VertexAttributeArray;
 
 typedef VertexAttributeArray VAttribArr;
 
-inline void create_VertexAttributeArray(VertexAttributeArray* vao, size_t stride) 
+void VertexAttributeArray_init(VertexAttributeArray* vao, size_t stride) 
 {
     glGenVertexArrays(1, &vao->vao);
     vao->stride = stride;
 }
-inline void delete_VertexAttributeArray(VertexAttributeArray* vao) 
+void VertexAttributeArray_delete(VertexAttributeArray* vao) 
 {
     glDeleteVertexArrays(1, &vao->vao);
 }
-inline void* attribute_offsetof(size_t offset)
-{
-    return (void*)(offset * sizeof(GLfloat));
-}
-inline size_t attribute_sizeof(VertexAttributeArray* vao) 
-{
-    return vao->stride * sizeof(GLfloat);
-}
 
-inline void gl_set_and_enable_vertex_attrib_ptr(GLuint index, GLint size, GLenum type, GLboolean normalized, size_t offset, VertexAttributeArray* va)
+#define attribute_offsetof(offset) (GLvoid*)(offset * sizeof(GLfloat))
+
+#define attribute_sizeof(vao) vao->stride * sizeof(GLfloat)
+
+void gl_set_and_enable_vertex_attrib_ptr(GLuint index, GLint size, GLenum type, GLboolean normalized, size_t offset, VertexAttributeArray* va)
 {
     glVertexAttribPointer(index, size, type, normalized, attribute_sizeof(va), attribute_offsetof(offset));            
     glEnableVertexAttribArray(index);
 }
 
-inline void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, size_t v_cap, size_t i_cap, GLenum usage)
+void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, GLenum usage, size_t v_cap, size_t i_cap, GLintptr v_begin_offset = 0, GLintptr i_begin_offset = 0)
 {
     glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
-    glBufferData(GL_ARRAY_BUFFER, v_cap * sizeof(GLfloat), vbd->vertices, usage);
+    glBufferData(GL_ARRAY_BUFFER, v_cap * sizeof(GLfloat), vbd->vertices + v_begin_offset, usage);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbd->ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, i_cap * sizeof(GLuint), vbd->indices, usage);            
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, i_cap * sizeof(GLuint), vbd->indices + i_begin_offset, usage);            
+}
+
+void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, GLenum usage, GLintptr v_begin_offset = 0, GLintptr i_begin_offset = 0)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
+    glBufferData(GL_ARRAY_BUFFER, vbd->v_cap * sizeof(GLfloat), vbd->vertices + v_begin_offset, usage);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbd->ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, vbd->i_cap * sizeof(GLuint), vbd->indices + i_begin_offset, usage);           
+}
+
+void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, vbd->v_count * sizeof(GLfloat), vbd->vertices);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vbd->ebo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, vbd->i_count * sizeof(GLuint), vbd->indices);
 }
 
 
@@ -289,7 +466,7 @@ typedef struct CollisionStatus {
     glm::vec3 point;
 } CollisionStatus;
 
-void create_CollisionStatus(CollisionStatus* cs, const bool collided, glm::vec3 point)
+void CollisionStatus_init(CollisionStatus* cs, const bool collided, glm::vec3 point)
 {
     cs->collided = collided;
     cs->point = point;
@@ -303,68 +480,223 @@ typedef struct Collider {
     Fn_CollisionHandler handler;
 } Collider; 
 
+
+struct GLData {
+    VertexAttributeArray vao;
+    VertexBufferData vbd;
+};
+
+void GLData_init(GLData* gl_data, size_t attribute_stride, const size_t v_cap, const size_t i_cap, Fn_MemoryAllocator alloc_v, Fn_MemoryAllocator alloc_i) 
+{
+    VertexAttributeArray_init(&gl_data->vao, attribute_stride);
+    VertexBufferData_init(&gl_data->vbd, v_cap, i_cap, alloc_v, alloc_i);
+}
+
+void GLData_init_inplace(GLData* gl_data, size_t attribute_stride, const size_t v_cap, GLfloat* vertices, const size_t i_cap, GLuint* indices) 
+{
+    VertexAttributeArray_init(&gl_data->vao, attribute_stride);
+    VertexBufferData_init_inplace(&gl_data->vbd, v_cap, vertices, i_cap, indices);    
+}
+
+inline void GLData_advance(GLData* const gl_data, const size_t i)
+{
+    gl_data->vbd.v_count += (i * gl_data->vao.stride);
+    gl_data->vbd.i_count += i;
+}
+
+void GLData_delete(GLData* gl_data)
+{
+    VertexAttributeArray_delete(&gl_data->vao);
+    VertexBufferData_delete(&gl_data->vbd);
+}
+
+void GLData_delete_inplace(GLData* gl_data)
+{
+    VertexAttributeArray_delete(&gl_data->vao);
+    VertexBufferData_delete_inplace(&gl_data->vbd);    
+}
+
 // WORLD STATE
-typedef struct Room {
+struct Room {
     VertexBufferData  geometry;
     Collider* collision_data;
     glm::mat4 matrix;
-} Room;
+};
 
-typedef struct {
+struct World {
     Room* rooms;
     glm::mat4 m_view;
     glm::mat4 m_projection;
-} World;
+};
 
-typedef struct GLData {
+struct GlobalData {
     SDL_GLContext context;
     TextureData textures;
-} GLData;
+};
 
-GLData gl_data;
+GlobalData program_data;
 
+#define GL_DRAW2D
 
+#ifdef GL_DRAW2D
+#define GL_DRAW2D_SIZE 2048
+#include "gl_draw2d.h"
+#endif
 
-// glm::vec3 light_pos(1.2f, 1.0f, 2.0f);
-// glm::light_color(1.0f, 1.0f, 1.0f);
-// glm::toy_color(1.0f, 0.5f, 0.31f);
-// glm::result = light_color * toy_color;
+#include <bitset>
 
+template<typename T>
+static std::string to_binary_string(const T& x)
+{
+    return std::bitset<sizeof(T) * 8>(x).to_string();
+}
 
-//////////////
+using namespace input_sys;
+
+bool poll_input_events(input_sys::Input* input, SDL_Event* event)
+{
+    keys_advance_history(input);
+
+#ifdef EDITOR
+    mouse_advance_history(input);
+#endif
+
+    while (SDL_PollEvent(event)) {
+
+        switch (event->type) {
+        case SDL_QUIT:
+            return false;
+        case SDL_KEYDOWN:
+            switch (event->key.keysym.scancode) {
+            case SDL_SCANCODE_W:
+                key_set_down(input, CONTROL::UP);
+                break;
+            case SDL_SCANCODE_S:
+                key_set_down(input, CONTROL::DOWN);
+                break;
+            case SDL_SCANCODE_A:
+                key_set_down(input, CONTROL::LEFT);
+                break;
+            case SDL_SCANCODE_D:
+                key_set_down(input, CONTROL::RIGHT);
+                break;
+            case SDL_SCANCODE_0:
+                key_set_down(input, CONTROL::RESET_POSITION);
+                break;
+#ifdef EDITOR
+            case SDL_SCANCODE_G:
+                key_set_down(input, CONTROL::EDIT_GRID);
+                break;
+#endif
+            case SDL_SCANCODE_UP:
+                key_set_down(input, CONTROL::ZOOM_IN);
+                break;
+            case SDL_SCANCODE_DOWN:
+                key_set_down(input, CONTROL::ZOOM_OUT);
+                break;
+            default:
+                break;
+            }
+            break;
+        case SDL_KEYUP:
+            switch (event->key.keysym.scancode) {
+            case SDL_SCANCODE_W:
+                key_set_up(input, CONTROL::UP);
+                break;
+            case SDL_SCANCODE_S:
+                key_set_up(input, CONTROL::DOWN);
+                break;
+            case SDL_SCANCODE_A:
+                key_set_up(input, CONTROL::LEFT);
+                break;
+            case SDL_SCANCODE_D:
+                key_set_up(input, CONTROL::RIGHT);
+                break;
+            case SDL_SCANCODE_0:
+                key_set_up(input, CONTROL::RESET_POSITION);
+                break;
+#ifdef EDITOR
+            case SDL_SCANCODE_G:
+                key_set_up(input, CONTROL::EDIT_GRID);
+                break;
+#endif
+            case SDL_SCANCODE_UP:
+                key_set_up(input, CONTROL::ZOOM_IN);
+                break;
+            case SDL_SCANCODE_DOWN:
+                key_set_up(input, CONTROL::ZOOM_OUT);
+                break;
+            default:
+                break;            
+            }
+            break;
+        case SDL_MOUSEBUTTONDOWN:
+            switch (event->button.button) {
+            case SDL_BUTTON_LEFT:
+                mouse_set_down(input, MOUSE_BUTTON::LEFT);
+                break;
+            case SDL_BUTTON_RIGHT:
+                mouse_set_down(input, MOUSE_BUTTON::RIGHT);
+                break;
+            }
+            break;
+        case SDL_MOUSEBUTTONUP:
+            switch (event->button.button) {
+            case SDL_BUTTON_LEFT:
+                mouse_set_up(input, MOUSE_BUTTON::LEFT);
+                break;
+            case SDL_BUTTON_RIGHT:
+                mouse_set_up(input, MOUSE_BUTTON::RIGHT);
+                break;
+            }
+            break;
+        default:
+            break;
+        }
+
+    }
+
+#ifdef EDITOR
+    SDL_GetMouseState(&input->mouse_x, &input->mouse_y);
+#endif
+
+    return true;
+}
 
 
 int main(int argc, char* argv[])
 {
-    std::cout << std::boolalpha << std::is_pod<CappedArray>::value  << std::endl;
-
     // initialize SDL
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC | SDL_INIT_AUDIO) < 0) {
         fprintf(stderr, "%s\n", "SDL could not initialize");
         return EXIT_FAILURE;
     }
     
     // MOUSE ///////////////////////////////////////////// 
     // hide the cursor
-    SDL_ShowCursor(SDL_DISABLE);
     
     // ignore mouse movement events
-    #ifndef MOUSE_ON
-    SDL_SetEventFilter(ignore_mouse_movement, nullptr); ///////////////////////////
+    #ifndef EDITOR
+    SDL_ShowCursor(SDL_DISABLE);
+    SDL_SetEventFilter(ignore_mouse_movement, NULL); ///////////////////////////
     #endif
+
     // openGL initialization ///////////////////////////////////////////////////
     
-    if (argc >= 3) {
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, atoi(argv[1]));
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, atoi(argv[2]));
-    } else {
+    // if (argc >= 3) {
+    //     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, atoi(argv[1]));
+    //     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, atoi(argv[2]));
+    // } else {
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);        
-    }
+    // }
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    // SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
+    // SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
+    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 
     // create the window
     if (NULL == (window = SDL_CreateWindow(
@@ -377,6 +709,8 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Window could not be created\n");
         return EXIT_FAILURE;
     }
+
+    //SDL_SetWindowFullscreen(window, true);
     
     int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
     if(!(IMG_Init(imgFlags) & imgFlags)) {
@@ -385,227 +719,195 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
     
-	gl_data.context = SDL_GL_CreateContext(window);
+	program_data.context = SDL_GL_CreateContext(window);
 
 	glewExperimental = GL_TRUE;
     glewInit();
 
+
+    bool status = false;
+    std::string glsl_perlin_noise = Shader_retrieve_src_from_file("shaders/perlin_noise.glsl", &status);
+    if (!status) {
+        fprintf(stderr, "ERROR: failed to load shader addon source");
+        return false;
+    } 
+
     // SHADERS
     Shader shader_2d;
-    shader_2d.load_from_file(
-        "shaders/default_2d/default_2d.vrts",
-        "shaders/default_2d/default_2d.frgs"
-    );
-    if (!shader_2d.is_valid()) {
+    if (false == Shader_load_from_file(
+        &shader_2d,
+        "shaders/parallax/parallax_v2_vrt.glsl",
+        "shaders/parallax/parallax_v2_frg.glsl",
+        glsl_perlin_noise,
+        glsl_perlin_noise
+    )) {
         fprintf(stderr, "ERROR: shader_2d\n");
+        return EXIT_FAILURE;
+    }
+
+
+    Shader shader_grid;
+    if (false == Shader_load_from_file(
+        &shader_grid,
+        "shaders/default_2d/grid_vrt.glsl",
+        "shaders/default_2d/grid_frg.glsl"
+    )) {
+        fprintf(stderr, "ERROR: shader_grid\n");
         return EXIT_FAILURE;
     }
 ///////////////
 
-    const size_t STRIDE = 7;
+    const GLfloat ASPECT = (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT;
 
-// LINES
-    const size_t COUNT_LINES = 1;
-    const size_t POINTS_PER_LINE = 2;
-    const size_t len_v_lines = STRIDE * COUNT_LINES * POINTS_PER_LINE;
-    const size_t len_i_lines = 2;
-
-    GLfloat wf = (GLfloat)SCREEN_WIDTH;
-    GLfloat hf = (GLfloat)SCREEN_HEIGHT;
-
-    GLfloat L[len_v_lines] = {
-        wf,   0.0f, 0.0f, 1.0, 0.0, 0.0, 1.0,  // top right
-        0.0f, hf,   0.0f, 0.0, 0.0, 1.0, 1.0, // bottom left
-    };
-
-    GLuint LI[len_i_lines] = {
-        0, 1
-    };
+    size_t STRIDE = 5;
 
 // QUADS
-    const size_t COUNT_QUADS = 2;
-    const size_t POINTS_PER_QUAD = 4;
-    const size_t POINTS_PER_TRI = 3;
-    const size_t TRIS_PER_QUAD = 2;
-    const size_t len_v_tris = STRIDE * COUNT_QUADS * POINTS_PER_QUAD;
-    const size_t len_i_tris = COUNT_QUADS * TRIS_PER_QUAD * POINTS_PER_TRI;
+    size_t POINTS_PER_QUAD = 4;
+    size_t POINTS_PER_TRI = 3;
+    size_t TRIS_PER_QUAD = 2;
+
+    GLfloat wf = 1.0f;
+    GLfloat hf = 1.0f * (512.0 / 360.0);
+    const GLfloat OFF = 0.0f * wf * ASPECT;
+
+    const GLfloat y_off_left = (16.0f / 45.0f);
+    const GLfloat x_off_right = (512.0f / 640.0f);
+
+    glm::vec2 tex_res(2048.0f, 1024.0f);
+
+    glm::vec3 world_bguv_factor = glm::vec3(glm::vec2(1.0f) / tex_res, 1.0f);
+
+    GLuint layers_per_row = (GLuint)(tex_res.x / SCREEN_WIDTH);
+    // GLfloat x_off = (GLfloat)(GLdouble)(SCREEN_WIDTH / tex_res.x);
+    // GLfloat y_off = (GLfloat)(GLdouble)(SCREEN_HEIGHT / tex_res.x);
+
+    GLfloat x_ratio = SCREEN_WIDTH / tex_res.x;
+    GLfloat y_ratio = SCREEN_HEIGHT / tex_res.y;
+
+    GLfloat X_OFF = (tex_res.x - SCREEN_WIDTH) / 2.0f;
+    GLfloat Y_OFF = (tex_res.y - SCREEN_HEIGHT) / 2.0f;
 
     GLfloat T[] = {
-        0.0f,  0.0f,  100.0f, 0.0, 0.0, 1.0, 1.0,  // top left
-        0.0f,  hf,    100.0f, 0.0, 0.0, 1.0, 1.0,  // bottom left
-        wf,    hf,    -100.0f, 0.0, 0.0, 1.0, 1.0,  // bottom right
-        wf,    0.0,   -100.0f, 0.0, 0.0, 1.0, 1.0,  // top right
-
-        0.0f,  0.0f, -100.0f, 1.0, 0.0, 0.0, 1.0,  // top left
-        0.0f,  hf,   -100.0f, 1.0, 0.0, 0.0, 1.0, // bottom left
-        wf,    hf,   100.0f, 1.0, 0.0, 0.0, 1.0, // bottom right
-        wf,    0.0,  100.0f, 1.0, 0.0, 0.0, 1.0, // top right
+       0.0f - X_OFF,      tex_res.y - Y_OFF, 0.0f,    0.0f, 1.0f,    // top left
+       0.0f - X_OFF,      0.0f - Y_OFF,      0.0f,    0.0f, 0.0f,    // bottom left
+       tex_res.x - X_OFF, 0.0f - Y_OFF,      0.0f,    1.0f, 0.0f,    // bottom right
+       tex_res.x - X_OFF, tex_res.y - Y_OFF, 0.0f,    1.0f, 1.0f,    // top right
     };
-    GLuint TI[] = {  // note that we start from 0!
-        0, 1, 2,  // first Triangle
-        2, 3, 0,   // second Triangle
 
-        4, 5, 6,
-        6, 7, 4,
+    GLuint TI[] = {
+        0, 1, 2,
+        2, 3, 0,
     };
 
 // TOTAL ALLOCATION
-    const size_t BATCH_COUNT = 1024;
-    const size_t GUESS_VERTS_PER_DRAW = 4;
-    const size_t BATCH_COUNT_EXTRA = BATCH_COUNT * GUESS_VERTS_PER_DRAW * STRIDE;
+    // const size_t BATCH_COUNT = 1024;
+    // const size_t GUESS_VERTS_PER_DRAW = 4;
 
-// R1 ////////////////////////////////////////////////
-
-    VertexAttributeArray vao_2d;
-    VertexBufferData lines_data;
-
-    create_VertexAttributeArray(&vao_2d, 7);
-
-    glBindVertexArray(vao_2d.vao);
-
-
-        GLfloat lines_VBO_data[BATCH_COUNT_EXTRA * sizeof(GLfloat)];
-        GLuint lines_EBO_data[BATCH_COUNT_EXTRA * sizeof(GLuint)];
-
-        create_static_VertexBufferData(
-            &lines_data, 
-            BATCH_COUNT_EXTRA,
-            lines_VBO_data,
-            BATCH_COUNT_EXTRA,
-            lines_EBO_data
-        );
-        lines_data.v_count = len_v_lines;
-        lines_data.i_count = len_i_lines;
-
-
-        for (size_t i = 0; i < len_v_lines; ++i) {
-            lines_VBO_data[i] = L[i];
-        }
-        for (size_t i = 0; i < len_i_lines; ++i) {
-            lines_EBO_data[i] = LI[i];
-        }
-
-        
-        gl_bind_buffers_and_upload_data(&lines_data, BATCH_COUNT_EXTRA, BATCH_COUNT_EXTRA, GL_STATIC_DRAW);
-        // POSITION
-        gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &vao_2d);
-        // COLOR
-        gl_set_and_enable_vertex_attrib_ptr(1, 4, GL_FLOAT, GL_FALSE, 3, &vao_2d);
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glBindVertexArray(0);
-
-// R2 ////////////////////////////////////////////////
+//////////////////////////////////////////////////
 
     VertexAttributeArray vao_2d2;
     VertexBufferData tri_data;
 
-    create_VertexAttributeArray(&vao_2d2, 7);
+    VertexAttributeArray_init(&vao_2d2, STRIDE);
 
     glBindVertexArray(vao_2d2.vao);
 
-        GLfloat tris_VBO_data[BATCH_COUNT_EXTRA * sizeof(GLfloat)];
-        GLuint  tris_EBO_data[BATCH_COUNT_EXTRA * sizeof(GLuint)];
-
-        create_static_VertexBufferData(
+        VertexBufferData_init_inplace(
             &tri_data, 
-            BATCH_COUNT_EXTRA,
-            tris_VBO_data,
-            BATCH_COUNT_EXTRA,
-            tris_EBO_data
+            StaticArrayCount(T),
+            T,
+            StaticArrayCount(TI),
+            TI
         );
-        tri_data.i_count = len_i_tris;
 
-        for (size_t i = 0; i < len_v_tris; ++i) {
-            tris_VBO_data[i] = T[i];
-        }
-        for (size_t i = 0; i < len_i_tris; ++i) {
-            tris_EBO_data[i] = TI[i];
-        }
 
-        
-        gl_bind_buffers_and_upload_data(&tri_data, BATCH_COUNT_EXTRA, BATCH_COUNT_EXTRA, GL_STATIC_DRAW);
+        gl_bind_buffers_and_upload_data(&tri_data, GL_STATIC_DRAW);
         // POSITION
         gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &vao_2d2);
-        // COLOR
-        gl_set_and_enable_vertex_attrib_ptr(1, 4, GL_FLOAT, GL_FALSE, 3, &vao_2d2);
+        // UV
+        gl_set_and_enable_vertex_attrib_ptr(1, 2, GL_FLOAT, GL_FALSE, 3, &vao_2d2);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     glBindVertexArray(0);
 
+    // GLData grid;
+    // GLData_init_inplace(&grid, STRIDE, StaticArrayCount(T) / 15, T, StaticArrayCount(TI) / 15, TI);
+    // glBindVertexArray(grid.vao);
+
+    //     gl_bind_buffers_and_upload_data(&grid.vbd, GL_STATIC_DRAW, grid.vbd.v_cap, grid.vbd.i_cap, StaticArrayCount(T) / 15, 0);
+
+    //     // POSITION
+    //     gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &grid.vao);
+    //     // UV
+    //     gl_set_and_enable_vertex_attrib_ptr(1, 2, GL_FLOAT, GL_FALSE, 3, &grid.vao);
+
+    //     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // glBindVertexArray(0);
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);
-	glEnable(GL_MULTISAMPLE);
-	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-	
 
-    glDepthRange(0, 1);
-    glDepthFunc(GL_LEQUAL);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_MULTISAMPLE);
+	
+    glCullFace(GL_FRONT);
+
+	// glEnable(GL_DEPTH_TEST);
+ //    glDepthRange(0, 1);
+ //    glDepthFunc(GL_LEQUAL);
+
+
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
-    SDL_GL_SetSwapInterval(1);
+    //glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ONE, GL_ONE);
+    //glBlendEquationSeparate(GL_FUNC_ADD, GL_MAX);
+
     
     printf("USING GL VERSION: %s\n", glGetString(GL_VERSION));
 
-
     glm::mat4 mat_ident(1.0f);
-    glm::mat4 mat_projection = glm::ortho(0.0f, (GLfloat)SCREEN_WIDTH, (GLfloat)SCREEN_HEIGHT, 0.0f, -1000.0f, 1000.0f);
+    glm::mat4 mat_projection = glm::ortho(
+        0.0f, 
+        1.0f * ((GLfloat)SCREEN_WIDTH), 
+        1.0f * ((GLfloat)SCREEN_HEIGHT),
+        0.0f,
+        0.0f, 
+        1.0f * 10.0f
+    );
     //glm::mat4 mat_projection = glm::perspective(glm::radians(45.0f), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
-
-    bool keep_running = true;
-    SDL_Event event;
-
-    const Uint32 INTERVAL = TIME_UNIT_TO_SECONDS / FRAMES_PER_SECOND;
-    Uint32 start_time = SDL_GetTicks();
-    Uint32 prev_time = start_time;
-    Uint32 curr_time = start_time;
-    Uint64 delta_time = 0;
-    Uint64 dt = 0;
 
 //////////////////
 // TEST INPUT
-    glm::vec3 start_pos(0.0f, 0.0f, 200.0f);
+    glm::vec3 start_pos(0.0f, 0.0f, 1.0f);
     
-    ViewCamera main_cam;
-    ViewCamera_create(
-        &main_cam,
-        start_pos,
-        ViewCamera_default_speed,
-        -1000.0f,
-        1000.0f,
-        0.0f,
-        0.0f,
-        0.0f,
-        0.0f
-    );
-    
-    const Uint8* key_states = SDL_GetKeyboardState(NULL);
+    FreeCamera main_cam(start_pos);
+    main_cam.orientation = glm::quat();
+    main_cam.speed = 0.01 * 360.0f;
+    // ViewCamera_init(
+    //     &main_cam,
+    //     start_pos,
+    //     ViewCamera_default_speed,
+    //     -1000.0f,
+    //     1000.0f,
+    //     0.0f,
+    //     0.0f,
+    //     0.0f,
+    //     0.0f
+    // );
 
-    const Uint8* up         = &key_states[SDL_SCANCODE_W];
-    const Uint8* down       = &key_states[SDL_SCANCODE_S];
-    const Uint8* left       = &key_states[SDL_SCANCODE_A];
-    const Uint8* right      = &key_states[SDL_SCANCODE_D];
-    const Uint8* rot_r      = &key_states[SDL_SCANCODE_RIGHT];
-    const Uint8* rot_l      = &key_states[SDL_SCANCODE_LEFT];
-//  const Uint8& up_right   = key_states[SDL_SCANCODE_E];
-//  const Uint8& up_left    = key_states[SDL_SCANCODE_Q];
-//  const Uint8& down_right = key_states[SDL_SCANCODE_X];
-//  const Uint8& down_left  = key_states[SDL_SCANCODE_Z];
-    const Uint8* forwards = &key_states[SDL_SCANCODE_UP];
-    const Uint8* backwards = &key_states[SDL_SCANCODE_DOWN];
 
-    const Uint8* reset = &key_states[SDL_SCANCODE_0];
-    const Uint8* toggle_projection = &key_states[SDL_SCANCODE_P];
+    const f64 POS_ACC = 1.08;
+    const f64 NEG_ACC = 1.0 / POS_ACC;
 
-    bool projection_is_ortho = true;
-
-    const double POS_ACC = 1.06;
-    const double NEG_ACC = 1.0 / POS_ACC;
+    // double up_acc = 110.0;
+    // double down_acc = 110.0;
+    // double left_acc = 110.0;
+    // double right_acc = 110.0;
+    // double forwards_acc = 110.0;
+    // double backwards_acc = 110.0;
 
     double up_acc = 1.0;
     double down_acc = 1.0;
@@ -614,107 +916,255 @@ int main(int argc, char* argv[])
     double forwards_acc = 1.0;
     double backwards_acc = 1.0;
 
+    double max_acc = 1000.0;
+
 
 /////////////////
 // MAIN LOOP
+#ifdef DEBUG_PRINT
+    glm::vec3 prev_pos(0.0);
+#endif
 
-    while (keep_running) {
-        curr_time = SDL_GetTicks();
-        // frame-rate independence?
-        dt = (Uint64)(curr_time - prev_time);
-        delta_time = dt;
+    // Texture tex0;
+    // if (GL_texture_gen_and_load_1(&tex0, "./textures/bg_test_3_3.png", GL_TRUE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE) == GL_FALSE) {
+    //     return EXIT_FAILURE;
+    // }
 
-        if (dt < INTERVAL) {
+
+    Texture bgs[5];
+    foreach(i, 5) {
+        if (GL_FALSE == GL_texture_gen_and_load_1(
+                &bgs[i], ("./textures/separate_test_2/" + std::to_string(i) + ".png").c_str(), 
+                GL_TRUE, GL_REPEAT, GL_CLAMP_TO_EDGE
+        )) {
+            return EXIT_FAILURE;
+        }
+    }
+
+    gl_get_errors();
+
+
+    glUseProgram(shader_2d);
+
+    //UniformLocation RES_LOC = glGetUniformLocation(shader_2d, "u_resolution");
+    //UniformLocation COUNT_LAYERS_LOC = glGetUniformLocation(shader_2d, "u_count_layers");
+    UniformLocation MAT_LOC = glGetUniformLocation(shader_2d, "u_matrix");
+    //UniformLocation TIME_LOC = glGetUniformLocation(shader_2d, "u_time");
+    UniformLocation CAM_LOC = glGetUniformLocation(shader_2d, "u_position_cam");
+    //UniformLocation ASPECT_LOC = glGetUniformLocation(shader_2d, "u_aspect");
+
+    const GLuint UVAL_COUNT_LAYERS = 5;
+
+    //glUniform2fv(RES_LOC, 1, glm::value_ptr(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT)));
+    //glUniform1i(COUNT_LAYERS_LOC, UVAL_COUNT_LAYERS);
+    //glUniform1f(ASPECT_LOC, (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT);
+    // TEXTURE 0
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, bgs[0]);
+    glUniform1i(glGetUniformLocation(shader_2d, "tex0"), 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, bgs[1]);
+    glUniform1i(glGetUniformLocation(shader_2d, "tex1"), 1);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, bgs[2]);
+    glUniform1i(glGetUniformLocation(shader_2d, "tex2"), 2);
+
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, bgs[3]);
+    glUniform1i(glGetUniformLocation(shader_2d, "tex3"), 3);
+
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, bgs[4]);
+    glUniform1i(glGetUniformLocation(shader_2d, "tex4"), 4);
+
+
+    gl_get_errors();
+
+
+    #ifdef GL_DRAW2D
+    GLDraw2D gl_draw2d;
+    if (!gl_draw2d.GLDraw2D_init(&gl_draw2d, mat_projection)) {
+        return EXIT_FAILURE;
+    }
+    #endif
+
+    #ifdef EDITOR
+    glUseProgram(shader_grid);
+
+    UniformLocation COLOR_LOC_GRID = glGetUniformLocation(shader_grid, "u_color");
+    glUniform4fv(COLOR_LOC_GRID, 1, glm::value_ptr(glm::vec4(0.25f, 0.25f, 0.25f, 0.5f)));
+
+    UniformLocation SQUARE_PIXEL_LOC_GRID = glGetUniformLocation(shader_grid, "u_grid_square_pix");
+
+    GLfloat grid_square_pixel_size = 16.0f;
+    glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
+
+    UniformLocation MAT_LOC_GRID = glGetUniformLocation(shader_grid, "u_matrix");
+
+    UniformLocation CAM_LOC_GRID = glGetUniformLocation(shader_grid, "u_position_cam");
+
+
+    GLDraw2D existing;
+    GLDraw2D in_prog;
+    Toggle drawing = false;
+    if (!existing.GLDraw2D_init(&gl_draw2d, mat_projection)) {
+        fprintf(stderr, "FAILED TO INITIALIZE EDITOR DATA \"existing\"\n");
+        return EXIT_FAILURE;
+    }
+    if (!in_prog.GLDraw2D_init(&gl_draw2d, mat_projection)) {
+        fprintf(stderr, "FAILED TO INITIALIZE EDITOR DATA \"in_prog\"\n");
+        return EXIT_FAILURE;
+    }
+    #endif
+
+
+    size_t display_mode_count = 0;
+    SDL_DisplayMode mode;
+
+    if (SDL_GetDisplayMode(0, 0, &mode) != 0) {
+        SDL_Log("SDL_GetDisplayMode failed: %s", SDL_GetError());
+        return EXIT_FAILURE;
+    }
+
+    printf("REFRESH_RATE: %d\n", mode.refresh_rate);
+
+
+    SDL_GL_SetSwapInterval(1);
+    const double INTERVAL = MS_PER_S / mode.refresh_rate;
+
+    f64 frequency  = SDL_GetPerformanceFrequency();
+
+    u64 t_now      = SDL_GetPerformanceCounter();
+    u64 t_prev     = 0.0;
+    u64 t_start    = t_now;
+    u64 t_delta    = 0;
+    
+    f64 t_now_s         = (f64)t_now / frequency;
+    f64 t_prev_s        = 0.0;
+    f64 t_since_start_s = 0.0;
+    f64 t_delta_s       = 0.0;
+
+    //#define FPS_COUNT
+    #ifdef FPS_COUNT
+    f64 frame_time = 0.0;
+    u32 frame_count = 0;
+    u32 fps = 0;
+    #endif
+
+
+    input_sys::Input input = {};
+    input_sys::init(&input);
+
+    bool is_running = true;
+    SDL_Event event;
+
+#ifdef EDITOR
+    Toggle grid_toggle = false;
+#endif
+
+    while (is_running) {
+        t_prev = t_now;
+        t_prev_s = t_now_s;
+
+        t_now = SDL_GetPerformanceCounter();
+        t_now_s = (f64)t_now / frequency;
+
+        t_delta = (t_now - t_prev);
+        t_delta_s = (f64)t_delta / frequency;
+
+        f64 t_since_start = ((f64)(t_now - t_start)) / frequency;
+
+        // INPUT /////////////////////////////////
+        if (!poll_input_events(&input, &event)) {
+            is_running = false;
             continue;
         }
 
-        do {
-            dt -= INTERVAL;
-        } while (dt >= INTERVAL);
-        prev_time = curr_time;
-
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                keep_running = false;
-            }
-        }
-
-    //////////////////
-    // TEST INPUT
         {
 
-            const double CHANGE = (delta_time / (GLfloat)TIME_UNIT_TO_SECONDS);
+            double CHANGE = t_delta_s;
+            main_cam.orientation = glm::quat();
 
-            if (*up) {
-                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
+            if (key_is_held(&input, CONTROL::UP)) {
+                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
                 up_acc *= POS_ACC;
+                up_acc = glm::min(max_acc, up_acc);
             } else {
                 if (up_acc > 1.0) {
-                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
+                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
                 }
                 up_acc = glm::max(1.0, up_acc * NEG_ACC);
             }
-            if (*down) {
-                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
+            if (key_is_held(&input, CONTROL::DOWN)) {
+                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
                 down_acc *= POS_ACC;
+                down_acc = glm::min(max_acc, down_acc);
             } else {
                 if (down_acc > 1.0) {
-                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
+                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
                 } 
-                down_acc = glm::max(1.0, down_acc * NEG_ACC);  
+                down_acc = glm::max(1.0, down_acc * NEG_ACC);
             }
 
-            if (*left) {
-                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
+            if (key_is_held(&input, CONTROL::LEFT)) {
+                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
                 left_acc *= POS_ACC;
+                left_acc = glm::min(max_acc, left_acc);
             } else {
                 if (left_acc > 1.0) {
-                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
+                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
                 }
                 left_acc = glm::max(1.0, left_acc * NEG_ACC);
+                left_acc = glm::min(max_acc, left_acc);
             }
 
-            if (*right) {
-                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
+            if (key_is_held(&input, CONTROL::RIGHT)) {
+                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
                 right_acc *= POS_ACC;
+                right_acc = glm::min(max_acc, right_acc);
             } else {
                 if (right_acc > 1.0) {
-                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
+                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
                 }
                 right_acc = glm::max(1.0, right_acc * NEG_ACC);
             }
 
-            if (*forwards) {
-                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
-                forwards_acc *= POS_ACC;
-            } else {
-                if (forwards_acc > 1.0) {
-                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
-                }
-                forwards_acc = glm::max(1.0, forwards_acc * NEG_ACC);
-            }
-            if (*backwards) {
-                ViewCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
-                backwards_acc *= POS_ACC;
-            } else {
-                if (backwards_acc > 1.0) {
-                    ViewCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
-                } 
-                backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
-            }
-
-            if (*reset) {
-                ViewCamera_create(
-                    &main_cam,
-                    start_pos,
-                    ViewCamera_default_speed,
-                    -1000.0f,
-                    1000.0f,
-                    0.0f,
-                    0.0f,
-                    0.0f,
-                    0.0f
-                );
+            // if (*forwards) {
+            //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
+            //     forwards_acc *= POS_ACC;
+            //     forwards_acc = glm::min(max_acc, forwards_acc);
+            // } else {
+            //     if (forwards_acc > 1.0) {
+            //         FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
+            //     }
+            //     forwards_acc = glm::max(1.0, forwards_acc * NEG_ACC);
+            // }
+            // if (*backwards) {
+            //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
+            //     backwards_acc *= POS_ACC;
+            //     backwards_acc = glm::min(max_acc, backwards_acc);
+            // } else {
+            //     if (backwards_acc > 1.0) {
+            //         FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
+            //     } 
+            //     backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
+            // }
+            if (key_is_pressed(&input, CONTROL::RESET_POSITION)) {
+                // FreeCamera_init(
+                //     &main_cam,
+                //     start_pos,
+                //     ViewCamera_default_speed,
+                //     -1000.0f,
+                //     1000.0f,
+                //     0.0f,
+                //     0.0f,
+                //     0.0f,
+                //     0.0f
+                // );
+                main_cam.position = start_pos;
+                main_cam.orientation = glm::quat();
 
                 up_acc        = 1.0;
                 down_acc      = 1.0;
@@ -723,42 +1173,256 @@ int main(int argc, char* argv[])
                 backwards_acc = 1.0;
                 forwards_acc  = 1.0;
             }
-
-        #ifdef DEBUG_PRINT
-            glm::vec3* pos = &main_cam.position;
-            std::cout << "VIEW_POSITION{x : " << pos->x << ", y : " << pos->y << ", z: " << pos->z << "}" << std::endl;
-        #endif
         }
+
+
+
+        //main_cam.rotate((GLfloat)curr_time / MS_PER_S, 0.0f, 0.0f, 1.0f);
     //////////////////
     // DRAW
 
                 
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClearColor(97.0 / 255.0, 201.0 / 255.0, 255.0 / 255.0, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(shader_2d);
 
-        UniformLocation MAT_LOC = glGetUniformLocation(shader_2d, "u_matrix");
-        UniformLocation TIME_LOC = glGetUniformLocation(shader_2d, "u_time");
 
         //glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(ViewCamera_calc_view_matrix(&main_cam) * mat_ident));
-        glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(mat_projection * ViewCamera_calc_view_matrix(&main_cam) * mat_ident));
-        glUniform1f(TIME_LOC, ((GLdouble)curr_time / TIME_UNIT_TO_SECONDS));
+        glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(
+            mat_projection
+            /**FreeCamera_calc_view_matrix(&main_cam)*/
+            /*glm::translate(mat_ident, glm::vec3(glm::sin(((double)t_now / frequency)), 0.0, 0.0)) * */
+            /*glm::scale(mat_ident, glm::vec3(0.25, 0.25, 1.0))* */
+                        )
+        );
 
-        glBindVertexArray(vao_2d.vao);
-        glDrawElements(GL_LINES, lines_data.i_count, GL_UNSIGNED_INT, (void*)0);
+        //glUniform1f(TIME_LOC, t_since_start);
 
+        glm::vec3 pos = main_cam.position;
+        #ifdef DEBUG_PRINT
+
+            if (pos.x != prev_pos.x || pos.y != prev_pos.y || pos.z != prev_pos.z) {
+                std::cout << "VIEW_POSITION{x : " << pos.x << ", y : " << pos.y << ", z: " << pos.z << "}" << std::endl;
+            }
+            prev_pos.x = pos.x;
+            prev_pos.y = pos.y;
+            prev_pos.z = pos.z;
+        #endif
+
+        glUniform3fv(CAM_LOC, 1, glm::value_ptr(pos * world_bguv_factor));
+        glEnable(GL_DEPTH_TEST);
+        //glClear(GL_DEPTH_BUFFER_BIT);
+        // glDepthRange(0, 1);
+        
+        //glEnable(GL_BLEND);
+        //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        //glDisable(GL_DEPTH_TEST);
+        
         glBindVertexArray(vao_2d2.vao);
-        glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, (void*)0);
-                
+        glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, 0);
+        //glBindVertexArray(0);
+
+        #ifdef GL_DRAW2D
+
+        glEnable(GL_DEPTH_TEST);
+        glDepthRange(0, 1);
+        glClear(GL_DEPTH_BUFFER_BIT);
+
+
+        gl_draw2d.begin();
+
+            //gl_draw2d.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+            gl_draw2d.transform_matrix = glm::mat4(1.0f);
+
+            // gl_draw2d.draw_type = GL_LINES;
+            // gl_draw2d.color = Color::RED;
+            // gl_draw2d.vertex({0.5, 0.0, -1.0});
+            // gl_draw2d.vertex({1.0, 1.0, -1.0});
+            
+            // gl_draw2d.draw_type = GL_LINES;
+            // gl_draw2d.color = Color::GREEN;
+            // gl_draw2d.line({0.0, 0.0, -5.0}, {1.0, 1.0, -5.0});
+
+            // gl_draw2d.color = Color::GREEN;
+            // gl_draw2d.circle(0.25, {0.0, 0.0, 0.0});
+
+            gl_draw2d.draw_type = GL_TRIANGLES;
+
+            GLfloat CX = (SCREEN_WIDTH / 2.0f);
+            GLfloat CY = 384.0f;
+            glm::mat4 cam = FreeCamera_calc_view_matrix(&main_cam);
+
+            gl_draw2d.color = glm::vec4(252.0f / 255.0f, 212.0f / 255.0f, 64.0f / 255.0f, 1.0f);
+
+            gl_draw2d.transform_matrix = cam;
+
+            gl_draw2d.circle(90.0f, {CX, CY, -1.0});
+
+            gl_draw2d.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            gl_draw2d.transform_matrix = glm::translate(cam, glm::vec3(CX - 27.0f, CY - 25.0f, 0.0f));
+            gl_draw2d.circle(10.0f, {0.0f, 0.0f, 0.0f});
+
+            gl_draw2d.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            gl_draw2d.transform_matrix = glm::translate(cam, glm::vec3(CX + 27.0f, CY - 25.0f, 0.0f));
+            gl_draw2d.circle(10.0f, {0.0f, 0.0f, 0.0f});
+
+            
+            gl_draw2d.draw_type = GL_LINES;
+
+            #define BASE_TILE_SIZE (128.0f)
+            #define TILE_SCALE (2.0f)
+
+            CX = 5.0f / TILE_SCALE;
+            CY = 3.0f / TILE_SCALE;
+            
+            glm::mat4 model(1.0f);
+            model = glm::scale(model, glm::vec3(BASE_TILE_SIZE * TILE_SCALE, BASE_TILE_SIZE * TILE_SCALE, 1.0f));
+            model = glm::translate(model, glm::vec3({CX, CY, 0.0}));
+            model = glm::rotate(model, (GLfloat)t_since_start, glm::vec3(0.0f, 0.0f, 1.0f));
+            model = glm::translate(model, glm::vec3({-CX, -CY, 0.0}));
+            
+
+            gl_draw2d.transform_matrix = cam * model;
+
+            gl_draw2d.color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+            {
+                GLfloat off = 2.0f;
+                // horizontal
+                gl_draw2d.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX + off, CY - off, 0.0f));
+                gl_draw2d.line(glm::vec3(CX - off, CY + off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
+                // vertical
+                gl_draw2d.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX - off, CY + off, 0.0f));
+                gl_draw2d.line(glm::vec3(CX + off, CY - off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
+            }   
+
+
+            
+            // gl_draw2d.color = Color::BLUE;
+            // gl_draw2d.transform_matrix = glm::translate(gl_draw2d.transform_matrix, glm::vec3(-0.5f, -0.5f, 0.0f));
+            // gl_draw2d.vertex({0.0, 0.0, 0.0});
+            // gl_draw2d.vertex({1.0, 0.0, 0.0});
+            // gl_draw2d.vertex({0.5, glm::sqrt(3.0f) / 2.0f, 0.0});
+
+            // gl_draw2d.color = Color::RED;
+            // gl_draw2d.transform_matrix = glm::translate(gl_draw2d.transform_matrix, glm::vec3(-0.5f + glm::sin(t_since_start), -0.5f, 0.0f));
+            // gl_draw2d.vertex({0.0, 0.0, -0.5});
+            // gl_draw2d.vertex({1.0, 0.0, -0.5});
+            // gl_draw2d.vertex({0.5, glm::sqrt(3.0f) / 2.0f, -0.5});
+
+
+        gl_draw2d.end();
+
+
+        gl_draw2d.begin();
+        gl_draw2d.draw_type = GL_LINES;
+
+        //draw_lines_from_image(&gl_draw2d, "./test_paths/C.bmp", {glm::vec3(1.0f), glm::vec3(0.0f)});
+
+        gl_draw2d.end();
+        #endif
+
+
+        #ifdef EDITOR
+
+        if (key_is_toggled(&input, CONTROL::EDIT_GRID, &grid_toggle)) {
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+            glClear(GL_DEPTH_BUFFER_BIT);
+
+
+            glUseProgram(shader_grid);
+
+
+
+            if (key_is_pressed(&input, CONTROL::ZOOM_IN)) {
+                grid_square_pixel_size *= 2;
+                grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 64.0f);
+
+                glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
+            } else if (key_is_pressed(&input, CONTROL::ZOOM_OUT)) {
+                grid_square_pixel_size /= 2;
+                grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 64.0f);
+
+                glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
+            }
+
+
+            glm::mat4 rev_view = FreeCamera_calc_view_matrix_reverse(&main_cam);
+
+            glm::vec4 mouse = glm::vec4((int)input.mouse_x, (int)input.mouse_y, 0.0f, 1.0f);
+
+            mouse = rev_view * mouse;
+
+            //printf("CURSOR: [x: %f, y: %f]\n", mouse.x, mouse.y);
+
+
+            // if (mouse_is_toggled(&input, MOUSE_BUTTON::LEFT, &drawing)) {
+            //     printf("TOGGLED DRAWING ON\n");
+            // } else if (mouse_is_pressed(&input, MOUSE_BUTTON::LEFT) && !drawing) {
+            //     printf("ENDING DRAWING\n");
+            // }
+            // if (drawing) {
+            //     printf("DRAWING\n");
+            // }
+
+
+            switch (mouse_is_toggled_4_states(&input, MOUSE_BUTTON::LEFT, &drawing)) {
+            case TOGGLE_BRANCH::PRESSED_ON:
+                printf("TOGGLED DRAWING ON\n");
+            case TOGGLE_BRANCH::ON:
+                //printf("\tDRAWING\n");
+                break;
+            case TOGGLE_BRANCH::PRESSED_OFF:
+                printf("ENDING DRAWING\n");
+            case TOGGLE_BRANCH::OFF:
+                break;
+            default:
+                break;
+            }
+
+
+            glUniformMatrix4fv(MAT_LOC_GRID, 1, GL_FALSE, glm::value_ptr(
+                    mat_projection
+                )
+            );
+
+            glUniform3fv(CAM_LOC_GRID, 1, glm::value_ptr(pos));
+
+
+            glBindVertexArray(vao_2d2.vao);
+            glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, 0);
+
+            glDisable(GL_BLEND);
+        }
+
+        #endif
+
         SDL_GL_SwapWindow(window);
 
+        #ifdef FPS_COUNT
+        frame_count += 1;
+        if (t_now_s - frame_time > 1.0) {
+            fps = frame_count;
+            frame_count = 0;
+            frame_time = t_now_s;
+            printf("%f\n", (double)fps);
+        }
+        #endif
     //////////////////
     }
     
-    delete_static_VertexBufferData(&lines_data);
-    delete_VertexAttributeArray(&vao_2d);
-    SDL_GL_DeleteContext(gl_data.context);
+    VertexAttributeArray_delete(&vao_2d2);
+    VertexBufferData_delete_inplace(&tri_data);
+    #ifdef GL_DRAW2D
+    gl_draw2d.free();
+    #endif
+    #ifdef EDITOR
+    glDeleteProgram(shader_grid);
+    #endif
+    glDeleteProgram(shader_2d);
+    SDL_GL_DeleteContext(program_data.context);
     SDL_DestroyWindow(window);
     IMG_Quit();
     SDL_Quit();

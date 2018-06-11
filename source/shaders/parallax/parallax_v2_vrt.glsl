@@ -1,0 +1,40 @@
+#version 330 core
+precision highp float;
+
+layout (location = 0) in vec3 a_position;
+layout (location = 1) in vec2 a_uv;
+
+out vec2 t0c, t1c, t2c, t3c, t4c;
+
+
+
+uniform mat4 u_matrix;
+//uniform float u_aspect;
+uniform vec3 u_position_cam;
+
+void main(void) 
+{
+    gl_Position = u_matrix * vec4(a_position, 1.0);
+
+    float x_off = u_position_cam.x;
+    float y_off = clamp(u_position_cam.y, -1.45, 1.45);
+
+    t0c = a_uv;
+    t0c.x += (x_off / 4.0);
+
+    t1c = a_uv;
+    t1c.x += (x_off / 4.0);
+    t1c.y += y_off / 10.0;
+
+    t2c = a_uv;
+    t2c.x += (x_off / 2.8);
+    t2c.y += y_off / 10.0;
+
+    t3c = a_uv;
+    t3c.x += (x_off / 2.3);
+    t3c.y += y_off / 7.0;
+
+    t4c = a_uv;
+    t4c.x += (x_off / 1.0);
+    t4c.y += y_off / 1.0;
+}

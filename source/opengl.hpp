@@ -8,7 +8,7 @@
 #   define GL3_PROTOTYPES 1
 #   define GLEW_STATIC
 #   include <GL/glew.h>
-#   include <OpenGL/glu.h>
+#   //include <OpenGL/glu.h>
 #   include <OpenGL/gl.h>
 //#   include <OpenGL/gl3.h>
 #endif
@@ -19,12 +19,23 @@
 typedef GLuint UniformLocation;
 typedef GLuint Texture;
 typedef GLuint VertexArray;
-typedef VertexArray Vao;
+typedef VertexArray VAO;
 typedef GLuint VertexBuffer;
-typedef VertexBuffer Vbo; 
+typedef VertexBuffer VBO; 
 typedef GLuint ElementBuffer;
-typedef ElementBuffer Ebo;
+typedef ElementBuffer EBO;
 typedef GLuint GLBuffer;
+
+#define gl_get_errors() \
+    do { \
+        GLenum err = GL_NO_ERROR; \
+        while ((err = glGetError()) != GL_NO_ERROR) { \
+            fprintf(stderr, "ERROR: 0x%x\n", err); \
+        } \
+    } while (0) \
+\
+
+
 
 #endif // OPEN_GL_HPP
 
