@@ -21,7 +21,7 @@
 #include <iostream>
 #include <string>
 //#include <array>
-//#include <vector>
+#include <vector>
 
 #include "shader.hpp"
 #include "texture.hpp"
@@ -664,6 +664,12 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 }
 
 
+inline i32 snap_to_grid(i32 val_x, i32 len)
+{
+    return glm::round(val_x / len) * len;
+}
+
+
 int main(int argc, char* argv[])
 {
     // initialize SDL
@@ -1009,11 +1015,11 @@ int main(int argc, char* argv[])
     GLDraw2D existing;
     GLDraw2D in_prog;
     Toggle drawing = false;
-    if (!existing.GLDraw2D_init(&gl_draw2d, mat_projection)) {
+    if (!existing.GLDraw2D_init(&existing, mat_projection)) {
         fprintf(stderr, "FAILED TO INITIALIZE EDITOR DATA \"existing\"\n");
         return EXIT_FAILURE;
     }
-    if (!in_prog.GLDraw2D_init(&gl_draw2d, mat_projection)) {
+    if (!in_prog.GLDraw2D_init(&in_prog, mat_projection)) {
         fprintf(stderr, "FAILED TO INITIALIZE EDITOR DATA \"in_prog\"\n");
         return EXIT_FAILURE;
     }
@@ -1062,6 +1068,9 @@ int main(int argc, char* argv[])
 
 #ifdef EDITOR
     Toggle grid_toggle = false;
+    glm::vec3 in_progress_line[2];
+    in_progress_line[0] = glm::vec3(0.0f);
+    in_progress_line[1] = glm::vec3(0.0f); 
 #endif
 
     while (is_running) {
@@ -1349,6 +1358,18 @@ int main(int argc, char* argv[])
             }
 
 
+            glUniformMatrix4fv(MAT_LOC_GRID, 1, GL_FALSE, glm::value_ptr(
+                    mat_projection
+                )
+            );
+
+            glUniform3fv(CAM_LOC_GRID, 1, glm::value_ptr(pos));
+
+
+            glBindVertexArray(vao_2d2.vao);
+            glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, 0);
+
+
             glm::mat4 rev_view = FreeCamera_calc_view_matrix_reverse(&main_cam);
 
             glm::vec4 mouse = glm::vec4((int)input.mouse_x, (int)input.mouse_y, 0.0f, 1.0f);
@@ -1366,33 +1387,115 @@ int main(int argc, char* argv[])
             // if (drawing) {
             //     printf("DRAWING\n");
             // }
+            glClear(GL_DEPTH_BUFFER_BIT);
 
+            i32 grid_len = tex_res.x / grid_square_pixel_size;
 
             switch (mouse_is_toggled_4_states(&input, MOUSE_BUTTON::LEFT, &drawing)) {
             case TOGGLE_BRANCH::PRESSED_ON:
                 printf("TOGGLED DRAWING ON\n");
+                in_progress_line[0].x = snap_to_grid(mouse.x, grid_len);
+                in_progress_line[0].y = snap_to_grid(mouse.y, grid_len);
+                in_progress_line[0].z = mouse.z;
             case TOGGLE_BRANCH::ON:
                 //printf("\tDRAWING\n");
+                in_progress_line[1].x = snap_to_grid(mouse.x, grid_len);
+                in_progress_line[1].y = snap_to_grid(mouse.y, grid_len);
+                in_progress_line[1].z = mouse.z;
+
+                in_prog.begin();
+                in_prog.draw_type = GL_LINES;
+                in_prog.transform_matrix = cam;
+                in_prog.color = Color::BLACK;
+                in_prog.line(in_progress_line[0], in_progress_line[1]);
+
+                {
+                    in_prog.draw_type = GL_TRIANGLES;
+                    in_prog.transform_matrix = cam;
+                    in_prog.color = Color::RED;
+                    in_prog.circle(
+                        5.0f,
+                        glm::vec3(
+                            snap_to_grid(mouse.x, grid_len), 
+                            snap_to_grid(mouse.y, grid_len),
+                            1.0f
+                        )
+                    );
+                    in_prog.circle(
+                        5.0f,
+                        glm::vec3(
+                            snap_to_grid(in_progress_line[0].x, grid_len), 
+                            snap_to_grid(in_progress_line[0].y, grid_len),
+                            1.0f
+                        )
+                    );
+                }
+
+                in_prog.end();
+
+                existing.update_projection_matrix = true;
+                existing.projection_matrix = mat_projection * cam;
+                existing.begin();
+                existing.draw_type = GL_LINES;
+                //existing.transform_matrix = cam;
+                existing.end_no_reset();
+
                 break;
             case TOGGLE_BRANCH::PRESSED_OFF:
+
                 printf("ENDING DRAWING\n");
+
+                in_prog.begin();
+                {
+                    in_prog.draw_type = GL_TRIANGLES;
+                    in_prog.transform_matrix = cam;
+                    in_prog.color = Color::GREEN;
+                    in_prog.circle(
+                        10.0f,
+                        glm::vec3(
+                            snap_to_grid(mouse.x, grid_len), 
+                            snap_to_grid(mouse.y, grid_len),
+                            1.0f
+                        )
+                    );
+                }
+                in_prog.end();
+
+                existing.update_projection_matrix = true;
+                existing.projection_matrix = mat_projection * cam;
+                existing.begin();
+                existing.draw_type = GL_LINES;
+                //existing.transform_matrix = cam;
+                existing.line(in_progress_line[0], in_progress_line[1]);
+                existing.end_no_reset();
+                break;
             case TOGGLE_BRANCH::OFF:
+                in_prog.begin();
+                {
+                    in_prog.draw_type = GL_TRIANGLES;
+                    in_prog.transform_matrix = cam;
+                    in_prog.color = Color::RED;
+                    in_prog.circle(
+                        5.0f,
+                        glm::vec3(
+                            snap_to_grid(mouse.x, grid_len), 
+                            snap_to_grid(mouse.y, grid_len),
+                            1.0f
+                        )
+                    );
+                }
+                in_prog.end();
+
+                existing.update_projection_matrix = true;
+                existing.projection_matrix = mat_projection * cam;
+                existing.begin();
+                existing.draw_type = GL_LINES;
+                //existing.transform_matrix = cam;
+                existing.end_no_reset();
                 break;
             default:
                 break;
             }
-
-
-            glUniformMatrix4fv(MAT_LOC_GRID, 1, GL_FALSE, glm::value_ptr(
-                    mat_projection
-                )
-            );
-
-            glUniform3fv(CAM_LOC_GRID, 1, glm::value_ptr(pos));
-
-
-            glBindVertexArray(vao_2d2.vao);
-            glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, 0);
 
             glDisable(GL_BLEND);
         }
