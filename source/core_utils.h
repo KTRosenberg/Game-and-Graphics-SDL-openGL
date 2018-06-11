@@ -46,8 +46,8 @@ element_type type##_prev[(usize)count]
 struct Input {
     InputStateInfo(keys, CONTROL::COUNT, u8);
     InputStateInfo(mouse, MOUSE_BUTTON::COUNT, u8);
-    u32 mouse_x;
-    u32 mouse_y;
+    i32 mouse_x;
+    i32 mouse_y;
 };
 
 

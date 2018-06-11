@@ -656,6 +656,10 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 
     }
 
+#ifdef EDITOR
+    SDL_GetMouseState(&input->mouse_x, &input->mouse_y);
+#endif
+
     return true;
 }
 
@@ -1321,12 +1325,6 @@ int main(int argc, char* argv[])
 
         #ifdef EDITOR
 
-        i32 mouse_x = 0;
-        i32 mouse_y = 0;
-
-        SDL_GetMouseState(&mouse_x, &mouse_y);
-
-
         if (key_is_toggled(&input, CONTROL::EDIT_GRID, &grid_toggle)) {
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1336,7 +1334,6 @@ int main(int argc, char* argv[])
 
             glUseProgram(shader_grid);
 
-            //printf("CURSOR: [x: %f, y: %f]\n", mouse.x, mouse.y);
 
 
             if (key_is_pressed(&input, CONTROL::ZOOM_IN)) {
@@ -1354,9 +1351,11 @@ int main(int argc, char* argv[])
 
             glm::mat4 rev_view = FreeCamera_calc_view_matrix_reverse(&main_cam);
 
-            glm::vec4 mouse = glm::vec4((int)mouse_x, (int)mouse_y, 0.0f, 1.0f);
+            glm::vec4 mouse = glm::vec4((int)input.mouse_x, (int)input.mouse_y, 0.0f, 1.0f);
 
             mouse = rev_view * mouse;
+
+            //printf("CURSOR: [x: %f, y: %f]\n", mouse.x, mouse.y);
 
 
             // if (mouse_is_toggled(&input, MOUSE_BUTTON::LEFT, &drawing)) {
