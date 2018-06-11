@@ -666,7 +666,7 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 
 inline i32 snap_to_grid(i32 val_x, i32 len)
 {
-    return glm::round(val_x / len) * len;
+    return glm::round((f64)val_x / (f64)len) * len;
 }
 
 
@@ -1378,7 +1378,6 @@ int main(int argc, char* argv[])
 
             //printf("CURSOR: [x: %f, y: %f]\n", mouse.x, mouse.y);
 
-
             // if (mouse_is_toggled(&input, MOUSE_BUTTON::LEFT, &drawing)) {
             //     printf("TOGGLED DRAWING ON\n");
             // } else if (mouse_is_pressed(&input, MOUSE_BUTTON::LEFT) && !drawing) {
@@ -1390,6 +1389,8 @@ int main(int argc, char* argv[])
             glClear(GL_DEPTH_BUFFER_BIT);
 
             i32 grid_len = tex_res.x / grid_square_pixel_size;
+
+            //printf("CURSOR_SNAPPED: [x: %d, y: %d]\n", snap_to_grid(mouse.x, grid_len), snap_to_grid(mouse.y, grid_len));
 
             switch (mouse_is_toggled_4_states(&input, MOUSE_BUTTON::LEFT, &drawing)) {
             case TOGGLE_BRANCH::PRESSED_ON:
