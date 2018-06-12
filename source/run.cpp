@@ -6,6 +6,9 @@
 #define CORE_UTILS_IMPLEMENTATION
 #include "core_utils.h"
 
+#undef COMMON_UTILS_IMPLEMENTATION
+#undef CORE_UTILS_IMPLEMENTATION
+
 
 
 #include "opengl.hpp"
@@ -26,6 +29,8 @@
 #include "shader.hpp"
 #include "texture.hpp"
 #include "camera.hpp"
+
+#include "collision.h"
 
 #define WINDOW_HEADER ("")
 
@@ -290,6 +295,8 @@ struct Array {
 };
 
 
+
+
 struct VertexBufferData {
     VertexBuffer vbo;
     ElementBuffer ebo;
@@ -458,28 +465,6 @@ void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd)
     glBindBuffer(GL_ARRAY_BUFFER, vbd->ebo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, vbd->i_count * sizeof(GLuint), vbd->indices);
 }
-
-
-// COLLISION INFO
-typedef struct CollisionStatus {
-    bool      collided;
-    glm::vec3 point;
-} CollisionStatus;
-
-void CollisionStatus_init(CollisionStatus* cs, const bool collided, glm::vec3 point)
-{
-    cs->collided = collided;
-    cs->point = point;
-}
-
-typedef CollisionStatus (*Fn_CollisionHandler)(glm::vec3 incoming);
-
-typedef struct Collider {
-    glm::vec3 a;
-    glm::vec3 b;
-    Fn_CollisionHandler handler;
-} Collider; 
-
 
 struct GLData {
     VertexAttributeArray vao;
@@ -672,6 +657,19 @@ inline i32 snap_to_grid(i32 val_x, i32 len)
 
 int main(int argc, char* argv[])
 {
+    // printf("%llu\n", collision_map.element_length());
+
+    // collision_map[0].a.x = 1.0f;
+    // collision_map[0].a.y = 2.0f;
+    // collision_map[0].a.z = 3.0f;
+    // collision_map[0].b.x = 4.0f;
+    // collision_map[0].b.y = 5.0f;
+    // collision_map[0].b.z = 6.0f;
+
+    // collision_map.elements_used += 1;
+
+    // Collider_print(&collision_map[0]);
+
     // initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC | SDL_INIT_AUDIO) < 0) {
         fprintf(stderr, "%s\n", "SDL could not initialize");
@@ -991,7 +989,7 @@ int main(int argc, char* argv[])
 
     #ifdef GL_DRAW2D
     GLDraw2D gl_draw2d;
-    if (!gl_draw2d.GLDraw2D_init(&gl_draw2d, mat_projection)) {
+    if (!gl_draw2d.init(mat_projection)) {
         return EXIT_FAILURE;
     }
     #endif
@@ -1015,11 +1013,11 @@ int main(int argc, char* argv[])
     GLDraw2D existing;
     GLDraw2D in_prog;
     Toggle drawing = false;
-    if (!existing.GLDraw2D_init(&existing, mat_projection)) {
+    if (!existing.init(mat_projection)) {
         fprintf(stderr, "FAILED TO INITIALIZE EDITOR DATA \"existing\"\n");
         return EXIT_FAILURE;
     }
-    if (!in_prog.GLDraw2D_init(&in_prog, mat_projection)) {
+    if (!in_prog.init(mat_projection)) {
         fprintf(stderr, "FAILED TO INITIALIZE EDITOR DATA \"in_prog\"\n");
         return EXIT_FAILURE;
     }
@@ -1296,7 +1294,7 @@ int main(int argc, char* argv[])
 
             gl_draw2d.color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
             {
-                GLfloat off = 2.0f;
+                GLfloat off = 1.0f;
                 // horizontal
                 gl_draw2d.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX + off, CY - off, 0.0f));
                 gl_draw2d.line(glm::vec3(CX - off, CY + off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
@@ -1515,6 +1513,8 @@ int main(int argc, char* argv[])
     gl_draw2d.free();
     #endif
     #ifdef EDITOR
+    in_prog.free();
+    existing.free();
     glDeleteProgram(shader_grid);
     #endif
     glDeleteProgram(shader_2d);

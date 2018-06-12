@@ -125,9 +125,9 @@ struct GLDraw2D {
     static constexpr const char* const SHADER_VERTEX_PATH = "shaders/default_2d/default_2d.vrts";
     static constexpr const char* const SHADER_FRAGMENT_PATH = "shaders/default_2d/default_2d.frgs";
 
-    bool GLDraw2D_init(GLDraw2D* ctx, glm::mat4 projection_matrix)
+    bool init(glm::mat4 projection_matrix)
     {
-        GLDraw2D::projection_matrix = projection_matrix;
+        this->projection_matrix = projection_matrix;
         update_projection_matrix = false;
         begun = false;
 

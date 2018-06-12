@@ -120,10 +120,56 @@ static inline TOGGLE_BRANCH mouse_is_toggled_4_states(struct Input* in, MOUSE_BU
 
 static void keys_print(struct Input* in);
 
-
-
-
 }
+
+template <typename T, usize N>
+struct Buffer {
+    T memory[N];
+    usize elements_used;
+
+    operator T*(void)
+    {
+        return this->memory;
+    }
+
+    inline T& operator[](usize i)
+    {
+        return this->memory[i];
+    }
+
+    inline const T& operator[](usize i) const 
+    {
+        return this->memory[i];
+    }
+
+    inline usize byte_length(void) const
+    {
+        return sizeof(T) * N;
+    }
+
+    inline usize element_length(void) const
+    {
+        return N;
+    }
+
+    inline void push_back(T val)
+    {
+        assert(this->used < N);
+        memory[this->used] = val;
+        this->elements_used += 1;
+    }
+
+    inline void reset()
+    {
+        this->elements_used = 0;
+    }
+
+    typedef Buffer* iterator;
+    typedef const Buffer* const_iterator;
+    iterator begin(void) { return &this->memory[0]; }
+    iterator end(void) { return &this->memory[N]; }
+    iterator first_free(void) { return &this->memory[this->elements_used]; }
+};
 
 // #ifdef __cplusplus
 // }
