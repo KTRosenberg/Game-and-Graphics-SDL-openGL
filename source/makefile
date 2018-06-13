@@ -9,7 +9,7 @@ SDLCFLAGS   = $(shell sdl2-config --cflags)
 SDLLIBFLAGS = $(shell sdl2-config --libs)
 
 SOURCES_C   = test.c
-SOURCES_CPP = run.cpp file_io.cpp shader.cpp texture.cpp camera.cpp collision.cpp
+SOURCES_CPP = run.cpp file_io.cpp shader.cpp texture.cpp camera.cpp
 OBJECTS_C   = $(SOURCES_C:.c=.o)
 OBJECTS_CPP = $(SOURCES_CPP:.cpp=.o)
 

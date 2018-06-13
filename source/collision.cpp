@@ -1,9 +1,9 @@
 #include "collision.h"
 
-i64 TEST(void)
-{
-    return 0.0;
-}
+// i64 TEST(void)
+// {
+//     return 0.0;
+// }
 
 Buffer<Collider, MAX_COLLIDERS> collision_map;
 

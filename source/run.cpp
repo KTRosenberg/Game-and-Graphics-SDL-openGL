@@ -3,18 +3,17 @@
 
 #define COMMON_UTILS_IMPLEMENTATION
 #include "common_utils.h"
+#define COMMON_UTILS_IMPLEMENTATION_CPP
+#include "common_utils_cpp.h"
 #define CORE_UTILS_IMPLEMENTATION
 #include "core_utils.h"
+
+#define COLLISION_IMPLEMENTATION
+#include "collision.h"
 
 
 
 #include "opengl.hpp"
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/ext.hpp>
-#include <glm/gtc/quaternion.hpp>
 
 #include "sdl.hpp"
 
@@ -28,6 +27,8 @@
 #include "camera.hpp"
 
 #include "collision.h"
+
+#include "file_io.hpp"
 
 #define WINDOW_HEADER ("")
 
@@ -645,15 +646,22 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
     return true;
 }
 
-
-inline i32 snap_to_grid(i32 val_x, i32 len)
-{
-    return glm::round((f64)val_x / (f64)len) * len;
-}
-
-
 int main(int argc, char* argv[])
 {
+    //std::cout << dist_to_segment(glm::vec3(0.0, 0.0, 0.0), glm::vec3(1280.0, 0.0, 0.0), glm::vec3(0.0, 720.0, 0.0)) << std::endl;
+    //return 0;
+    // FILE* fp = fopen("worlds/lines_test_a.txt", "r");
+    // if (fp) {
+    //     fseek(fp, 0, SEEK_END);
+    //     i64 file_size = ftell(fp);
+    //     ftell(fp);
+    //     rewind(fp);
+    //     printf("%lld\n", file_size);
+
+    //     fclose(fp);
+
+    //     //return EXIT_SUCCESS;
+    // }
     // printf("%llu\n", collision_map.element_length());
 
     // collision_map[0].a.x = 1.0f;
@@ -1010,6 +1018,7 @@ int main(int argc, char* argv[])
     GLDraw2D existing;
     GLDraw2D in_prog;
     Toggle drawing = false;
+    Toggle deletion = false;
     if (!existing.init(mat_projection)) {
         fprintf(stderr, "FAILED TO INITIALIZE EDITOR DATA \"existing\"\n");
         return EXIT_FAILURE;
@@ -1387,45 +1396,46 @@ int main(int argc, char* argv[])
 
             //printf("CURSOR_SNAPPED: [x: %d, y: %d]\n", snap_to_grid(mouse.x, grid_len), snap_to_grid(mouse.y, grid_len));
 
-            switch (mouse_is_toggled_4_states(&input, MOUSE_BUTTON::LEFT, &drawing)) {
-            case TOGGLE_BRANCH::PRESSED_ON:
-                printf("TOGGLED DRAWING ON\n");
-                in_progress_line[0].x = snap_to_grid(mouse.x, grid_len);
-                in_progress_line[0].y = snap_to_grid(mouse.y, grid_len);
-                in_progress_line[0].z = mouse.z;
+            if (mouse_is_toggled(&input, MOUSE_BUTTON::RIGHT, &deletion)) {
+                drawing = false;
+                if (mouse_is_pressed(&input, MOUSE_BUTTON::LEFT)) {
+                    in_prog.begin();
 
-                collision_map.first_free()->a = in_progress_line[0];
-                collision_map.first_free()->a.z = 0;
-            case TOGGLE_BRANCH::ON:
-                //printf("\tDRAWING\n");
-                in_progress_line[1].x = snap_to_grid(mouse.x, grid_len);
-                in_progress_line[1].y = snap_to_grid(mouse.y, grid_len);
-                in_progress_line[1].z = mouse.z;
+                    {
+                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.transform_matrix = cam;
+                        in_prog.color = Color::RED;
+                        in_prog.circle(
+                            10.0f,
+                            glm::vec3(
+                                mouse.x, 
+                                mouse.y,
+                                1.0f
+                            )
+                        );
+                    }
 
-                collision_map.first_free()->b = in_progress_line[1];
-                collision_map.first_free()->b.z = 0;
+                    in_prog.end();
+                } else {
+                    in_prog.begin();
 
-                in_prog.begin();
-                in_prog.draw_type = GL_LINES;
-                in_prog.transform_matrix = cam;
-                in_prog.color = Color::BLACK;
-                in_prog.line(in_progress_line[0], in_progress_line[1]);
+                    {
+                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.transform_matrix = cam;
+                        in_prog.color = Color::RED;
+                        in_prog.circle(
+                            5.0f,
+                            glm::vec3(
+                                mouse.x, 
+                                mouse.y,
+                                1.0f
+                            )
+                        );
+                    }
 
-                {
-                    in_prog.draw_type = GL_TRIANGLES;
-                    in_prog.transform_matrix = cam;
-                    in_prog.color = Color::RED;
-                    in_prog.circle(
-                        5.0f,
-                        glm::vec3(
-                            snap_to_grid(mouse.x, grid_len), 
-                            snap_to_grid(mouse.y, grid_len),
-                            1.0f
-                        )
-                    );
+                    in_prog.end();                    
                 }
 
-                in_prog.end();
 
                 existing.update_projection_matrix = true;
                 existing.projection_matrix = mat_projection * cam;
@@ -1434,63 +1444,112 @@ int main(int argc, char* argv[])
                 //existing.transform_matrix = cam;
                 existing.end_no_reset();
 
-                break;
-            case TOGGLE_BRANCH::PRESSED_OFF:
+            } else {
+                switch (mouse_is_toggled_4_states(&input, MOUSE_BUTTON::LEFT, &drawing)) {
+                case TOGGLE_BRANCH::PRESSED_ON:
+                    printf("TOGGLED DRAWING ON\n");
+                    in_progress_line[0].x = snap_to_grid(mouse.x, grid_len);
+                    in_progress_line[0].y = snap_to_grid(mouse.y, grid_len);
+                    in_progress_line[0].z = mouse.z;
 
-                printf("ENDING DRAWING\n");
+                    collision_map.first_free()->a = in_progress_line[0];
+                    collision_map.first_free()->a.z = 0;
+                case TOGGLE_BRANCH::ON:
+                    //printf("\tDRAWING\n");
+                    in_progress_line[1].x = snap_to_grid(mouse.x, grid_len);
+                    in_progress_line[1].y = snap_to_grid(mouse.y, grid_len);
+                    in_progress_line[1].z = mouse.z;
 
-                collision_map.elements_used += 1;
+                    collision_map.first_free()->b = in_progress_line[1];
+                    collision_map.first_free()->b.z = 0;
 
-                in_prog.begin();
-                {
-                    in_prog.draw_type = GL_TRIANGLES;
+                    in_prog.begin();
+                    in_prog.draw_type = GL_LINES;
                     in_prog.transform_matrix = cam;
-                    in_prog.color = Color::GREEN;
-                    in_prog.circle(
-                        10.0f,
-                        glm::vec3(
-                            snap_to_grid(mouse.x, grid_len), 
-                            snap_to_grid(mouse.y, grid_len),
-                            1.0f
-                        )
-                    );
-                }
-                in_prog.end();
+                    in_prog.color = Color::BLACK;
+                    in_prog.line(in_progress_line[0], in_progress_line[1]);
 
-                existing.update_projection_matrix = true;
-                existing.projection_matrix = mat_projection * cam;
-                existing.begin();
-                existing.draw_type = GL_LINES;
-                //existing.transform_matrix = cam;
-                existing.line(in_progress_line[0], in_progress_line[1]);
-                existing.end_no_reset();
-                break;
-            case TOGGLE_BRANCH::OFF:
-                in_prog.begin();
-                {
-                    in_prog.draw_type = GL_TRIANGLES;
-                    in_prog.transform_matrix = cam;
-                    in_prog.color = Color::RED;
-                    in_prog.circle(
-                        5.0f,
-                        glm::vec3(
-                            snap_to_grid(mouse.x, grid_len), 
-                            snap_to_grid(mouse.y, grid_len),
-                            1.0f
-                        )
-                    );
-                }
-                in_prog.end();
+                    {
+                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.transform_matrix = cam;
+                        in_prog.color = Color::BLUE;
+                        in_prog.circle(
+                            5.0f,
+                            glm::vec3(
+                                snap_to_grid(mouse.x, grid_len), 
+                                snap_to_grid(mouse.y, grid_len),
+                                1.0f
+                            )
+                        );
+                    }
 
-                existing.update_projection_matrix = true;
-                existing.projection_matrix = mat_projection * cam;
-                existing.begin();
-                existing.draw_type = GL_LINES;
-                //existing.transform_matrix = cam;
-                existing.end_no_reset();
-                break;
-            default:
-                break;
+                    in_prog.end();
+
+                    existing.update_projection_matrix = true;
+                    existing.projection_matrix = mat_projection * cam;
+                    existing.begin();
+                    existing.draw_type = GL_LINES;
+                    //existing.transform_matrix = cam;
+                    existing.end_no_reset();
+
+                    break;
+                case TOGGLE_BRANCH::PRESSED_OFF:
+
+                    printf("ENDING DRAWING\n");
+
+                    collision_map.elements_used += 1;
+
+                    in_prog.begin();
+                    {
+                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.transform_matrix = cam;
+                        in_prog.color = Color::GREEN;
+                        in_prog.circle(
+                            10.0f,
+                            glm::vec3(
+                                snap_to_grid(mouse.x, grid_len), 
+                                snap_to_grid(mouse.y, grid_len),
+                                1.0f
+                            )
+                        );
+                    }
+                    in_prog.end();
+
+                    existing.update_projection_matrix = true;
+                    existing.projection_matrix = mat_projection * cam;
+                    existing.begin();
+                    existing.draw_type = GL_LINES;
+                    //existing.transform_matrix = cam;
+                    existing.line(in_progress_line[0], in_progress_line[1]);
+                    existing.end_no_reset();
+                    break;
+                case TOGGLE_BRANCH::OFF:
+                    in_prog.begin();
+                    {
+                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.transform_matrix = cam;
+                        in_prog.color = Color::BLUE;
+                        in_prog.circle(
+                            5.0f,
+                            glm::vec3(
+                                snap_to_grid(mouse.x, grid_len), 
+                                snap_to_grid(mouse.y, grid_len),
+                                1.0f
+                            )
+                        );
+                    }
+                    in_prog.end();
+
+                    existing.update_projection_matrix = true;
+                    existing.projection_matrix = mat_projection * cam;
+                    existing.begin();
+                    existing.draw_type = GL_LINES;
+                    //existing.transform_matrix = cam;
+                    existing.end_no_reset();
+                    break;
+                default:
+                    break;
+                }
             }
 
             glDisable(GL_BLEND);

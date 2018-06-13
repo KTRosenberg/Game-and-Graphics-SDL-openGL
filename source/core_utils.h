@@ -7,6 +7,7 @@
 // #endif
 
 #include "common_utils.h"
+#include "common_utils_cpp.h"
 #include <ostream>
 
 namespace input_sys {
@@ -170,6 +171,9 @@ struct Buffer {
     iterator end(void) { return &this->memory[N]; }
     iterator first_free(void) { return &this->memory[this->elements_used]; }
 };
+
+
+inline i32 snap_to_grid(i32 val_x, i32 len);
 
 // #ifdef __cplusplus
 // }
@@ -359,6 +363,11 @@ static inline void init(struct Input* input)
 }
 
 
+}
+
+inline i32 snap_to_grid(i32 val_x, i32 len)
+{
+    return glm::round((f64)val_x / (f64)len) * len;
 }
 
 #undef CORE_UTILS_IMPLEMENTATION
