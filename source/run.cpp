@@ -6,9 +6,6 @@
 #define CORE_UTILS_IMPLEMENTATION
 #include "core_utils.h"
 
-#undef COMMON_UTILS_IMPLEMENTATION
-#undef CORE_UTILS_IMPLEMENTATION
-
 
 
 #include "opengl.hpp"
@@ -1396,11 +1393,17 @@ int main(int argc, char* argv[])
                 in_progress_line[0].x = snap_to_grid(mouse.x, grid_len);
                 in_progress_line[0].y = snap_to_grid(mouse.y, grid_len);
                 in_progress_line[0].z = mouse.z;
+
+                collision_map.first_free()->a = in_progress_line[0];
+                collision_map.first_free()->a.z = 0;
             case TOGGLE_BRANCH::ON:
                 //printf("\tDRAWING\n");
                 in_progress_line[1].x = snap_to_grid(mouse.x, grid_len);
                 in_progress_line[1].y = snap_to_grid(mouse.y, grid_len);
                 in_progress_line[1].z = mouse.z;
+
+                collision_map.first_free()->b = in_progress_line[1];
+                collision_map.first_free()->b.z = 0;
 
                 in_prog.begin();
                 in_prog.draw_type = GL_LINES;
@@ -1435,6 +1438,8 @@ int main(int argc, char* argv[])
             case TOGGLE_BRANCH::PRESSED_OFF:
 
                 printf("ENDING DRAWING\n");
+
+                collision_map.elements_used += 1;
 
                 in_prog.begin();
                 {
@@ -1489,6 +1494,17 @@ int main(int argc, char* argv[])
             }
 
             glDisable(GL_BLEND);
+
+            if (collision_map.elements_used > 0) {
+                printf("{");
+                for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
+                {
+                    printf("\n");
+                    Collider_print(it);
+                }
+                printf("\n}\n");
+            }
+
         }
 
         #endif

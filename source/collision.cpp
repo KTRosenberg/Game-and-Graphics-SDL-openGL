@@ -29,6 +29,6 @@ bool CollisionStatus::collided(void)
 
 void Collider_print(Collider* c)
 {
-    printf("[[%f, %f, %f][%f, %f, %f]]\n", c->a.x, c->a.y, c->a.z, c->b.x, c->b.y, c->b.z);  
+    printf("[[%f, %f, %f][%f, %f, %f]]", c->a.x, c->a.y, c->a.z, c->b.x, c->b.y, c->b.z);  
 }
 

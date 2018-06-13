@@ -154,8 +154,8 @@ struct Buffer {
 
     inline void push_back(T val)
     {
-        assert(this->used < N);
-        memory[this->used] = val;
+        assert(this->elements_used < N);
+        memory[this->elements_used] = val;
         this->elements_used += 1;
     }
 
@@ -164,8 +164,8 @@ struct Buffer {
         this->elements_used = 0;
     }
 
-    typedef Buffer* iterator;
-    typedef const Buffer* const_iterator;
+    typedef T* iterator;
+    typedef const T* const_iterator;
     iterator begin(void) { return &this->memory[0]; }
     iterator end(void) { return &this->memory[N]; }
     iterator first_free(void) { return &this->memory[this->elements_used]; }
@@ -360,6 +360,8 @@ static inline void init(struct Input* input)
 
 
 }
+
+#undef CORE_UTILS_IMPLEMENTATION
 
 // #ifdef __cplusplus
 // }
