@@ -169,12 +169,10 @@ struct BoxComponent {
 void BoxComponent_init(f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height);
 
 
-
-
 struct Player {
     BoxComponent bound;
     bool on_ground;
-    f64 time_state_change;
+    f64 state_change_time;
 
     inline std::pair<glm::vec4, glm::vec4> floor_sensors(void)
     {
@@ -182,16 +180,50 @@ struct Player {
             // TODO each will have angle for w component
             glm::vec4(
                 this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
-                this->bound.spatial.y + (this->bound.height),
+                this->bound.spatial.y + (this->bound.height / 2),
                 this->bound.spatial.z, 
                 0.0f
             ), 
             glm::vec4(
                 this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
-                this->bound.spatial.y + (this->bound.height),
+                this->bound.spatial.y + (this->bound.height / 2),
                 this->bound.spatial.z, 
                 0.0f
             )
+        };
+    }
+
+    inline std::pair<
+        std::pair<glm::vec3, glm::vec3>, 
+        std::pair<glm::vec3, glm::vec3>
+    >
+    floor_sensor_rays(void)
+    {
+        return {
+            {
+                glm::vec3(
+                    this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
+                    this->bound.spatial.y + (this->bound.height / 2),
+                    this->bound.spatial.z 
+                ),
+                glm::vec3(
+                    this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
+                    this->bound.spatial.y + this->bound.height + (this->bound.height / 2),
+                    this->bound.spatial.z
+                )
+            },
+            {
+                glm::vec3(
+                    this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
+                    this->bound.spatial.y + (this->bound.height / 2),
+                    this->bound.spatial.z 
+                ),
+                glm::vec3(
+                    this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
+                    this->bound.spatial.y + this->bound.height + (this->bound.height / 2),
+                    this->bound.spatial.z 
+                )
+            }            
         };
     }
 
@@ -440,7 +472,7 @@ void Player_init(Player* pl, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 heig
 {
     BoxComponent_init(&pl->bound, x, y, z, angle, width, height);
     pl->on_ground = false;
-    pl->time_state_change = 0.0;
+    pl->state_change_time = 0.0;
 }
 
 

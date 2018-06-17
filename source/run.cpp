@@ -536,14 +536,19 @@ void draw_player_collision(Player* you, GLDraw2D* ctx)
     ctx->line(bottom_left, top_left);
 
     ctx->color = Color::RED;
-    auto floor_sensors = you->floor_sensors();
-    ctx->line(glm::vec3(floor_sensors.first) + off, glm::vec3(floor_sensors.first) + glm::vec3(0.0, bc->height * 0.4, floor_sensors.first.z) + off);
-    ctx->line(glm::vec3(floor_sensors.second) + off, glm::vec3(floor_sensors.second) + glm::vec3(0.0, bc->height * 0.4, floor_sensors.second.z) + off);
+    auto floor_sensor_rays = you->floor_sensor_rays();
+    floor_sensor_rays.first.first += off;
+    floor_sensor_rays.first.second += off;
+    floor_sensor_rays.second.first += off;
+    floor_sensor_rays.second.second += off;
+
+    ctx->line(floor_sensor_rays.first.first, floor_sensor_rays.first.second);
+    ctx->line(floor_sensor_rays.second.first, floor_sensor_rays.second.second);
 }
 
 
 // http://alienryderflex.com/intersect/
-bool line_segment_intersection(std::pair<glm::vec3, glm::vec3>* s0, std::pair<glm::vec3, glm::vec3>* s1, glm::vec3* out)
+bool line_segment_intersection(const std::pair<glm::vec3, glm::vec3>* s0, const std::pair<glm::vec3, glm::vec3>* s1, glm::vec3* out)
 {
     f64 Ax = s0->first.x;
     f64 Ay = s0->first.y;
@@ -600,16 +605,10 @@ bool line_segment_intersection(std::pair<glm::vec3, glm::vec3>* s0, std::pair<gl
 
 bool temp_test_collision(Player* you, Collider* c, glm::vec3* out)
 {
-    auto sensors = you->floor_sensors();
+    auto sensors = you->floor_sensor_rays();
 
-    std::pair<glm::vec3, glm::vec3> ray0 = {
-        glm::vec3(sensors.first), 
-        glm::vec3(sensors.first.x, sensors.first.y + (0.4 * you->bound.height), sensors.first.z)
-    };
-    std::pair<glm::vec3, glm::vec3> ray1 = {
-        glm::vec3(sensors.second), 
-        glm::vec3(sensors.second.x, sensors.second.y + (0.4 * you->bound.height), sensors.second.z)
-    };
+    std::pair<glm::vec3, glm::vec3>* ray0 = &sensors.first;
+    std::pair<glm::vec3, glm::vec3>* ray1 = &sensors.second;
     std::pair<glm::vec3, glm::vec3> collider = {
         c->a,
         c->b
@@ -624,13 +623,13 @@ bool temp_test_collision(Player* you, Collider* c, glm::vec3* out)
         // vec3_pair_print(&ray1.first, &ray1.second);
         // printf("\n-------------------------\n");
 
-    if (line_segment_intersection(&ray0, &collider, out) || line_segment_intersection(&ray1, &collider, out)) {
+    if (line_segment_intersection(ray0, &collider, out) || line_segment_intersection(ray1, &collider, out)) {
         //printf("INTERSECTION");
-        you->bound.spatial.y = out->y - (1 * you->bound.height);
-
-
-
-        return true;
+        if (you->bound.spatial.y + you->bound.height > out->y) {
+            you->bound.spatial.y = out->y - (1 * you->bound.height);
+            return true;
+        }
+        return false;
     }
 
     return false;
@@ -1592,7 +1591,7 @@ int main(int argc, char* argv[])
             {
                 //Collider_print(it);
                 glm::vec3 out(0.0);
-                if (temp_test_collision(&you, it, &out)) {
+                if (temp_test_collision(&you, it, &out) || you.on_ground) {
                     //printf("COLLISION\n");
                     gl_draw2d.line(glm::vec3(0.0), out);
                     you.on_ground = true;
@@ -1601,7 +1600,7 @@ int main(int argc, char* argv[])
             }
 
             if (!collided) {
-                you.on_ground = false;
+                you.on_ground = you.on_ground || false;
             }
 
             gl_draw2d.end();
