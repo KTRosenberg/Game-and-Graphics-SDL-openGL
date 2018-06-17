@@ -6,9 +6,11 @@
 // {
 // #endif
 
+#include <ostream>
+
 #include "common_utils.h"
 #include "common_utils_cpp.h"
-#include <ostream>
+#include "opengl.hpp"
 
 namespace input_sys {
 
@@ -21,6 +23,7 @@ enum struct CONTROL {
     ZOOM_IN,
     ZOOM_OUT,
     RESET_POSITION,
+    PHYSICS,
 
     COUNT
 };
@@ -123,57 +126,109 @@ static void keys_print(struct Input* in);
 
 }
 
-template <typename T, usize N>
-struct Buffer {
-    T memory[N];
-    usize elements_used;
-
-    operator T*(void)
-    {
-        return this->memory;
-    }
-
-    inline T& operator[](usize i)
-    {
-        return this->memory[i];
-    }
-
-    inline const T& operator[](usize i) const 
-    {
-        return this->memory[i];
-    }
-
-    inline usize byte_length(void) const
-    {
-        return sizeof(T) * N;
-    }
-
-    inline usize element_length(void) const
-    {
-        return N;
-    }
-
-    inline void push_back(T val)
-    {
-        assert(this->elements_used < N);
-        memory[this->elements_used] = val;
-        this->elements_used += 1;
-    }
-
-    inline void reset()
-    {
-        this->elements_used = 0;
-    }
-
-    typedef T* iterator;
-    typedef const T* const_iterator;
-    iterator begin(void) { return &this->memory[0]; }
-    iterator end(void) { return &this->memory[N]; }
-    iterator first_free(void) { return &this->memory[this->elements_used]; }
-};
-
 
 inline i32 snap_to_grid(i32 val_x, i32 len);
+
+
+struct BoxComponent {
+    glm::vec4 spatial;
+    f64 width;
+    f64 height;
+
+    inline f32 position_x(void)
+    {
+        return this->spatial.x;
+    }
+
+    inline f32 position_y(void)
+    {
+        return this->spatial.y;
+    }
+
+    inline f32 position_z(void)
+    {
+        return this->spatial.z;
+    }
+
+    inline glm::vec3 position(void)
+    {
+        return glm::vec3(this->spatial);
+    }
+
+    inline f32 angle(void)
+    {
+        return this->spatial.w;
+    }
+
+    inline glm::vec3 position_center(void)
+    {
+        return glm::vec3(spatial.x + (width / 2.0f), spatial.y + (height / 2), spatial.z);
+    }
+};
+
+void BoxComponent_init(f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height);
+
+
+
+
+struct Player {
+    BoxComponent bound;
+    bool on_ground;
+    f64 time_state_change;
+
+    inline std::pair<glm::vec4, glm::vec4> floor_sensors(void)
+    {
+        return {
+            // TODO each will have angle for w component
+            glm::vec4(
+                this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
+                this->bound.spatial.y + (this->bound.height),
+                this->bound.spatial.z, 
+                0.0f
+            ), 
+            glm::vec4(
+                this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
+                this->bound.spatial.y + (this->bound.height),
+                this->bound.spatial.z, 
+                0.0f
+            )
+        };
+    }
+
+    // inline std::pair<std::pair<glm::vec4>> floor_sensor_rays(void)
+    // {
+    //     return {
+    //         {
+    //             glm::vec4(
+    //                 this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
+    //                 this->bound.spatial.y + (this->bound.height),
+    //                 this->bound.spatial.z, 
+    //                 0.0f
+    //             ),
+    //             glm::vec4(
+    //                 this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
+    //                 this->bound.spatial.y + (this->bound.height + this->bound + heigh),
+    //                 this->bound.spatial.z, 
+    //                 0.0f                    
+    //             )
+
+    //         },
+    //         {
+    //             glm::vec4(
+    //                 this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
+    //                 this->bound.spatial.y + (this->bound.height),
+    //                 this->bound.spatial.z, 
+    //                 0.0f
+    //             )
+
+    //         }
+    //     }
+    // }
+
+
+};
+
+void Player_init(f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height);
 
 // #ifdef __cplusplus
 // }
@@ -369,6 +424,25 @@ inline i32 snap_to_grid(i32 val_x, i32 len)
 {
     return glm::round((f64)val_x / (f64)len) * len;
 }
+
+
+void BoxComponent_init(BoxComponent* bc, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height)
+{
+    bc->spatial.x = x;
+    bc->spatial.y = y;
+    bc->spatial.z = z;
+    bc->spatial.w = angle;
+    bc->width = width;
+    bc->height = height;
+}
+
+void Player_init(Player* pl, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height)
+{
+    BoxComponent_init(&pl->bound, x, y, z, angle, width, height);
+    pl->on_ground = false;
+    pl->time_state_change = 0.0;
+}
+
 
 #undef CORE_UTILS_IMPLEMENTATION
 

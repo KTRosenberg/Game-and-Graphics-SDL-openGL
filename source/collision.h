@@ -32,7 +32,10 @@ void Collider_print(Collider* c);
 #define MAX_COLLIDERS (2048)
 extern Buffer<Collider, MAX_COLLIDERS> collision_map; 
 
-// i64 TEST(void);
+
+
+glm::vec3 temp_test_collision(Player* you, Collider* c);
+
 #endif
 
 #ifdef COLLISION_IMPLEMENTATION
@@ -63,6 +66,7 @@ void Collider_print(Collider* c)
 {
     printf("[[%f, %f, %f][%f, %f, %f]]", c->a.x, c->a.y, c->a.z, c->b.x, c->b.y, c->b.z);  
 }
+
 
 #undef COLLISION_IMPLEMENTATION
 #endif

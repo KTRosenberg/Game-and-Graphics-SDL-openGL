@@ -1,3 +1,16 @@
+#define WINDOW_HEADER ("")
+
+#define SCREEN_WIDTH  (1280.0f)
+#define SCREEN_HEIGHT (720.0f)
+#define MS_PER_S (1000.0)
+#define FRAMES_PER_SECOND (60.0)
+
+#define EDITOR
+
+//#define DEBUG_PRINT
+//#define FPS_COUNT
+
+
 #include "test.h"
 
 
@@ -30,32 +43,11 @@
 
 #include "file_io.hpp"
 
-#define WINDOW_HEADER ("")
-
-#define SCREEN_WIDTH  (1280.0f)
-#define SCREEN_HEIGHT (720.0f)
-#define MS_PER_S (1000.0)
-#define FRAMES_PER_SECOND (60.0)
-
-#define EDITOR
 
 int ignore_mouse_movement(void* unused, SDL_Event* event)
 {
     return (event->type == SDL_MOUSEMOTION) ? 0 : 1;
 }
-
-//#define DEBUG_PRINT
-
-void debug_print(const char* const in);
-void debug_print(const char* const in) 
-{
-    #ifdef DEBUG_PRINT
-    puts(in);
-    #endif
-}
-
-#define FP_CAM
-// #define FREE_CAM
 
 
 SDL_Window* window = NULL;
@@ -99,97 +91,6 @@ struct sceneData {
     glm::mat4 m_projection;
 } scene;
 
-template <typename T>
-struct CappedArray {
-    size_t cap;
-    size_t count;
-    T*  array;
-
-    operator T*()
-    {
-        return this->array;
-    }
-
-    T& operator[](size_t i)
-    {
-        return this->array[i];
-    }
-     
-    const T& operator[](size_t i) const 
-    {
-        return this->array[i];
-    }
-
-    inline size_t element_count() const
-    {
-        return this->count;
-    }
-
-    inline size_t element_size() const
-    {
-        return sizeof(T);
-    }
-
-    inline size_t size() const
-    {
-        return this->cap;
-    }
-
-
-    typedef CappedArray* iterator;
-    typedef const CappedArray* const_iterator;
-    iterator begin() { return &this->array[0]; }
-    iterator end() { return &this->array[this->cap]; }
-};
-
-template <typename T>
-void CappedArray_init(CappedArray<T>* arr, size_t cap, Fn_MemoryAllocator alloc) {
-    arr->array = (T*)alloc(sizeof(T) * cap);
-    arr->count = 0;
-    arr->cap = cap;
-}
-
-template <typename T, size_t N>
-struct CappedArrayStatic {
-    size_t cap;
-    size_t count;
-    T array[N];
-
-    operator T*()
-    {
-        return this->array;
-    }
-
-    T& operator[](size_t i)
-    {
-        return this->array[i];
-    }
-     
-    const T& operator[](size_t i) const 
-    {
-        return this->array[i];
-    }
-
-    inline size_t element_count() const
-    {
-        return this->count;
-    }
-
-    inline size_t element_size() const
-    {
-        return sizeof(T);
-    }
-
-    inline size_t size() const
-    {
-        return N;
-    }
-
-    typedef CappedArrayStatic* iterator;
-    typedef const CappedArrayStatic* const_iterator;
-    iterator begin() { return &this->array[0]; }
-    iterator end() { return &this->array[N]; }
-};
 
 // ATTRIBUTES AND VERTEX ARRAYS
 
@@ -256,45 +157,6 @@ void AttributeData_init(
 //     fn_init(fn_alloc, args);
 // }
 
-template <typename T>
-struct Array {
-    T* memory;
-    size_t length;
-
-    operator T*(void)
-    {
-        return this->memory;
-    }
-
-    inline T& operator[](size_t i)
-    {
-        return this->memory[i];
-    }
-     
-    inline const T& operator[](size_t i) const 
-    {
-        return this->memory[i];
-    }
-
-    inline size_t size_buffer(void) const
-    {
-        return sizeof(T) * this->length;
-    }
-
-    inline size_t size_element(void) const
-    {
-        return sizeof(T);
-    }
-
-    typedef Array* iterator;
-    typedef const Array* const_iterator;
-    iterator begin() { return &this->memory[0]; }
-    iterator end() { return &this->memory[this->length]; }
-};
-
-
-
-
 struct VertexBufferData {
     VertexBuffer vbo;
     ElementBuffer ebo;
@@ -309,17 +171,13 @@ struct VertexBufferData {
 struct Open_GL_Data {
     VertexBuffer vbo;
     ElementBuffer ebo;
-    Array<GLfloat> vertices;
-    Array<GLuint> indices;
+    DynamicBuffer<GLfloat> vertices;
+    DynamicBuffer<GLuint> indices;
 };
 
 struct Entity {
     glm::vec3 position;
     GLfloat rotation;
-};
-
-struct Player {
-    Entity* base;
 };
 
 // struct VertexBufferDataAlt {
@@ -464,6 +322,24 @@ void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd)
     glBufferSubData(GL_ARRAY_BUFFER, 0, vbd->i_count * sizeof(GLuint), vbd->indices);
 }
 
+void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, v_dest_offset * sizeof(GLfloat), v_sub_count * sizeof(GLfloat), vbd->vertices + v_begin_offset);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vbd->ebo);
+    glBufferSubData(GL_ARRAY_BUFFER, i_dest_offset * sizeof(GLuint), i_sub_count * sizeof(GLuint), vbd->indices + i_begin_offset);
+}
+
+void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset, GLfloat* vertices, GLuint* indices)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, v_dest_offset * sizeof(GLfloat), v_sub_count * sizeof(GLfloat), vertices + v_begin_offset);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vbd->ebo);
+    glBufferSubData(GL_ARRAY_BUFFER, i_dest_offset * sizeof(GLuint), i_sub_count * sizeof(GLuint), indices + i_begin_offset);
+}
+
 struct GLData {
     VertexAttributeArray vao;
     VertexBufferData vbd;
@@ -526,18 +402,10 @@ GlobalData program_data;
 #include "gl_draw2d.h"
 #endif
 
-#include <bitset>
-
-template<typename T>
-static std::string to_binary_string(const T& x)
-{
-    return std::bitset<sizeof(T) * 8>(x).to_string();
-}
-
-using namespace input_sys;
-
 bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 {
+    using namespace input_sys;
+
     keys_advance_history(input);
 
 #ifdef EDITOR
@@ -567,8 +435,11 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 key_set_down(input, CONTROL::RESET_POSITION);
                 break;
 #ifdef EDITOR
-            case SDL_SCANCODE_G:
+            case SDL_SCANCODE_E:
                 key_set_down(input, CONTROL::EDIT_GRID);
+                break;
+            case SDL_SCANCODE_P:
+                key_set_down(input, CONTROL::PHYSICS);
                 break;
 #endif
             case SDL_SCANCODE_UP:
@@ -599,8 +470,11 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 key_set_up(input, CONTROL::RESET_POSITION);
                 break;
 #ifdef EDITOR
-            case SDL_SCANCODE_G:
+            case SDL_SCANCODE_E:
                 key_set_up(input, CONTROL::EDIT_GRID);
+                break;
+            case SDL_SCANCODE_P:
+                key_set_up(input, CONTROL::PHYSICS);
                 break;
 #endif
             case SDL_SCANCODE_UP:
@@ -646,8 +520,126 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
     return true;
 }
 
+void draw_player_collision(Player* you, GLDraw2D* ctx)
+{
+    const glm::vec3 off(0.5, 0.5, 0.0);
+    BoxComponent* bc = &you->bound;
+    glm::vec3 top_left = bc->position() + off;
+    glm::vec3 top_right = top_left + glm::vec3(bc->width, 0.0, 0.0);
+    glm::vec3 bottom_right = top_left + glm::vec3(bc->width, bc->height, 0.0);
+    glm::vec3 bottom_left = top_left + glm::vec3(0.0, bc->height, 0.0);
+
+    ctx->draw_type = GL_LINES;
+    ctx->line(top_left, top_right);
+    ctx->line(top_right, bottom_right);
+    ctx->line(bottom_right, bottom_left);
+    ctx->line(bottom_left, top_left);
+
+    ctx->color = Color::RED;
+    auto floor_sensors = you->floor_sensors();
+    ctx->line(glm::vec3(floor_sensors.first) + off, glm::vec3(floor_sensors.first) + glm::vec3(0.0, bc->height * 0.4, floor_sensors.first.z) + off);
+    ctx->line(glm::vec3(floor_sensors.second) + off, glm::vec3(floor_sensors.second) + glm::vec3(0.0, bc->height * 0.4, floor_sensors.second.z) + off);
+}
+
+
+// http://alienryderflex.com/intersect/
+bool line_segment_intersection(std::pair<glm::vec3, glm::vec3>* s0, std::pair<glm::vec3, glm::vec3>* s1, glm::vec3* out)
+{
+    f64 Ax = s0->first.x;
+    f64 Ay = s0->first.y;
+    f64 Bx = s0->second.x;
+    f64 By = s0->second.y;
+
+    f64 Cx = s1->first.x;
+    f64 Cy = s1->first.y;
+    f64 Dx = s1->second.x;
+    f64 Dy = s1->second.y;
+
+    f64 distAB, theCos, theSin, newX, ABpos;
+    
+ if (Ax==Bx && Ay==By || Cx==Dx && Cy==Dy) return false;
+
+  //  Fail if the segments share an end-point.
+  if (Ax==Cx && Ay==Cy || Bx==Cx && By==Cy
+  ||  Ax==Dx && Ay==Dy || Bx==Dx && By==Dy) {
+    return false; }
+
+  //  (1) Translate the system so that point A is on the origin.
+  Bx-=Ax; By-=Ay;
+  Cx-=Ax; Cy-=Ay;
+  Dx-=Ax; Dy-=Ay;
+
+  //  Discover the length of segment A-B.
+  distAB = glm::sqrt(Bx*Bx+By*By);
+
+  //  (2) Rotate the system so that point B is on the positive X axis.
+  theCos=Bx/distAB;
+  theSin=By/distAB;
+  newX=Cx*theCos+Cy*theSin;
+  Cy  =Cy*theCos-Cx*theSin; Cx=newX;
+  newX=Dx*theCos+Dy*theSin;
+  Dy  =Dy*theCos-Dx*theSin; Dx=newX;
+
+  //  Fail if segment C-D doesn't cross line A-B.
+  if (Cy<0. && Dy<0. || Cy>=0. && Dy>=0.) return false;
+
+  //  (3) Discover the position of the intersection point along line A-B.
+  ABpos=Dx+(Cx-Dx)*Dy/(Dy-Cy);
+
+  //  Fail if segment C-D crosses line A-B outside of segment A-B.
+  if (ABpos<0. || ABpos>distAB) return false;
+
+  //  (4) Apply the discovered position to line A-B in the original coordinate system.
+  out->x =Ax+ABpos*theCos;
+  out->y =Ay+ABpos*theSin;
+  out->z = 0.0;
+
+  //  Success.
+  return true; 
+}
+
+bool temp_test_collision(Player* you, Collider* c, glm::vec3* out)
+{
+    auto sensors = you->floor_sensors();
+
+    std::pair<glm::vec3, glm::vec3> ray0 = {
+        glm::vec3(sensors.first), 
+        glm::vec3(sensors.first.x, sensors.first.y + (0.4 * you->bound.height), sensors.first.z)
+    };
+    std::pair<glm::vec3, glm::vec3> ray1 = {
+        glm::vec3(sensors.second), 
+        glm::vec3(sensors.second.x, sensors.second.y + (0.4 * you->bound.height), sensors.second.z)
+    };
+    std::pair<glm::vec3, glm::vec3> collider = {
+        c->a,
+        c->b
+    };
+
+
+        // printf("COLLIDER: ");
+        // Collider_print(c);
+        // printf("\nagainst\n");
+        // vec3_pair_print(&ray0.first, &ray0.second);
+        // printf("\nand\n");
+        // vec3_pair_print(&ray1.first, &ray1.second);
+        // printf("\n-------------------------\n");
+
+    if (line_segment_intersection(&ray0, &collider, out) || line_segment_intersection(&ray1, &collider, out)) {
+        //printf("INTERSECTION");
+        you->bound.spatial.y = out->y - (1 * you->bound.height);
+
+
+
+        return true;
+    }
+
+    return false;
+
+}
+
 int main(int argc, char* argv[])
 {
+    using namespace input_sys;
     //std::cout << dist_to_segment(glm::vec3(0.0, 0.0, 0.0), glm::vec3(1280.0, 0.0, 0.0), glm::vec3(0.0, 720.0, 0.0)) << std::endl;
     //return 0;
     // FILE* fp = fopen("worlds/lines_test_a.txt", "r");
@@ -1056,7 +1048,6 @@ int main(int argc, char* argv[])
     f64 t_since_start_s = 0.0;
     f64 t_delta_s       = 0.0;
 
-    //#define FPS_COUNT
     #ifdef FPS_COUNT
     f64 frame_time = 0.0;
     u32 frame_count = 0;
@@ -1072,10 +1063,31 @@ int main(int argc, char* argv[])
 
 #ifdef EDITOR
     Toggle grid_toggle = false;
+    Toggle physics_toggle = false;
     glm::vec3 in_progress_line[2];
     in_progress_line[0] = glm::vec3(0.0f);
-    in_progress_line[1] = glm::vec3(0.0f); 
+    in_progress_line[1] = glm::vec3(0.0f);
+
+
+////
+    collision_map.first_free()->a = glm::vec3(0.0, SCREEN_HEIGHT - 64.0, 0.0);
+    collision_map.first_free()->b = glm::vec3(SCREEN_WIDTH, SCREEN_HEIGHT - 64.0, 0.0);
+    collision_map.elements_used += 1;
+
+    existing.update_projection_matrix = true;
+    existing.projection_matrix = mat_projection;
+    existing.begin();
+    existing.draw_type = GL_LINES;
+    existing.color = Color::BLACK;
+    existing.transform_matrix = glm::mat4(1.0);
+    existing.line(collision_map[0].a, collision_map[0].b);
+    existing.end_no_reset();
+////
 #endif
+
+    Player you;
+    Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0, 0, 20, 40);
+
 
     while (is_running) {
         t_prev = t_now;
@@ -1326,13 +1338,6 @@ int main(int argc, char* argv[])
 
         gl_draw2d.end();
 
-
-        gl_draw2d.begin();
-        gl_draw2d.draw_type = GL_LINES;
-
-        //draw_lines_from_image(&gl_draw2d, "./test_paths/C.bmp", {glm::vec3(1.0f), glm::vec3(0.0f)});
-
-        gl_draw2d.end();
         #endif
 
 
@@ -1552,17 +1557,66 @@ int main(int argc, char* argv[])
                 }
             }
 
+            gl_draw2d.begin();
+
+            glClear(GL_DEPTH_BUFFER_BIT);
+
+            gl_draw2d.draw_type = GL_LINES;
+
+            gl_draw2d.color = Color::BLUE;
+
+            gl_draw2d.transform_matrix = cam;
+
+            draw_player_collision(&you, &gl_draw2d);
+
+            //draw_lines_from_image(&gl_draw2d, "./test_paths/C.bmp", {glm::vec3(1.0f), glm::vec3(0.0f)});
+
+
+            if (/*key_is_toggled(&input, CONTROL::PHYSICS, &physics_toggle) && */!you.on_ground) {
+                you.bound.spatial.y = you.bound.spatial.y + 1 * 9.81 * (t_since_start * t_since_start);
+            }
+            
+            gl_draw2d.end();
+
+            gl_draw2d.begin();
+
+            glClear(GL_DEPTH_BUFFER_BIT);
+
+            gl_draw2d.color = Color::GREEN;
+            gl_draw2d.transform_matrix = cam;
+
+
+            bool collided = false;
+
+            for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
+            {
+                //Collider_print(it);
+                glm::vec3 out(0.0);
+                if (temp_test_collision(&you, it, &out)) {
+                    //printf("COLLISION\n");
+                    gl_draw2d.line(glm::vec3(0.0), out);
+                    you.on_ground = true;
+                    collided = true;
+                } 
+            }
+
+            if (!collided) {
+                you.on_ground = false;
+            }
+
+            gl_draw2d.end();
+
             glDisable(GL_BLEND);
 
-            if (collision_map.elements_used > 0) {
-                printf("{");
-                for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
-                {
-                    printf("\n");
-                    Collider_print(it);
-                }
-                printf("\n}\n");
-            }
+            // if (collision_map.elements_used > 0) {
+            //     printf("{");
+            //     for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
+            //     {
+            //         printf("\n");
+            //         Collider_print(it);
+            //     }
+            //     printf("\n}\n");
+            // }
 
         }
 
