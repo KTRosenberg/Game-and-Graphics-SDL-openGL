@@ -546,77 +546,6 @@ void draw_player_collision(Player* you, GLDraw2D* ctx)
     ctx->line(floor_sensor_rays.second.first, floor_sensor_rays.second.second);
 }
 
-
-// http://alienryderflex.com/intersect/
-bool line_segment_intersection(const std::pair<glm::vec3, glm::vec3>* s0, const std::pair<glm::vec3, glm::vec3>* s1, glm::vec3* out)
-{
-    f64 Ax = s0->first.x;
-    f64 Ay = s0->first.y;
-    f64 Bx = s0->second.x;
-    f64 By = s0->second.y;
-
-    f64 Cx = s1->first.x;
-    f64 Cy = s1->first.y;
-    f64 Dx = s1->second.x;
-    f64 Dy = s1->second.y;
-
-    f64 distAB, theCos, theSin, newX, ABpos;
-    
-    // if ((Ax == Bx && Ay == By) || (Cx == Dx && Cy == Dy)) {
-    //     return false;
-    // }
-
-    // //  Fail if the segments share an end-point.
-    // if ((Ax==Cx && Ay==Cy) || (Bx==Cx && By==Cy) ||  
-    //     (Ax==Dx && Ay==Dy) || (Bx==Dx && By==Dy)) {
-    //     return false; 
-    // }
-
-    //  (1) Translate the system so that point A is on the origin.
-    Bx -= Ax; 
-    By -= Ay;
-    
-    Cx -= Ax; 
-    Cy -=Ay;
-    
-    Dx -= Ax; 
-    Dy -=Ay;
-
-    //  Discover the length of segment A-B.
-    distAB = glm::sqrt(Bx*Bx + By*By);
-
-   //  (2) Rotate the system so that point B is on the positive X axis.
-    theCos = Bx / distAB;
-    theSin = By / distAB;
-    newX   = Cx*theCos + Cy*theSin;
-    Cy     = Cy*theCos - Cx*theSin; 
-    Cx = newX;
-    newX = Dx*theCos + Dy*theSin;
-    Dy   = Dy*theCos - Dx*theSin; 
-    Dx = newX;
-
-    //  Fail if segment C-D doesn't cross line A-B.
-    if ((Cy < 0.0 && Dy < 0.0) || (Cy >= 0.0 && Dy >= 0.0)) {
-        return false;
-    }
-
-    //  (3) Discover the position of the intersection point along line A-B.
-    ABpos = Dx + (Cx-Dx)*Dy / (Dy-Cy);
-
-    //  Fail if segment C-D crosses line A-B outside of segment A-B.
-    if (ABpos < 0.0 || ABpos > distAB) {
-        return false;
-    }
-
-    //  (4) Apply the discovered position to line A-B in the original coordinate system.
-    out->x =Ax+ABpos*theCos;
-    out->y =Ay+ABpos*theSin;
-    out->z = 0.0;
-
-    //  Success.
-    return true; 
-}
-
 bool temp_test_collision(Player* you, Collider* c, glm::vec3* out, const bool first_check)
 {
     auto sensors = you->floor_sensor_rays();
@@ -668,7 +597,6 @@ bool temp_test_collision(Player* you, Collider* c, glm::vec3* out, const bool fi
         //you->bound.spatial.y = new_y;
 
         if (new_y > out->y) {
-            std::cout << "WEE_0" << std::endl;
             return false;
         }
 
@@ -685,7 +613,6 @@ bool temp_test_collision(Player* you, Collider* c, glm::vec3* out, const bool fi
 
         //you->bound.spatial.y = new_y;
         if (new_y > out->y) {
-            std::cout << "WEE_1" << std::endl;
             return false;
         }
 
