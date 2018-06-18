@@ -577,10 +577,10 @@ bool line_segment_intersection(const std::pair<glm::vec3, glm::vec3>* s0, const 
     By -= Ay;
     
     Cx -= Ax; 
-    Cy-=Ay;
+    Cy -=Ay;
     
     Dx -= Ax; 
-    Dy-=Ay;
+    Dy -=Ay;
 
     //  Discover the length of segment A-B.
     distAB = glm::sqrt(Bx*Bx + By*By);
@@ -637,8 +637,8 @@ bool temp_test_collision(Player* you, Collider* c, glm::vec3* out, const bool fi
         // vec3_pair_print(&ray1.first, &ray1.second);
         // printf("\n-------------------------\n");
 
-    glm::vec3 va(std::numeric_limits<f64>::infinity());
-    glm::vec3 vb(std::numeric_limits<f64>::infinity());
+    glm::vec3 va(POSITIVE_INFINITY);
+    glm::vec3 vb(POSITIVE_INFINITY);
     glm::vec3* choice = &va;
     bool possibly_collided = false;
 
@@ -652,28 +652,42 @@ bool temp_test_collision(Player* you, Collider* c, glm::vec3* out, const bool fi
         possibly_collided = true;
     }
 
-    // TODO FIX BUG: HEIGHT OVERRIDDEN BY SUCCESSIVE COLLIDERS EVEN IF LOWER
+    if (!possibly_collided) {
+        return false;
+    }
+
+    // TODO FIX BUG: HEIGHT OVERRIDDEN BY SUCCESSIVE COLLIDERS EVEN IF LOWER,
+    // MUST COMPARE ALL COLLIDERS BEFORE MODIFYING VALUE
    // std::cout << "ON_GROUND: " << ((you->on_ground) ? "TRUE" : "FALSE") << std::endl;
     if (!you->on_ground && you->bound.spatial.y + you->bound.height >= choice->y) {
-        f64 new_y = choice->y - (1 * you->bound.height);
-        if (!first_check && new_y > you->bound.spatial.y) {
+        f64 new_y = choice->y;
+        // if (!first_check && new_y >= you->bound.spatial.y) {
+        //     return false;
+        // }
+
+        //you->bound.spatial.y = new_y;
+
+        if (new_y > out->y) {
+            std::cout << "WEE_0" << std::endl;
             return false;
         }
-
-        you->bound.spatial.y = new_y;
 
         out->x = choice->x;
         out->y = choice->y;
         out->z = 0.0;
         
         return true;
-    } else if (you->on_ground && possibly_collided) {
-        f64 new_y = choice->y - (1 * you->bound.height);
-        // if (!first_check && new_y > you->bound.spatial.y) {
+    } else if (you->on_ground) {
+        f64 new_y = choice->y;
+        // if (!first_check && new_y >= you->bound.spatial.y) {
         //     return false;
         // }
 
-        you->bound.spatial.y = new_y;
+        //you->bound.spatial.y = new_y;
+        if (new_y > out->y) {
+            std::cout << "WEE_1" << std::endl;
+            return false;
+        }
 
         out->x = choice->x;
         out->y = choice->y;
@@ -1192,11 +1206,12 @@ int main(int argc, char* argv[])
 
             if (key_is_held(&input, CONTROL::LEFT)) {
                 FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
-                left_acc *= POS_ACC;
-                left_acc = glm::min(max_acc, left_acc);
 
                 // TEMP
                 Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+
+                left_acc *= POS_ACC;
+                left_acc = glm::min(max_acc, left_acc);
             
             } else {
                 if (left_acc > 1.0) {
@@ -1212,11 +1227,12 @@ int main(int argc, char* argv[])
 
             if (key_is_held(&input, CONTROL::RIGHT)) {
                 FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
-                right_acc *= POS_ACC;
-                right_acc = glm::min(max_acc, right_acc);
 
                 // TEMP
                 Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+
+                right_acc *= POS_ACC;
+                right_acc = glm::min(max_acc, right_acc);
 
             } else {
                 if (right_acc > 1.0) {
@@ -1653,10 +1669,11 @@ int main(int argc, char* argv[])
 
             bool collided = false;
 
+            glm::vec3 out(POSITIVE_INFINITY);
             for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
             {
                 //Collider_print(it);
-                glm::vec3 out(0.0);
+                
                 if (temp_test_collision(&you, it, &out, !collided)) {
                     //printf("COLLISION\n");
                     gl_draw2d.line(glm::vec3(0.0), out);
@@ -1672,6 +1689,9 @@ int main(int argc, char* argv[])
 
             if (!collided) {
                 you.on_ground = false;
+            } else {
+                //you.bound.spatial.x = out.x - (1 * you.bound.width); <-- ENABLE TO MAKE THE FLOOR A TREADMILL
+                you.bound.spatial.y = out.y - (1 * you.bound.height);
             }
 
             gl_draw2d.end();

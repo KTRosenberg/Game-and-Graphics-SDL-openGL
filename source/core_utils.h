@@ -506,7 +506,7 @@ void Player_init(Player* pl, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 heig
 
 void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_time)
 {
-    const GLfloat velocity = 4.0 * delta_time;
+    const GLfloat velocity = (0.01 * 360.0f) * delta_time;
     glm::vec4* p = &you->bound.spatial;
 
     //#define DB

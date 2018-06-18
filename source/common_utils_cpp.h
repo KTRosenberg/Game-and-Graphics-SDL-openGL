@@ -10,6 +10,10 @@
 
 #include <bitset>
 
+#include <limits>
+
+#define POSITIVE_INFINITY (std::numeric_limits<f64>::infinity())
+
 inline f64 dist2(glm::vec3 v, glm::vec3 w);
 inline f64 dist_to_segment_squared(glm::vec3 v, glm::vec3 w, glm::vec3 p);
 inline f64 dist_to_segment(glm::vec3 v, glm::vec3 w, glm::vec3 p);
