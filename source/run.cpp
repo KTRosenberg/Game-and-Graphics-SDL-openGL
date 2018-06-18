@@ -562,48 +562,62 @@ bool line_segment_intersection(const std::pair<glm::vec3, glm::vec3>* s0, const 
 
     f64 distAB, theCos, theSin, newX, ABpos;
     
- if (Ax==Bx && Ay==By || Cx==Dx && Cy==Dy) return false;
+    // if ((Ax == Bx && Ay == By) || (Cx == Dx && Cy == Dy)) {
+    //     return false;
+    // }
 
-  //  Fail if the segments share an end-point.
-  if (Ax==Cx && Ay==Cy || Bx==Cx && By==Cy
-  ||  Ax==Dx && Ay==Dy || Bx==Dx && By==Dy) {
-    return false; }
+    // //  Fail if the segments share an end-point.
+    // if ((Ax==Cx && Ay==Cy) || (Bx==Cx && By==Cy) ||  
+    //     (Ax==Dx && Ay==Dy) || (Bx==Dx && By==Dy)) {
+    //     return false; 
+    // }
 
-  //  (1) Translate the system so that point A is on the origin.
-  Bx-=Ax; By-=Ay;
-  Cx-=Ax; Cy-=Ay;
-  Dx-=Ax; Dy-=Ay;
+    //  (1) Translate the system so that point A is on the origin.
+    Bx -= Ax; 
+    By -= Ay;
+    
+    Cx -= Ax; 
+    Cy-=Ay;
+    
+    Dx -= Ax; 
+    Dy-=Ay;
 
-  //  Discover the length of segment A-B.
-  distAB = glm::sqrt(Bx*Bx+By*By);
+    //  Discover the length of segment A-B.
+    distAB = glm::sqrt(Bx*Bx + By*By);
 
-  //  (2) Rotate the system so that point B is on the positive X axis.
-  theCos=Bx/distAB;
-  theSin=By/distAB;
-  newX=Cx*theCos+Cy*theSin;
-  Cy  =Cy*theCos-Cx*theSin; Cx=newX;
-  newX=Dx*theCos+Dy*theSin;
-  Dy  =Dy*theCos-Dx*theSin; Dx=newX;
+   //  (2) Rotate the system so that point B is on the positive X axis.
+    theCos = Bx / distAB;
+    theSin = By / distAB;
+    newX   = Cx*theCos + Cy*theSin;
+    Cy     = Cy*theCos - Cx*theSin; 
+    Cx = newX;
+    newX = Dx*theCos + Dy*theSin;
+    Dy   = Dy*theCos - Dx*theSin; 
+    Dx = newX;
 
-  //  Fail if segment C-D doesn't cross line A-B.
-  if (Cy<0. && Dy<0. || Cy>=0. && Dy>=0.) return false;
+    //  Fail if segment C-D doesn't cross line A-B.
+    if ((Cy < 0.0 && Dy < 0.0) || (Cy >= 0.0 && Dy >= 0.0)) {
+        return false;
+    }
 
-  //  (3) Discover the position of the intersection point along line A-B.
-  ABpos=Dx+(Cx-Dx)*Dy/(Dy-Cy);
+    //  (3) Discover the position of the intersection point along line A-B.
+    ABpos = Dx + (Cx-Dx)*Dy / (Dy-Cy);
 
-  //  Fail if segment C-D crosses line A-B outside of segment A-B.
-  if (ABpos<0. || ABpos>distAB) return false;
+    //  Fail if segment C-D crosses line A-B outside of segment A-B.
+    if (ABpos < 0.0 || ABpos > distAB) {
+        return false;
+    }
 
-  //  (4) Apply the discovered position to line A-B in the original coordinate system.
-  out->x =Ax+ABpos*theCos;
-  out->y =Ay+ABpos*theSin;
-  out->z = 0.0;
+    //  (4) Apply the discovered position to line A-B in the original coordinate system.
+    out->x =Ax+ABpos*theCos;
+    out->y =Ay+ABpos*theSin;
+    out->z = 0.0;
 
-  //  Success.
-  return true; 
+    //  Success.
+    return true; 
 }
 
-bool temp_test_collision(Player* you, Collider* c, glm::vec3* out)
+bool temp_test_collision(Player* you, Collider* c, glm::vec3* out, const bool first_check)
 {
     auto sensors = you->floor_sensor_rays();
 
@@ -623,14 +637,51 @@ bool temp_test_collision(Player* you, Collider* c, glm::vec3* out)
         // vec3_pair_print(&ray1.first, &ray1.second);
         // printf("\n-------------------------\n");
 
-    if (line_segment_intersection(ray0, &collider, out) || line_segment_intersection(ray1, &collider, out)) {
-        //printf("INTERSECTION");
-        if (you->bound.spatial.y + you->bound.height > out->y) {
-            you->bound.spatial.y = out->y - (1 * you->bound.height);
-            return true;
-        }
-        return false;
+    glm::vec3 va(std::numeric_limits<f64>::infinity());
+    glm::vec3 vb(std::numeric_limits<f64>::infinity());
+    glm::vec3* choice = &va;
+    bool possibly_collided = false;
+
+    if (line_segment_intersection(ray0, &collider, &va)) {
+        choice = &va;
+        possibly_collided = true;
     }
+
+    if (line_segment_intersection(ray1, &collider, &vb)) {
+        choice = (va.y < vb.y) ? &va : &vb;
+        possibly_collided = true;
+    }
+
+    // TODO FIX BUG: HEIGHT OVERRIDDEN BY SUCCESSIVE COLLIDERS EVEN IF LOWER
+   // std::cout << "ON_GROUND: " << ((you->on_ground) ? "TRUE" : "FALSE") << std::endl;
+    if (!you->on_ground && you->bound.spatial.y + you->bound.height >= choice->y) {
+        f64 new_y = choice->y - (1 * you->bound.height);
+        if (!first_check && new_y > you->bound.spatial.y) {
+            return false;
+        }
+
+        you->bound.spatial.y = new_y;
+
+        out->x = choice->x;
+        out->y = choice->y;
+        out->z = 0.0;
+        
+        return true;
+    } else if (you->on_ground && possibly_collided) {
+        f64 new_y = choice->y - (1 * you->bound.height);
+        // if (!first_check && new_y > you->bound.spatial.y) {
+        //     return false;
+        // }
+
+        you->bound.spatial.y = new_y;
+
+        out->x = choice->x;
+        out->y = choice->y;
+        out->z = 0.0;
+        
+        return true;        
+    }
+
 
     return false;
 
@@ -1069,8 +1120,12 @@ int main(int argc, char* argv[])
 
 
 ////
-    collision_map.first_free()->a = glm::vec3(0.0, SCREEN_HEIGHT - 64.0, 0.0);
-    collision_map.first_free()->b = glm::vec3(SCREEN_WIDTH, SCREEN_HEIGHT - 64.0, 0.0);
+    collision_map.first_free()->a = glm::vec3(0.0, 5 * 128, 0.0);
+    collision_map.first_free()->b = glm::vec3(SCREEN_WIDTH, 5 * 128, 0.0);
+    collision_map.elements_used += 1;
+
+    collision_map.first_free()->a = glm::vec3(512.0, 3 * 128, 0.0);
+    collision_map.first_free()->b = glm::vec3(768.0, 3 * 128, 0.0);
     collision_map.elements_used += 1;
 
     existing.update_projection_matrix = true;
@@ -1079,14 +1134,17 @@ int main(int argc, char* argv[])
     existing.draw_type = GL_LINES;
     existing.color = Color::BLACK;
     existing.transform_matrix = glm::mat4(1.0);
-    existing.line(collision_map[0].a, collision_map[0].b);
+    
+    foreach (i, collision_map.elements_used) {
+        existing.line(collision_map[i].a, collision_map[i].b);        
+    }
     existing.end_no_reset();
 ////
 #endif
 
     Player you;
     Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0, 0, 20, 40);
-
+    you.state_change_time = t_now;
 
     while (is_running) {
         t_prev = t_now;
@@ -1112,66 +1170,81 @@ int main(int argc, char* argv[])
             main_cam.orientation = glm::quat();
 
             if (key_is_held(&input, CONTROL::UP)) {
-                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
+                FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, CHANGE * up_acc);
                 up_acc *= POS_ACC;
                 up_acc = glm::min(max_acc, up_acc);
             } else {
                 if (up_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, CHANGE * up_acc);
                 }
                 up_acc = glm::max(1.0, up_acc * NEG_ACC);
             }
             if (key_is_held(&input, CONTROL::DOWN)) {
-                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
+                FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, CHANGE * down_acc);
                 down_acc *= POS_ACC;
                 down_acc = glm::min(max_acc, down_acc);
             } else {
                 if (down_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, CHANGE * down_acc);
                 } 
                 down_acc = glm::max(1.0, down_acc * NEG_ACC);
             }
 
             if (key_is_held(&input, CONTROL::LEFT)) {
-                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
+                FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
                 left_acc *= POS_ACC;
                 left_acc = glm::min(max_acc, left_acc);
+
+                // TEMP
+                Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+            
             } else {
                 if (left_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+
+                    // TEMP
+                    Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+
                 }
                 left_acc = glm::max(1.0, left_acc * NEG_ACC);
                 left_acc = glm::min(max_acc, left_acc);
             }
 
             if (key_is_held(&input, CONTROL::RIGHT)) {
-                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
+                FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
                 right_acc *= POS_ACC;
                 right_acc = glm::min(max_acc, right_acc);
+
+                // TEMP
+                Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+
             } else {
                 if (right_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+
+                    // TEMP
+                    Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
                 }
                 right_acc = glm::max(1.0, right_acc * NEG_ACC);
             }
 
             // if (*forwards) {
-            //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
+            //     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::FORWARDS, CHANGE * forwards_acc);
             //     forwards_acc *= POS_ACC;
             //     forwards_acc = glm::min(max_acc, forwards_acc);
             // } else {
             //     if (forwards_acc > 1.0) {
-            //         FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
+            //         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::FORWARDS, CHANGE * forwards_acc);
             //     }
             //     forwards_acc = glm::max(1.0, forwards_acc * NEG_ACC);
             // }
             // if (*backwards) {
-            //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
+            //     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::BACKWARDS, CHANGE * backwards_acc);
             //     backwards_acc *= POS_ACC;
             //     backwards_acc = glm::min(max_acc, backwards_acc);
             // } else {
             //     if (backwards_acc > 1.0) {
-            //         FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
+            //         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::BACKWARDS, CHANGE * backwards_acc);
             //     } 
             //     backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
             // }
@@ -1196,6 +1269,9 @@ int main(int argc, char* argv[])
                 right_acc     = 1.0;
                 backwards_acc = 1.0;
                 forwards_acc  = 1.0;
+
+                Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0, 0, 20, 40);
+                you.state_change_time = t_now;
             }
         }
 
@@ -1254,88 +1330,76 @@ int main(int argc, char* argv[])
         glClear(GL_DEPTH_BUFFER_BIT);
 
 
-        gl_draw2d.begin();
+        glm::mat4 cam = FreeCamera_calc_view_matrix(&main_cam);
 
-            //gl_draw2d.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
-            gl_draw2d.transform_matrix = glm::mat4(1.0f);
+        // gl_draw2d.begin();
 
-            // gl_draw2d.draw_type = GL_LINES;
-            // gl_draw2d.color = Color::RED;
-            // gl_draw2d.vertex({0.5, 0.0, -1.0});
-            // gl_draw2d.vertex({1.0, 1.0, -1.0});
+        //     //gl_draw2d.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+        //     gl_draw2d.transform_matrix = glm::mat4(1.0f);
+
+        //     // gl_draw2d.draw_type = GL_LINES;
+        //     // gl_draw2d.color = Color::RED;
+        //     // gl_draw2d.vertex({0.5, 0.0, -1.0});
+        //     // gl_draw2d.vertex({1.0, 1.0, -1.0});
             
-            // gl_draw2d.draw_type = GL_LINES;
-            // gl_draw2d.color = Color::GREEN;
-            // gl_draw2d.line({0.0, 0.0, -5.0}, {1.0, 1.0, -5.0});
+        //     // gl_draw2d.draw_type = GL_LINES;
+        //     // gl_draw2d.color = Color::GREEN;
+        //     // gl_draw2d.line({0.0, 0.0, -5.0}, {1.0, 1.0, -5.0});
 
-            // gl_draw2d.color = Color::GREEN;
-            // gl_draw2d.circle(0.25, {0.0, 0.0, 0.0});
+        //     // gl_draw2d.color = Color::GREEN;
+        //     // gl_draw2d.circle(0.25, {0.0, 0.0, 0.0});
 
-            gl_draw2d.draw_type = GL_TRIANGLES;
+        //     gl_draw2d.draw_type = GL_TRIANGLES;
 
-            GLfloat CX = (SCREEN_WIDTH / 2.0f);
-            GLfloat CY = 384.0f;
-            glm::mat4 cam = FreeCamera_calc_view_matrix(&main_cam);
+        //     GLfloat CX = (SCREEN_WIDTH / 2.0f);
+        //     GLfloat CY = 384.0f;
 
-            gl_draw2d.color = glm::vec4(252.0f / 255.0f, 212.0f / 255.0f, 64.0f / 255.0f, 1.0f);
+        //     gl_draw2d.color = glm::vec4(252.0f / 255.0f, 212.0f / 255.0f, 64.0f / 255.0f, 1.0f);
 
-            gl_draw2d.transform_matrix = cam;
+        //     gl_draw2d.transform_matrix = cam;
 
-            gl_draw2d.circle(90.0f, {CX, CY, -1.0});
+        //     gl_draw2d.circle(90.0f, {CX, CY, -1.0});
 
-            gl_draw2d.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-            gl_draw2d.transform_matrix = glm::translate(cam, glm::vec3(CX - 27.0f, CY - 25.0f, 0.0f));
-            gl_draw2d.circle(10.0f, {0.0f, 0.0f, 0.0f});
+        //     gl_draw2d.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        //     gl_draw2d.transform_matrix = glm::translate(cam, glm::vec3(CX - 27.0f, CY - 25.0f, 0.0f));
+        //     gl_draw2d.circle(10.0f, {0.0f, 0.0f, 0.0f});
 
-            gl_draw2d.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-            gl_draw2d.transform_matrix = glm::translate(cam, glm::vec3(CX + 27.0f, CY - 25.0f, 0.0f));
-            gl_draw2d.circle(10.0f, {0.0f, 0.0f, 0.0f});
-
-            
-            gl_draw2d.draw_type = GL_LINES;
-
-            #define BASE_TILE_SIZE (128.0f)
-            #define TILE_SCALE (2.0f)
-
-            CX = 5.0f / TILE_SCALE;
-            CY = 3.0f / TILE_SCALE;
-            
-            glm::mat4 model(1.0f);
-            model = glm::scale(model, glm::vec3(BASE_TILE_SIZE * TILE_SCALE, BASE_TILE_SIZE * TILE_SCALE, 1.0f));
-            model = glm::translate(model, glm::vec3({CX, CY, 0.0}));
-            model = glm::rotate(model, (GLfloat)t_since_start, glm::vec3(0.0f, 0.0f, 1.0f));
-            model = glm::translate(model, glm::vec3({-CX, -CY, 0.0}));
-            
-
-            gl_draw2d.transform_matrix = cam * model;
-
-            gl_draw2d.color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-            {
-                GLfloat off = 1.0f;
-                // horizontal
-                gl_draw2d.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX + off, CY - off, 0.0f));
-                gl_draw2d.line(glm::vec3(CX - off, CY + off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
-                // vertical
-                gl_draw2d.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX - off, CY + off, 0.0f));
-                gl_draw2d.line(glm::vec3(CX + off, CY - off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
-            }   
-
+        //     gl_draw2d.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        //     gl_draw2d.transform_matrix = glm::translate(cam, glm::vec3(CX + 27.0f, CY - 25.0f, 0.0f));
+        //     gl_draw2d.circle(10.0f, {0.0f, 0.0f, 0.0f});
 
             
-            // gl_draw2d.color = Color::BLUE;
-            // gl_draw2d.transform_matrix = glm::translate(gl_draw2d.transform_matrix, glm::vec3(-0.5f, -0.5f, 0.0f));
-            // gl_draw2d.vertex({0.0, 0.0, 0.0});
-            // gl_draw2d.vertex({1.0, 0.0, 0.0});
-            // gl_draw2d.vertex({0.5, glm::sqrt(3.0f) / 2.0f, 0.0});
+        //     gl_draw2d.draw_type = GL_LINES;
 
-            // gl_draw2d.color = Color::RED;
-            // gl_draw2d.transform_matrix = glm::translate(gl_draw2d.transform_matrix, glm::vec3(-0.5f + glm::sin(t_since_start), -0.5f, 0.0f));
-            // gl_draw2d.vertex({0.0, 0.0, -0.5});
-            // gl_draw2d.vertex({1.0, 0.0, -0.5});
-            // gl_draw2d.vertex({0.5, glm::sqrt(3.0f) / 2.0f, -0.5});
+        //     #define BASE_TILE_SIZE (128.0f)
+        //     #define TILE_SCALE (2.0f)
+
+        //     CX = 5.0f / TILE_SCALE;
+        //     CY = 3.0f / TILE_SCALE;
+            
+        //     glm::mat4 model(1.0f);
+        //     model = glm::scale(model, glm::vec3(BASE_TILE_SIZE * TILE_SCALE, BASE_TILE_SIZE * TILE_SCALE, 1.0f));
+        //     model = glm::translate(model, glm::vec3({CX, CY, 0.0}));
+        //     model = glm::rotate(model, (GLfloat)t_since_start, glm::vec3(0.0f, 0.0f, 1.0f));
+        //     model = glm::translate(model, glm::vec3({-CX, -CY, 0.0}));
+            
+
+        //     gl_draw2d.transform_matrix = cam * model;
+
+        //     gl_draw2d.color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+        //     {
+        //         GLfloat off = 1.0f;
+        //         // horizontal
+        //         gl_draw2d.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX + off, CY - off, 0.0f));
+        //         gl_draw2d.line(glm::vec3(CX - off, CY + off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
+        //         // vertical
+        //         gl_draw2d.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX - off, CY + off, 0.0f));
+        //         gl_draw2d.line(glm::vec3(CX + off, CY - off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
+        //     }   
 
 
-        gl_draw2d.end();
+
+        // gl_draw2d.end();
 
         #endif
 
@@ -1451,7 +1515,7 @@ int main(int argc, char* argv[])
             } else {
                 switch (mouse_is_toggled_4_states(&input, MOUSE_BUTTON::LEFT, &drawing)) {
                 case TOGGLE_BRANCH::PRESSED_ON:
-                    printf("TOGGLED DRAWING ON\n");
+                    //printf("TOGGLED DRAWING ON\n");
                     in_progress_line[0].x = snap_to_grid(mouse.x, grid_len);
                     in_progress_line[0].y = snap_to_grid(mouse.y, grid_len);
                     in_progress_line[0].z = mouse.z;
@@ -1499,7 +1563,7 @@ int main(int argc, char* argv[])
                     break;
                 case TOGGLE_BRANCH::PRESSED_OFF:
 
-                    printf("ENDING DRAWING\n");
+                    //printf("ENDING DRAWING\n");
 
                     collision_map.elements_used += 1;
 
@@ -1571,8 +1635,10 @@ int main(int argc, char* argv[])
             //draw_lines_from_image(&gl_draw2d, "./test_paths/C.bmp", {glm::vec3(1.0f), glm::vec3(0.0f)});
 
 
+            f64 WEE = ((f64)(t_now - you.state_change_time)) / frequency;
+
             if (/*key_is_toggled(&input, CONTROL::PHYSICS, &physics_toggle) && */!you.on_ground) {
-                you.bound.spatial.y = you.bound.spatial.y + 1 * 9.81 * (t_since_start * t_since_start);
+                you.bound.spatial.y = you.bound.spatial.y + 1 * 9.81 * (WEE * WEE);
             }
             
             gl_draw2d.end();
@@ -1591,16 +1657,21 @@ int main(int argc, char* argv[])
             {
                 //Collider_print(it);
                 glm::vec3 out(0.0);
-                if (temp_test_collision(&you, it, &out) || you.on_ground) {
+                if (temp_test_collision(&you, it, &out, !collided)) {
                     //printf("COLLISION\n");
                     gl_draw2d.line(glm::vec3(0.0), out);
                     you.on_ground = true;
+                    you.state_change_time = t_now;
                     collided = true;
-                } 
+
+                    //puts("COLLIDED");
+                } else {
+                    //puts("NO COLLISION");
+                }
             }
 
             if (!collided) {
-                you.on_ground = you.on_ground || false;
+                you.on_ground = false;
             }
 
             gl_draw2d.end();

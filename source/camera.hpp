@@ -11,20 +11,12 @@
 
 #include <limits>
 
+#include "core_utils.h"
+
 #define MAX_BOUND 89.0f
 #define MIN_BOUND -89.0f
 #define MIN_MOUSE_ZOOM 1.0f
 #define MAX_MOUSE_ZOOM 45.0f
-
-enum class Movement_Direction : unsigned char 
-{
-    FORWARDS,
-    BACKWARDS,
-    LEFTWARDS,
-    RIGHTWARDS,
-    UPWARDS,
-    DOWNWARDS
-};
 
 static const GLfloat ViewCamera_default_speed = 4.0f;
 
@@ -52,7 +44,7 @@ void ViewCamera_init(
     GLfloat max_y = std::numeric_limits<double>::infinity()
 );
 
-void ViewCamera_process_directional_movement(ViewCamera* view, Movement_Direction direction, GLfloat delta_time);
+void ViewCamera_process_directional_movement(ViewCamera* view, MOVEMENT_DIRECTION direction, GLfloat delta_time);
 glm::mat4 ViewCamera_calc_view_matrix(ViewCamera* view);
 ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -148,7 +140,7 @@ struct FreeCamera {
 void FreeCamera_init(FreeCamera* view, glm::vec3 start_position = glm::vec3(0.0));
 
 
-void FreeCamera_process_directional_movement(FreeCamera* view, Movement_Direction direction, GLfloat delta_time);
+void FreeCamera_process_directional_movement(FreeCamera* view, MOVEMENT_DIRECTION direction, GLfloat delta_time);
 
 glm::mat4 FreeCamera_calc_view_matrix(FreeCamera* view);
 glm::mat4 FreeCamera_calc_view_matrix_reverse(FreeCamera* view);

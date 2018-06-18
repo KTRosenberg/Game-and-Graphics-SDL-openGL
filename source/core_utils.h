@@ -12,6 +12,16 @@
 #include "common_utils_cpp.h"
 #include "opengl.hpp"
 
+enum struct MOVEMENT_DIRECTION : unsigned char 
+{
+    FORWARDS,
+    BACKWARDS,
+    LEFTWARDS,
+    RIGHTWARDS,
+    UPWARDS,
+    DOWNWARDS
+};
+
 namespace input_sys {
 
 enum struct CONTROL {
@@ -160,9 +170,22 @@ struct BoxComponent {
         return this->spatial.w;
     }
 
-    inline glm::vec3 position_center(void)
+    inline glm::vec3 calc_position_center(void)
     {
         return glm::vec3(spatial.x + (width / 2.0f), spatial.y + (height / 2), spatial.z);
+    }
+
+    void reposition(f64 x, f64 y, f64 z)
+    {
+        spatial.x = x;
+        spatial.y = y;
+        spatial.z = z;
+    }
+
+    void reposition_and_reorient(f64 x, f64 y, f64 z, f64 angle)
+    {
+        reposition(x, y, z);
+        spatial.w = angle;
     }
 };
 
@@ -173,6 +196,8 @@ struct Player {
     BoxComponent bound;
     bool on_ground;
     f64 state_change_time;
+    glm::vec3 ground_speed;
+    glm::vec3 air_speed;
 
     inline std::pair<glm::vec4, glm::vec4> floor_sensors(void)
     {
@@ -261,6 +286,8 @@ struct Player {
 };
 
 void Player_init(f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height);
+
+void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_time);
 
 // #ifdef __cplusplus
 // }
@@ -473,6 +500,62 @@ void Player_init(Player* pl, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 heig
     BoxComponent_init(&pl->bound, x, y, z, angle, width, height);
     pl->on_ground = false;
     pl->state_change_time = 0.0;
+    pl->ground_speed = glm::vec3(0.0);
+    pl->air_speed = glm::vec3(0.0);
+}
+
+void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_time)
+{
+    const GLfloat velocity = 4.0 * delta_time;
+    glm::vec4* p = &you->bound.spatial;
+
+    //#define DB
+    switch (direction) {
+    case MOVEMENT_DIRECTION::FORWARDS:
+        #ifdef DB 
+        std::cout << "FORWARDS" << std::endl; 
+        #endif
+        p->z -= velocity;
+        break;
+    case MOVEMENT_DIRECTION::BACKWARDS:
+        #ifdef DB 
+        std::cout << "BACKWARDS" << std::endl;
+        #endif
+        p->z += velocity;
+        break;
+    case MOVEMENT_DIRECTION::LEFTWARDS:
+        #ifdef DB 
+        std::cout << "LEFTWARDS" << std::endl; 
+        #endif
+        p->x -= velocity;
+        break;
+    case MOVEMENT_DIRECTION::RIGHTWARDS:
+        #ifdef DB 
+        std::cout << "RIGHTWARDS" << std::endl; 
+        #endif
+        p->x += velocity;
+        break;
+    case MOVEMENT_DIRECTION::UPWARDS:
+        #ifdef DB 
+        std::cout << "UPWARDS" << std::endl; 
+        #endif
+        p->y -= velocity;
+        break;
+    case MOVEMENT_DIRECTION::DOWNWARDS:
+        #ifdef DB 
+        std::cout << "DOWNWARDS" << std::endl; 
+        #endif
+        p->y += velocity;
+        break;
+    }
+
+
+    // p->x = glm::clamp(p->x, view->min_x, view->max_x);  
+    // p->y = glm::clamp(p->y, view->min_y, view->max_y);  
+    // p->z = glm::clamp(p->z, view->min_z, view->max_z);
+    //p->x = glm::clamp(p->x, 0.0f, 720.0f);  
+    //p->y = glm::clamp(p->y, 0.0f, 480.0f);  
+    p->z = glm::clamp(p->z, -1.0f, 1.0f);
 }
 
 
