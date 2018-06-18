@@ -6,8 +6,21 @@
 // {
 // #endif
 
-#include "common_utils.h"
 #include <ostream>
+
+#include "common_utils.h"
+#include "common_utils_cpp.h"
+#include "opengl.hpp"
+
+enum struct MOVEMENT_DIRECTION : unsigned char 
+{
+    FORWARDS,
+    BACKWARDS,
+    LEFTWARDS,
+    RIGHTWARDS,
+    UPWARDS,
+    DOWNWARDS
+};
 
 namespace input_sys {
 
@@ -20,6 +33,7 @@ enum struct CONTROL {
     ZOOM_IN,
     ZOOM_OUT,
     RESET_POSITION,
+    PHYSICS,
 
     COUNT
 };
@@ -120,10 +134,160 @@ static inline TOGGLE_BRANCH mouse_is_toggled_4_states(struct Input* in, MOUSE_BU
 
 static void keys_print(struct Input* in);
 
-
-
-
 }
+
+
+inline i32 snap_to_grid(i32 val_x, i32 len);
+
+
+struct BoxComponent {
+    glm::vec4 spatial;
+    f64 width;
+    f64 height;
+
+    inline f32 position_x(void)
+    {
+        return this->spatial.x;
+    }
+
+    inline f32 position_y(void)
+    {
+        return this->spatial.y;
+    }
+
+    inline f32 position_z(void)
+    {
+        return this->spatial.z;
+    }
+
+    inline glm::vec3 position(void)
+    {
+        return glm::vec3(this->spatial);
+    }
+
+    inline f32 angle(void)
+    {
+        return this->spatial.w;
+    }
+
+    inline glm::vec3 calc_position_center(void)
+    {
+        return glm::vec3(spatial.x + (width / 2.0f), spatial.y + (height / 2), spatial.z);
+    }
+
+    void reposition(f64 x, f64 y, f64 z)
+    {
+        spatial.x = x;
+        spatial.y = y;
+        spatial.z = z;
+    }
+
+    void reposition_and_reorient(f64 x, f64 y, f64 z, f64 angle)
+    {
+        reposition(x, y, z);
+        spatial.w = angle;
+    }
+};
+
+void BoxComponent_init(f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height);
+
+
+struct Player {
+    BoxComponent bound;
+    bool on_ground;
+    f64 state_change_time;
+    glm::vec3 ground_speed;
+    glm::vec3 air_speed;
+
+    inline std::pair<glm::vec4, glm::vec4> floor_sensors(void)
+    {
+        return {
+            // TODO each will have angle for w component
+            glm::vec4(
+                this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
+                this->bound.spatial.y + (this->bound.height / 2),
+                this->bound.spatial.z, 
+                0.0f
+            ), 
+            glm::vec4(
+                this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
+                this->bound.spatial.y + (this->bound.height / 2),
+                this->bound.spatial.z, 
+                0.0f
+            )
+        };
+    }
+
+    inline std::pair<
+        std::pair<glm::vec3, glm::vec3>, 
+        std::pair<glm::vec3, glm::vec3>
+    >
+    floor_sensor_rays(void)
+    {
+        return {
+            {
+                glm::vec3(
+                    this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
+                    this->bound.spatial.y + (this->bound.height / 2),
+                    this->bound.spatial.z 
+                ),
+                glm::vec3(
+                    this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
+                    this->bound.spatial.y + this->bound.height + (this->bound.height / 2),
+                    this->bound.spatial.z
+                )
+            },
+            {
+                glm::vec3(
+                    this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
+                    this->bound.spatial.y + (this->bound.height / 2),
+                    this->bound.spatial.z 
+                ),
+                glm::vec3(
+                    this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
+                    this->bound.spatial.y + this->bound.height + (this->bound.height / 2),
+                    this->bound.spatial.z 
+                )
+            }            
+        };
+    }
+
+    // inline std::pair<std::pair<glm::vec4>> floor_sensor_rays(void)
+    // {
+    //     return {
+    //         {
+    //             glm::vec4(
+    //                 this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
+    //                 this->bound.spatial.y + (this->bound.height),
+    //                 this->bound.spatial.z, 
+    //                 0.0f
+    //             ),
+    //             glm::vec4(
+    //                 this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
+    //                 this->bound.spatial.y + (this->bound.height + this->bound + heigh),
+    //                 this->bound.spatial.z, 
+    //                 0.0f                    
+    //             )
+
+    //         },
+    //         {
+    //             glm::vec4(
+    //                 this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
+    //                 this->bound.spatial.y + (this->bound.height),
+    //                 this->bound.spatial.z, 
+    //                 0.0f
+    //             )
+
+    //         }
+    //     }
+    // }
+
+
+};
+
+void Player_init(f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height);
+
+void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_time);
 
 // #ifdef __cplusplus
 // }
@@ -314,6 +478,88 @@ static inline void init(struct Input* input)
 
 
 }
+
+inline i32 snap_to_grid(i32 val_x, i32 len)
+{
+    return glm::round((f64)val_x / (f64)len) * len;
+}
+
+
+void BoxComponent_init(BoxComponent* bc, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height)
+{
+    bc->spatial.x = x;
+    bc->spatial.y = y;
+    bc->spatial.z = z;
+    bc->spatial.w = angle;
+    bc->width = width;
+    bc->height = height;
+}
+
+void Player_init(Player* pl, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height)
+{
+    BoxComponent_init(&pl->bound, x, y, z, angle, width, height);
+    pl->on_ground = false;
+    pl->state_change_time = 0.0;
+    pl->ground_speed = glm::vec3(0.0);
+    pl->air_speed = glm::vec3(0.0);
+}
+
+void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_time)
+{
+    const GLfloat velocity = (0.01 * 360.0f) * delta_time;
+    glm::vec4* p = &you->bound.spatial;
+
+    //#define DB
+    switch (direction) {
+    case MOVEMENT_DIRECTION::FORWARDS:
+        #ifdef DB 
+        std::cout << "FORWARDS" << std::endl; 
+        #endif
+        p->z -= velocity;
+        break;
+    case MOVEMENT_DIRECTION::BACKWARDS:
+        #ifdef DB 
+        std::cout << "BACKWARDS" << std::endl;
+        #endif
+        p->z += velocity;
+        break;
+    case MOVEMENT_DIRECTION::LEFTWARDS:
+        #ifdef DB 
+        std::cout << "LEFTWARDS" << std::endl; 
+        #endif
+        p->x -= velocity;
+        break;
+    case MOVEMENT_DIRECTION::RIGHTWARDS:
+        #ifdef DB 
+        std::cout << "RIGHTWARDS" << std::endl; 
+        #endif
+        p->x += velocity;
+        break;
+    case MOVEMENT_DIRECTION::UPWARDS:
+        #ifdef DB 
+        std::cout << "UPWARDS" << std::endl; 
+        #endif
+        p->y -= velocity;
+        break;
+    case MOVEMENT_DIRECTION::DOWNWARDS:
+        #ifdef DB 
+        std::cout << "DOWNWARDS" << std::endl; 
+        #endif
+        p->y += velocity;
+        break;
+    }
+
+
+    // p->x = glm::clamp(p->x, view->min_x, view->max_x);  
+    // p->y = glm::clamp(p->y, view->min_y, view->max_y);  
+    // p->z = glm::clamp(p->z, view->min_z, view->max_z);
+    //p->x = glm::clamp(p->x, 0.0f, 720.0f);  
+    //p->y = glm::clamp(p->y, 0.0f, 480.0f);  
+    p->z = glm::clamp(p->z, -1.0f, 1.0f);
+}
+
+
+#undef CORE_UTILS_IMPLEMENTATION
 
 // #ifdef __cplusplus
 // }

@@ -1,7 +1,9 @@
 CXX         = g++
 CC          = gcc
-CXXFLAGS    = -O3 -g -Wall -Wextra -std=c++1y
-CFLAGS      = -O3 -g -Wall -Wextra
+CXXDISABLEDFLAGS = -Wno-unused-function -Wno-unused-parameter
+CDISABLEDFLAGS = -Wno-unused-function -Wno-unused-parameter
+CXXFLAGS    = -O3 -g -Wall -Wextra $(CXXDISABLEDFLAGS) -std=c++1y
+CFLAGS      = -O3 -g -Wall -Wextra $(CDISABLEDFLAGS)
 LDFLAGS     = -framework OpenGL -lGLEW -lSDL2 -lSDL2_image  
 SDLCFLAGS   = $(shell sdl2-config --cflags)
 SDLLIBFLAGS = $(shell sdl2-config --libs)

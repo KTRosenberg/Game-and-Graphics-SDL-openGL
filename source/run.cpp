@@ -1,32 +1,3 @@
-#include "test.h"
-
-
-#define COMMON_UTILS_IMPLEMENTATION
-#include "common_utils.h"
-#define CORE_UTILS_IMPLEMENTATION
-#include "core_utils.h"
-
-
-
-#include "opengl.hpp"
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/ext.hpp>
-#include <glm/gtc/quaternion.hpp>
-
-#include "sdl.hpp"
-
-#include <iostream>
-#include <string>
-//#include <array>
-//#include <vector>
-
-#include "shader.hpp"
-#include "texture.hpp"
-#include "camera.hpp"
-
 #define WINDOW_HEADER ("")
 
 #define SCREEN_WIDTH  (1280.0f)
@@ -36,23 +7,47 @@
 
 #define EDITOR
 
+//#define DEBUG_PRINT
+//#define FPS_COUNT
+
+
+#include "test.h"
+
+
+#define COMMON_UTILS_IMPLEMENTATION
+#include "common_utils.h"
+#define COMMON_UTILS_IMPLEMENTATION_CPP
+#include "common_utils_cpp.h"
+#define CORE_UTILS_IMPLEMENTATION
+#include "core_utils.h"
+
+#define COLLISION_IMPLEMENTATION
+#include "collision.h"
+
+
+
+#include "opengl.hpp"
+
+#include "sdl.hpp"
+
+#include <iostream>
+#include <string>
+//#include <array>
+#include <vector>
+
+#include "shader.hpp"
+#include "texture.hpp"
+#include "camera.hpp"
+
+#include "collision.h"
+
+#include "file_io.hpp"
+
+
 int ignore_mouse_movement(void* unused, SDL_Event* event)
 {
     return (event->type == SDL_MOUSEMOTION) ? 0 : 1;
 }
-
-//#define DEBUG_PRINT
-
-void debug_print(const char* const in);
-void debug_print(const char* const in) 
-{
-    #ifdef DEBUG_PRINT
-    puts(in);
-    #endif
-}
-
-#define FP_CAM
-// #define FREE_CAM
 
 
 SDL_Window* window = NULL;
@@ -96,97 +91,6 @@ struct sceneData {
     glm::mat4 m_projection;
 } scene;
 
-template <typename T>
-struct CappedArray {
-    size_t cap;
-    size_t count;
-    T*  array;
-
-    operator T*()
-    {
-        return this->array;
-    }
-
-    T& operator[](size_t i)
-    {
-        return this->array[i];
-    }
-     
-    const T& operator[](size_t i) const 
-    {
-        return this->array[i];
-    }
-
-    inline size_t element_count() const
-    {
-        return this->count;
-    }
-
-    inline size_t element_size() const
-    {
-        return sizeof(T);
-    }
-
-    inline size_t size() const
-    {
-        return this->cap;
-    }
-
-
-    typedef CappedArray* iterator;
-    typedef const CappedArray* const_iterator;
-    iterator begin() { return &this->array[0]; }
-    iterator end() { return &this->array[this->cap]; }
-};
-
-template <typename T>
-void CappedArray_init(CappedArray<T>* arr, size_t cap, Fn_MemoryAllocator alloc) {
-    arr->array = (T*)alloc(sizeof(T) * cap);
-    arr->count = 0;
-    arr->cap = cap;
-}
-
-template <typename T, size_t N>
-struct CappedArrayStatic {
-    size_t cap;
-    size_t count;
-    T array[N];
-
-    operator T*()
-    {
-        return this->array;
-    }
-
-    T& operator[](size_t i)
-    {
-        return this->array[i];
-    }
-     
-    const T& operator[](size_t i) const 
-    {
-        return this->array[i];
-    }
-
-    inline size_t element_count() const
-    {
-        return this->count;
-    }
-
-    inline size_t element_size() const
-    {
-        return sizeof(T);
-    }
-
-    inline size_t size() const
-    {
-        return N;
-    }
-
-    typedef CappedArrayStatic* iterator;
-    typedef const CappedArrayStatic* const_iterator;
-    iterator begin() { return &this->array[0]; }
-    iterator end() { return &this->array[N]; }
-};
 
 // ATTRIBUTES AND VERTEX ARRAYS
 
@@ -253,43 +157,6 @@ void AttributeData_init(
 //     fn_init(fn_alloc, args);
 // }
 
-template <typename T>
-struct Array {
-    T* memory;
-    size_t length;
-
-    operator T*(void)
-    {
-        return this->memory;
-    }
-
-    inline T& operator[](size_t i)
-    {
-        return this->memory[i];
-    }
-     
-    inline const T& operator[](size_t i) const 
-    {
-        return this->memory[i];
-    }
-
-    inline size_t size_buffer(void) const
-    {
-        return sizeof(T) * this->length;
-    }
-
-    inline size_t size_element(void) const
-    {
-        return sizeof(T);
-    }
-
-    typedef Array* iterator;
-    typedef const Array* const_iterator;
-    iterator begin() { return &this->memory[0]; }
-    iterator end() { return &this->memory[this->length]; }
-};
-
-
 struct VertexBufferData {
     VertexBuffer vbo;
     ElementBuffer ebo;
@@ -304,17 +171,13 @@ struct VertexBufferData {
 struct Open_GL_Data {
     VertexBuffer vbo;
     ElementBuffer ebo;
-    Array<GLfloat> vertices;
-    Array<GLuint> indices;
+    DynamicBuffer<GLfloat> vertices;
+    DynamicBuffer<GLuint> indices;
 };
 
 struct Entity {
     glm::vec3 position;
     GLfloat rotation;
-};
-
-struct Player {
-    Entity* base;
 };
 
 // struct VertexBufferDataAlt {
@@ -459,27 +322,23 @@ void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd)
     glBufferSubData(GL_ARRAY_BUFFER, 0, vbd->i_count * sizeof(GLuint), vbd->indices);
 }
 
-
-// COLLISION INFO
-typedef struct CollisionStatus {
-    bool      collided;
-    glm::vec3 point;
-} CollisionStatus;
-
-void CollisionStatus_init(CollisionStatus* cs, const bool collided, glm::vec3 point)
+void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset)
 {
-    cs->collided = collided;
-    cs->point = point;
+    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, v_dest_offset * sizeof(GLfloat), v_sub_count * sizeof(GLfloat), vbd->vertices + v_begin_offset);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vbd->ebo);
+    glBufferSubData(GL_ARRAY_BUFFER, i_dest_offset * sizeof(GLuint), i_sub_count * sizeof(GLuint), vbd->indices + i_begin_offset);
 }
 
-typedef CollisionStatus (*Fn_CollisionHandler)(glm::vec3 incoming);
-
-typedef struct Collider {
-    glm::vec3 a;
-    glm::vec3 b;
-    Fn_CollisionHandler handler;
-} Collider; 
-
+void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset, GLfloat* vertices, GLuint* indices)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, v_dest_offset * sizeof(GLfloat), v_sub_count * sizeof(GLfloat), vertices + v_begin_offset);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vbd->ebo);
+    glBufferSubData(GL_ARRAY_BUFFER, i_dest_offset * sizeof(GLuint), i_sub_count * sizeof(GLuint), indices + i_begin_offset);
+}
 
 struct GLData {
     VertexAttributeArray vao;
@@ -543,18 +402,10 @@ GlobalData program_data;
 #include "gl_draw2d.h"
 #endif
 
-#include <bitset>
-
-template<typename T>
-static std::string to_binary_string(const T& x)
-{
-    return std::bitset<sizeof(T) * 8>(x).to_string();
-}
-
-using namespace input_sys;
-
 bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 {
+    using namespace input_sys;
+
     keys_advance_history(input);
 
 #ifdef EDITOR
@@ -584,8 +435,11 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 key_set_down(input, CONTROL::RESET_POSITION);
                 break;
 #ifdef EDITOR
-            case SDL_SCANCODE_G:
+            case SDL_SCANCODE_E:
                 key_set_down(input, CONTROL::EDIT_GRID);
+                break;
+            case SDL_SCANCODE_P:
+                key_set_down(input, CONTROL::PHYSICS);
                 break;
 #endif
             case SDL_SCANCODE_UP:
@@ -616,8 +470,11 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 key_set_up(input, CONTROL::RESET_POSITION);
                 break;
 #ifdef EDITOR
-            case SDL_SCANCODE_G:
+            case SDL_SCANCODE_E:
                 key_set_up(input, CONTROL::EDIT_GRID);
+                break;
+            case SDL_SCANCODE_P:
+                key_set_up(input, CONTROL::PHYSICS);
                 break;
 #endif
             case SDL_SCANCODE_UP:
@@ -663,9 +520,144 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
     return true;
 }
 
+void draw_player_collision(Player* you, GLDraw2D* ctx)
+{
+    const glm::vec3 off(0.5, 0.5, 0.0);
+    BoxComponent* bc = &you->bound;
+    glm::vec3 top_left = bc->position() + off;
+    glm::vec3 top_right = top_left + glm::vec3(bc->width, 0.0, 0.0);
+    glm::vec3 bottom_right = top_left + glm::vec3(bc->width, bc->height, 0.0);
+    glm::vec3 bottom_left = top_left + glm::vec3(0.0, bc->height, 0.0);
+
+    ctx->draw_type = GL_LINES;
+    ctx->line(top_left, top_right);
+    ctx->line(top_right, bottom_right);
+    ctx->line(bottom_right, bottom_left);
+    ctx->line(bottom_left, top_left);
+
+    ctx->color = Color::RED;
+    auto floor_sensor_rays = you->floor_sensor_rays();
+    floor_sensor_rays.first.first += off;
+    floor_sensor_rays.first.second += off;
+    floor_sensor_rays.second.first += off;
+    floor_sensor_rays.second.second += off;
+
+    ctx->line(floor_sensor_rays.first.first, floor_sensor_rays.first.second);
+    ctx->line(floor_sensor_rays.second.first, floor_sensor_rays.second.second);
+}
+
+bool temp_test_collision(Player* you, Collider* c, glm::vec3* out, const bool first_check)
+{
+    auto sensors = you->floor_sensor_rays();
+
+    std::pair<glm::vec3, glm::vec3>* ray0 = &sensors.first;
+    std::pair<glm::vec3, glm::vec3>* ray1 = &sensors.second;
+    std::pair<glm::vec3, glm::vec3> collider = {
+        c->a,
+        c->b
+    };
+
+
+        // printf("COLLIDER: ");
+        // Collider_print(c);
+        // printf("\nagainst\n");
+        // vec3_pair_print(&ray0.first, &ray0.second);
+        // printf("\nand\n");
+        // vec3_pair_print(&ray1.first, &ray1.second);
+        // printf("\n-------------------------\n");
+
+    glm::vec3 va(POSITIVE_INFINITY);
+    glm::vec3 vb(POSITIVE_INFINITY);
+    glm::vec3* choice = &va;
+    bool possibly_collided = false;
+
+    if (line_segment_intersection(ray0, &collider, &va)) {
+        choice = &va;
+        possibly_collided = true;
+    }
+
+    if (line_segment_intersection(ray1, &collider, &vb)) {
+        choice = (va.y < vb.y) ? &va : &vb;
+        possibly_collided = true;
+    }
+
+    if (!possibly_collided) {
+        return false;
+    }
+
+    // TODO FIX BUG: HEIGHT OVERRIDDEN BY SUCCESSIVE COLLIDERS EVEN IF LOWER,
+    // MUST COMPARE ALL COLLIDERS BEFORE MODIFYING VALUE
+   // std::cout << "ON_GROUND: " << ((you->on_ground) ? "TRUE" : "FALSE") << std::endl;
+    if (!you->on_ground && you->bound.spatial.y + you->bound.height >= choice->y) {
+        f64 new_y = choice->y;
+        // if (!first_check && new_y >= you->bound.spatial.y) {
+        //     return false;
+        // }
+
+        //you->bound.spatial.y = new_y;
+
+        if (new_y > out->y) {
+            return false;
+        }
+
+        out->x = choice->x;
+        out->y = choice->y;
+        out->z = 0.0;
+        
+        return true;
+    } else if (you->on_ground) {
+        f64 new_y = choice->y;
+        // if (!first_check && new_y >= you->bound.spatial.y) {
+        //     return false;
+        // }
+
+        //you->bound.spatial.y = new_y;
+        if (new_y > out->y) {
+            return false;
+        }
+
+        out->x = choice->x;
+        out->y = choice->y;
+        out->z = 0.0;
+        
+        return true;        
+    }
+
+
+    return false;
+
+}
 
 int main(int argc, char* argv[])
 {
+    using namespace input_sys;
+    //std::cout << dist_to_segment(glm::vec3(0.0, 0.0, 0.0), glm::vec3(1280.0, 0.0, 0.0), glm::vec3(0.0, 720.0, 0.0)) << std::endl;
+    //return 0;
+    // FILE* fp = fopen("worlds/lines_test_a.txt", "r");
+    // if (fp) {
+    //     fseek(fp, 0, SEEK_END);
+    //     i64 file_size = ftell(fp);
+    //     ftell(fp);
+    //     rewind(fp);
+    //     printf("%lld\n", file_size);
+
+    //     fclose(fp);
+
+    //     //return EXIT_SUCCESS;
+    // }
+    // printf("%llu\n", collision_map.element_length());
+
+    // collision_map[0].a.x = 1.0f;
+    // collision_map[0].a.y = 2.0f;
+    // collision_map[0].a.z = 3.0f;
+    // collision_map[0].b.x = 4.0f;
+    // collision_map[0].b.y = 5.0f;
+    // collision_map[0].b.z = 6.0f;
+
+    // collision_map.elements_used += 1;
+
+    // Collider_print(&collision_map[0]);
+
     // initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC | SDL_INIT_AUDIO) < 0) {
         fprintf(stderr, "%s\n", "SDL could not initialize");
@@ -690,8 +682,8 @@ int main(int argc, char* argv[])
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);        
     // }
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     // SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
     // SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
@@ -714,14 +706,14 @@ int main(int argc, char* argv[])
     
     int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
     if(!(IMG_Init(imgFlags) & imgFlags)) {
-     	fprintf(stderr, "SDL_image could not initialize, SDL_image Error: %s\n", IMG_GetError());
+      fprintf(stderr, "SDL_image could not initialize, SDL_image Error: %s\n", IMG_GetError());
         SDL_DestroyWindow(window);
         return EXIT_FAILURE;
     }
     
-	program_data.context = SDL_GL_CreateContext(window);
+   program_data.context = SDL_GL_CreateContext(window);
 
-	glewExperimental = GL_TRUE;
+   glewExperimental = GL_TRUE;
     glewInit();
 
 
@@ -852,10 +844,10 @@ int main(int argc, char* argv[])
 
     glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
-	
+   
     glCullFace(GL_FRONT);
 
-	// glEnable(GL_DEPTH_TEST);
+   // glEnable(GL_DEPTH_TEST);
  //    glDepthRange(0, 1);
  //    glDepthFunc(GL_LEQUAL);
 
@@ -985,7 +977,7 @@ int main(int argc, char* argv[])
 
     #ifdef GL_DRAW2D
     GLDraw2D gl_draw2d;
-    if (!gl_draw2d.GLDraw2D_init(&gl_draw2d, mat_projection)) {
+    if (!gl_draw2d.init(mat_projection)) {
         return EXIT_FAILURE;
     }
     #endif
@@ -1009,11 +1001,12 @@ int main(int argc, char* argv[])
     GLDraw2D existing;
     GLDraw2D in_prog;
     Toggle drawing = false;
-    if (!existing.GLDraw2D_init(&gl_draw2d, mat_projection)) {
+    Toggle deletion = false;
+    if (!existing.init(mat_projection)) {
         fprintf(stderr, "FAILED TO INITIALIZE EDITOR DATA \"existing\"\n");
         return EXIT_FAILURE;
     }
-    if (!in_prog.GLDraw2D_init(&gl_draw2d, mat_projection)) {
+    if (!in_prog.init(mat_projection)) {
         fprintf(stderr, "FAILED TO INITIALIZE EDITOR DATA \"in_prog\"\n");
         return EXIT_FAILURE;
     }
@@ -1046,7 +1039,6 @@ int main(int argc, char* argv[])
     f64 t_since_start_s = 0.0;
     f64 t_delta_s       = 0.0;
 
-    //#define FPS_COUNT
     #ifdef FPS_COUNT
     f64 frame_time = 0.0;
     u32 frame_count = 0;
@@ -1062,7 +1054,38 @@ int main(int argc, char* argv[])
 
 #ifdef EDITOR
     Toggle grid_toggle = false;
+    Toggle physics_toggle = false;
+    glm::vec3 in_progress_line[2];
+    in_progress_line[0] = glm::vec3(0.0f);
+    in_progress_line[1] = glm::vec3(0.0f);
+
+
+////
+    collision_map.first_free()->a = glm::vec3(0.0, 5 * 128, 0.0);
+    collision_map.first_free()->b = glm::vec3(SCREEN_WIDTH, 5 * 128, 0.0);
+    collision_map.elements_used += 1;
+
+    collision_map.first_free()->a = glm::vec3(512.0, 3 * 128, 0.0);
+    collision_map.first_free()->b = glm::vec3(768.0, 3 * 128, 0.0);
+    collision_map.elements_used += 1;
+
+    existing.update_projection_matrix = true;
+    existing.projection_matrix = mat_projection;
+    existing.begin();
+    existing.draw_type = GL_LINES;
+    existing.color = Color::BLACK;
+    existing.transform_matrix = glm::mat4(1.0);
+    
+    foreach (i, collision_map.elements_used) {
+        existing.line(collision_map[i].a, collision_map[i].b);        
+    }
+    existing.end_no_reset();
+////
 #endif
+
+    Player you;
+    Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0, 0, 20, 40);
+    you.state_change_time = t_now;
 
     while (is_running) {
         t_prev = t_now;
@@ -1088,66 +1111,83 @@ int main(int argc, char* argv[])
             main_cam.orientation = glm::quat();
 
             if (key_is_held(&input, CONTROL::UP)) {
-                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
+                FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, CHANGE * up_acc);
                 up_acc *= POS_ACC;
                 up_acc = glm::min(max_acc, up_acc);
             } else {
                 if (up_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::UPWARDS, CHANGE * up_acc);
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, CHANGE * up_acc);
                 }
                 up_acc = glm::max(1.0, up_acc * NEG_ACC);
             }
             if (key_is_held(&input, CONTROL::DOWN)) {
-                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
+                FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, CHANGE * down_acc);
                 down_acc *= POS_ACC;
                 down_acc = glm::min(max_acc, down_acc);
             } else {
                 if (down_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::DOWNWARDS, CHANGE * down_acc);
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, CHANGE * down_acc);
                 } 
                 down_acc = glm::max(1.0, down_acc * NEG_ACC);
             }
 
             if (key_is_held(&input, CONTROL::LEFT)) {
-                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
+                FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+
+                // TEMP
+                Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+
                 left_acc *= POS_ACC;
                 left_acc = glm::min(max_acc, left_acc);
+            
             } else {
                 if (left_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::LEFTWARDS, CHANGE * left_acc);
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+
+                    // TEMP
+                    Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+
                 }
                 left_acc = glm::max(1.0, left_acc * NEG_ACC);
                 left_acc = glm::min(max_acc, left_acc);
             }
 
             if (key_is_held(&input, CONTROL::RIGHT)) {
-                FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
+                FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+
+                // TEMP
+                Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+
                 right_acc *= POS_ACC;
                 right_acc = glm::min(max_acc, right_acc);
+
             } else {
                 if (right_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, Movement_Direction::RIGHTWARDS, CHANGE * right_acc);
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+
+                    // TEMP
+                    Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
                 }
                 right_acc = glm::max(1.0, right_acc * NEG_ACC);
             }
 
             // if (*forwards) {
-            //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
+            //     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::FORWARDS, CHANGE * forwards_acc);
             //     forwards_acc *= POS_ACC;
             //     forwards_acc = glm::min(max_acc, forwards_acc);
             // } else {
             //     if (forwards_acc > 1.0) {
-            //         FreeCamera_process_directional_movement(&main_cam, Movement_Direction::FORWARDS, CHANGE * forwards_acc);
+            //         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::FORWARDS, CHANGE * forwards_acc);
             //     }
             //     forwards_acc = glm::max(1.0, forwards_acc * NEG_ACC);
             // }
             // if (*backwards) {
-            //     FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
+            //     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::BACKWARDS, CHANGE * backwards_acc);
             //     backwards_acc *= POS_ACC;
             //     backwards_acc = glm::min(max_acc, backwards_acc);
             // } else {
             //     if (backwards_acc > 1.0) {
-            //         FreeCamera_process_directional_movement(&main_cam, Movement_Direction::BACKWARDS, CHANGE * backwards_acc);
+            //         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::BACKWARDS, CHANGE * backwards_acc);
             //     } 
             //     backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
             // }
@@ -1172,6 +1212,9 @@ int main(int argc, char* argv[])
                 right_acc     = 1.0;
                 backwards_acc = 1.0;
                 forwards_acc  = 1.0;
+
+                Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0, 0, 20, 40);
+                you.state_change_time = t_now;
             }
         }
 
@@ -1230,96 +1273,77 @@ int main(int argc, char* argv[])
         glClear(GL_DEPTH_BUFFER_BIT);
 
 
-        gl_draw2d.begin();
+        glm::mat4 cam = FreeCamera_calc_view_matrix(&main_cam);
 
-            //gl_draw2d.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
-            gl_draw2d.transform_matrix = glm::mat4(1.0f);
+        // gl_draw2d.begin();
 
-            // gl_draw2d.draw_type = GL_LINES;
-            // gl_draw2d.color = Color::RED;
-            // gl_draw2d.vertex({0.5, 0.0, -1.0});
-            // gl_draw2d.vertex({1.0, 1.0, -1.0});
+        //     //gl_draw2d.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+        //     gl_draw2d.transform_matrix = glm::mat4(1.0f);
+
+        //     // gl_draw2d.draw_type = GL_LINES;
+        //     // gl_draw2d.color = Color::RED;
+        //     // gl_draw2d.vertex({0.5, 0.0, -1.0});
+        //     // gl_draw2d.vertex({1.0, 1.0, -1.0});
             
-            // gl_draw2d.draw_type = GL_LINES;
-            // gl_draw2d.color = Color::GREEN;
-            // gl_draw2d.line({0.0, 0.0, -5.0}, {1.0, 1.0, -5.0});
+        //     // gl_draw2d.draw_type = GL_LINES;
+        //     // gl_draw2d.color = Color::GREEN;
+        //     // gl_draw2d.line({0.0, 0.0, -5.0}, {1.0, 1.0, -5.0});
 
-            // gl_draw2d.color = Color::GREEN;
-            // gl_draw2d.circle(0.25, {0.0, 0.0, 0.0});
+        //     // gl_draw2d.color = Color::GREEN;
+        //     // gl_draw2d.circle(0.25, {0.0, 0.0, 0.0});
 
-            gl_draw2d.draw_type = GL_TRIANGLES;
+        //     gl_draw2d.draw_type = GL_TRIANGLES;
 
-            GLfloat CX = (SCREEN_WIDTH / 2.0f);
-            GLfloat CY = 384.0f;
-            glm::mat4 cam = FreeCamera_calc_view_matrix(&main_cam);
+        //     GLfloat CX = (SCREEN_WIDTH / 2.0f);
+        //     GLfloat CY = 384.0f;
 
-            gl_draw2d.color = glm::vec4(252.0f / 255.0f, 212.0f / 255.0f, 64.0f / 255.0f, 1.0f);
+        //     gl_draw2d.color = glm::vec4(252.0f / 255.0f, 212.0f / 255.0f, 64.0f / 255.0f, 1.0f);
 
-            gl_draw2d.transform_matrix = cam;
+        //     gl_draw2d.transform_matrix = cam;
 
-            gl_draw2d.circle(90.0f, {CX, CY, -1.0});
+        //     gl_draw2d.circle(90.0f, {CX, CY, -1.0});
 
-            gl_draw2d.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-            gl_draw2d.transform_matrix = glm::translate(cam, glm::vec3(CX - 27.0f, CY - 25.0f, 0.0f));
-            gl_draw2d.circle(10.0f, {0.0f, 0.0f, 0.0f});
+        //     gl_draw2d.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        //     gl_draw2d.transform_matrix = glm::translate(cam, glm::vec3(CX - 27.0f, CY - 25.0f, 0.0f));
+        //     gl_draw2d.circle(10.0f, {0.0f, 0.0f, 0.0f});
 
-            gl_draw2d.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-            gl_draw2d.transform_matrix = glm::translate(cam, glm::vec3(CX + 27.0f, CY - 25.0f, 0.0f));
-            gl_draw2d.circle(10.0f, {0.0f, 0.0f, 0.0f});
-
-            
-            gl_draw2d.draw_type = GL_LINES;
-
-            #define BASE_TILE_SIZE (128.0f)
-            #define TILE_SCALE (2.0f)
-
-            CX = 5.0f / TILE_SCALE;
-            CY = 3.0f / TILE_SCALE;
-            
-            glm::mat4 model(1.0f);
-            model = glm::scale(model, glm::vec3(BASE_TILE_SIZE * TILE_SCALE, BASE_TILE_SIZE * TILE_SCALE, 1.0f));
-            model = glm::translate(model, glm::vec3({CX, CY, 0.0}));
-            model = glm::rotate(model, (GLfloat)t_since_start, glm::vec3(0.0f, 0.0f, 1.0f));
-            model = glm::translate(model, glm::vec3({-CX, -CY, 0.0}));
-            
-
-            gl_draw2d.transform_matrix = cam * model;
-
-            gl_draw2d.color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-            {
-                GLfloat off = 2.0f;
-                // horizontal
-                gl_draw2d.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX + off, CY - off, 0.0f));
-                gl_draw2d.line(glm::vec3(CX - off, CY + off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
-                // vertical
-                gl_draw2d.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX - off, CY + off, 0.0f));
-                gl_draw2d.line(glm::vec3(CX + off, CY - off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
-            }   
-
+        //     gl_draw2d.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        //     gl_draw2d.transform_matrix = glm::translate(cam, glm::vec3(CX + 27.0f, CY - 25.0f, 0.0f));
+        //     gl_draw2d.circle(10.0f, {0.0f, 0.0f, 0.0f});
 
             
-            // gl_draw2d.color = Color::BLUE;
-            // gl_draw2d.transform_matrix = glm::translate(gl_draw2d.transform_matrix, glm::vec3(-0.5f, -0.5f, 0.0f));
-            // gl_draw2d.vertex({0.0, 0.0, 0.0});
-            // gl_draw2d.vertex({1.0, 0.0, 0.0});
-            // gl_draw2d.vertex({0.5, glm::sqrt(3.0f) / 2.0f, 0.0});
+        //     gl_draw2d.draw_type = GL_LINES;
 
-            // gl_draw2d.color = Color::RED;
-            // gl_draw2d.transform_matrix = glm::translate(gl_draw2d.transform_matrix, glm::vec3(-0.5f + glm::sin(t_since_start), -0.5f, 0.0f));
-            // gl_draw2d.vertex({0.0, 0.0, -0.5});
-            // gl_draw2d.vertex({1.0, 0.0, -0.5});
-            // gl_draw2d.vertex({0.5, glm::sqrt(3.0f) / 2.0f, -0.5});
+        //     #define BASE_TILE_SIZE (128.0f)
+        //     #define TILE_SCALE (2.0f)
+
+        //     CX = 5.0f / TILE_SCALE;
+        //     CY = 3.0f / TILE_SCALE;
+            
+        //     glm::mat4 model(1.0f);
+        //     model = glm::scale(model, glm::vec3(BASE_TILE_SIZE * TILE_SCALE, BASE_TILE_SIZE * TILE_SCALE, 1.0f));
+        //     model = glm::translate(model, glm::vec3({CX, CY, 0.0}));
+        //     model = glm::rotate(model, (GLfloat)t_since_start, glm::vec3(0.0f, 0.0f, 1.0f));
+        //     model = glm::translate(model, glm::vec3({-CX, -CY, 0.0}));
+            
+
+        //     gl_draw2d.transform_matrix = cam * model;
+
+        //     gl_draw2d.color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+        //     {
+        //         GLfloat off = 1.0f;
+        //         // horizontal
+        //         gl_draw2d.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX + off, CY - off, 0.0f));
+        //         gl_draw2d.line(glm::vec3(CX - off, CY + off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
+        //         // vertical
+        //         gl_draw2d.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX - off, CY + off, 0.0f));
+        //         gl_draw2d.line(glm::vec3(CX + off, CY - off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
+        //     }   
 
 
-        gl_draw2d.end();
 
+        // gl_draw2d.end();
 
-        gl_draw2d.begin();
-        gl_draw2d.draw_type = GL_LINES;
-
-        //draw_lines_from_image(&gl_draw2d, "./test_paths/C.bmp", {glm::vec3(1.0f), glm::vec3(0.0f)});
-
-        gl_draw2d.end();
         #endif
 
 
@@ -1349,40 +1373,6 @@ int main(int argc, char* argv[])
             }
 
 
-            glm::mat4 rev_view = FreeCamera_calc_view_matrix_reverse(&main_cam);
-
-            glm::vec4 mouse = glm::vec4((int)input.mouse_x, (int)input.mouse_y, 0.0f, 1.0f);
-
-            mouse = rev_view * mouse;
-
-            //printf("CURSOR: [x: %f, y: %f]\n", mouse.x, mouse.y);
-
-
-            // if (mouse_is_toggled(&input, MOUSE_BUTTON::LEFT, &drawing)) {
-            //     printf("TOGGLED DRAWING ON\n");
-            // } else if (mouse_is_pressed(&input, MOUSE_BUTTON::LEFT) && !drawing) {
-            //     printf("ENDING DRAWING\n");
-            // }
-            // if (drawing) {
-            //     printf("DRAWING\n");
-            // }
-
-
-            switch (mouse_is_toggled_4_states(&input, MOUSE_BUTTON::LEFT, &drawing)) {
-            case TOGGLE_BRANCH::PRESSED_ON:
-                printf("TOGGLED DRAWING ON\n");
-            case TOGGLE_BRANCH::ON:
-                //printf("\tDRAWING\n");
-                break;
-            case TOGGLE_BRANCH::PRESSED_OFF:
-                printf("ENDING DRAWING\n");
-            case TOGGLE_BRANCH::OFF:
-                break;
-            default:
-                break;
-            }
-
-
             glUniformMatrix4fv(MAT_LOC_GRID, 1, GL_FALSE, glm::value_ptr(
                     mat_projection
                 )
@@ -1394,7 +1384,257 @@ int main(int argc, char* argv[])
             glBindVertexArray(vao_2d2.vao);
             glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, 0);
 
+
+            glm::mat4 rev_view = FreeCamera_calc_view_matrix_reverse(&main_cam);
+
+            glm::vec4 mouse = glm::vec4((int)input.mouse_x, (int)input.mouse_y, 0.0f, 1.0f);
+
+            mouse = rev_view * mouse;
+
+            //printf("CURSOR: [x: %f, y: %f]\n", mouse.x, mouse.y);
+
+            // if (mouse_is_toggled(&input, MOUSE_BUTTON::LEFT, &drawing)) {
+            //     printf("TOGGLED DRAWING ON\n");
+            // } else if (mouse_is_pressed(&input, MOUSE_BUTTON::LEFT) && !drawing) {
+            //     printf("ENDING DRAWING\n");
+            // }
+            // if (drawing) {
+            //     printf("DRAWING\n");
+            // }
+            glClear(GL_DEPTH_BUFFER_BIT);
+
+            i32 grid_len = tex_res.x / grid_square_pixel_size;
+
+            //printf("CURSOR_SNAPPED: [x: %d, y: %d]\n", snap_to_grid(mouse.x, grid_len), snap_to_grid(mouse.y, grid_len));
+
+            if (mouse_is_toggled(&input, MOUSE_BUTTON::RIGHT, &deletion)) {
+                drawing = false;
+                if (mouse_is_pressed(&input, MOUSE_BUTTON::LEFT)) {
+                    in_prog.begin();
+
+                    {
+                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.transform_matrix = cam;
+                        in_prog.color = Color::RED;
+                        in_prog.circle(
+                            10.0f,
+                            glm::vec3(
+                                mouse.x, 
+                                mouse.y,
+                                1.0f
+                            )
+                        );
+                    }
+
+                    in_prog.end();
+                } else {
+                    in_prog.begin();
+
+                    {
+                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.transform_matrix = cam;
+                        in_prog.color = Color::RED;
+                        in_prog.circle(
+                            5.0f,
+                            glm::vec3(
+                                mouse.x, 
+                                mouse.y,
+                                1.0f
+                            )
+                        );
+                    }
+
+                    in_prog.end();                    
+                }
+
+
+                existing.update_projection_matrix = true;
+                existing.projection_matrix = mat_projection * cam;
+                existing.begin();
+                existing.draw_type = GL_LINES;
+                //existing.transform_matrix = cam;
+                existing.end_no_reset();
+
+            } else {
+                switch (mouse_is_toggled_4_states(&input, MOUSE_BUTTON::LEFT, &drawing)) {
+                case TOGGLE_BRANCH::PRESSED_ON:
+                    //printf("TOGGLED DRAWING ON\n");
+                    in_progress_line[0].x = snap_to_grid(mouse.x, grid_len);
+                    in_progress_line[0].y = snap_to_grid(mouse.y, grid_len);
+                    in_progress_line[0].z = mouse.z;
+
+                    collision_map.first_free()->a = in_progress_line[0];
+                    collision_map.first_free()->a.z = 0;
+                case TOGGLE_BRANCH::ON:
+                    //printf("\tDRAWING\n");
+                    in_progress_line[1].x = snap_to_grid(mouse.x, grid_len);
+                    in_progress_line[1].y = snap_to_grid(mouse.y, grid_len);
+                    in_progress_line[1].z = mouse.z;
+
+                    collision_map.first_free()->b = in_progress_line[1];
+                    collision_map.first_free()->b.z = 0;
+
+                    in_prog.begin();
+                    in_prog.draw_type = GL_LINES;
+                    in_prog.transform_matrix = cam;
+                    in_prog.color = Color::BLACK;
+                    in_prog.line(in_progress_line[0], in_progress_line[1]);
+
+                    {
+                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.transform_matrix = cam;
+                        in_prog.color = Color::BLUE;
+                        in_prog.circle(
+                            5.0f,
+                            glm::vec3(
+                                snap_to_grid(mouse.x, grid_len), 
+                                snap_to_grid(mouse.y, grid_len),
+                                1.0f
+                            )
+                        );
+                    }
+
+                    in_prog.end();
+
+                    existing.update_projection_matrix = true;
+                    existing.projection_matrix = mat_projection * cam;
+                    existing.begin();
+                    existing.draw_type = GL_LINES;
+                    //existing.transform_matrix = cam;
+                    existing.end_no_reset();
+
+                    break;
+                case TOGGLE_BRANCH::PRESSED_OFF:
+
+                    //printf("ENDING DRAWING\n");
+
+                    collision_map.elements_used += 1;
+
+                    in_prog.begin();
+                    {
+                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.transform_matrix = cam;
+                        in_prog.color = Color::GREEN;
+                        in_prog.circle(
+                            10.0f,
+                            glm::vec3(
+                                snap_to_grid(mouse.x, grid_len), 
+                                snap_to_grid(mouse.y, grid_len),
+                                1.0f
+                            )
+                        );
+                    }
+                    in_prog.end();
+
+                    existing.update_projection_matrix = true;
+                    existing.projection_matrix = mat_projection * cam;
+                    existing.begin();
+                    existing.draw_type = GL_LINES;
+                    //existing.transform_matrix = cam;
+                    existing.line(in_progress_line[0], in_progress_line[1]);
+                    existing.end_no_reset();
+                    break;
+                case TOGGLE_BRANCH::OFF:
+                    in_prog.begin();
+                    {
+                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.transform_matrix = cam;
+                        in_prog.color = Color::BLUE;
+                        in_prog.circle(
+                            5.0f,
+                            glm::vec3(
+                                snap_to_grid(mouse.x, grid_len), 
+                                snap_to_grid(mouse.y, grid_len),
+                                1.0f
+                            )
+                        );
+                    }
+                    in_prog.end();
+
+                    existing.update_projection_matrix = true;
+                    existing.projection_matrix = mat_projection * cam;
+                    existing.begin();
+                    existing.draw_type = GL_LINES;
+                    //existing.transform_matrix = cam;
+                    existing.end_no_reset();
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            gl_draw2d.begin();
+
+            glClear(GL_DEPTH_BUFFER_BIT);
+
+            gl_draw2d.draw_type = GL_LINES;
+
+            gl_draw2d.color = Color::BLUE;
+
+            gl_draw2d.transform_matrix = cam;
+
+            draw_player_collision(&you, &gl_draw2d);
+
+            //draw_lines_from_image(&gl_draw2d, "./test_paths/C.bmp", {glm::vec3(1.0f), glm::vec3(0.0f)});
+
+
+            f64 WEE = ((f64)(t_now - you.state_change_time)) / frequency;
+
+            if (/*key_is_toggled(&input, CONTROL::PHYSICS, &physics_toggle) && */!you.on_ground) {
+                you.bound.spatial.y = you.bound.spatial.y + 1 * 9.81 * (WEE * WEE);
+            }
+            
+            gl_draw2d.end();
+
+            gl_draw2d.begin();
+
+            glClear(GL_DEPTH_BUFFER_BIT);
+
+            gl_draw2d.color = Color::GREEN;
+            gl_draw2d.transform_matrix = cam;
+
+
+            bool collided = false;
+
+            glm::vec3 out(POSITIVE_INFINITY);
+            for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
+            {
+                //Collider_print(it);
+                
+                if (temp_test_collision(&you, it, &out, !collided)) {
+                    //printf("COLLISION\n");
+                    gl_draw2d.line(glm::vec3(0.0), out);
+                    you.on_ground = true;
+                    you.state_change_time = t_now;
+                    collided = true;
+
+                    //puts("COLLIDED");
+                } else {
+                    //puts("NO COLLISION");
+                }
+            }
+
+            if (!collided) {
+                you.on_ground = false;
+            } else {
+                //you.bound.spatial.x = out.x - (1 * you.bound.width); <-- ENABLE TO MAKE THE FLOOR A TREADMILL
+                you.bound.spatial.y = out.y - (1 * you.bound.height);
+            }
+
+            gl_draw2d.end();
+
             glDisable(GL_BLEND);
+
+            // if (collision_map.elements_used > 0) {
+            //     printf("{");
+            //     for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
+            //     {
+            //         printf("\n");
+            //         Collider_print(it);
+            //     }
+            //     printf("\n}\n");
+            // }
+
         }
 
         #endif
@@ -1419,6 +1659,8 @@ int main(int argc, char* argv[])
     gl_draw2d.free();
     #endif
     #ifdef EDITOR
+    in_prog.free();
+    existing.free();
     glDeleteProgram(shader_grid);
     #endif
     glDeleteProgram(shader_2d);

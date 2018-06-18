@@ -90,6 +90,10 @@ void ArenaAllocator_delete(ArenaAllocator* arena);
 #define cast(type_, v_) ((type_)v_)
 #define dref(ptr) (*ptr)
 
+void debug_print(const char* const in);
+
+typedef void* (*Fn_MemoryAllocator)(size_t bytes);
+
 
 #ifdef __cplusplus
 }
@@ -194,6 +198,13 @@ void ArenaAllocator_delete(ArenaAllocator* arena)
         free(arena->blocks[i]);
     }
     free(arena->blocks);
+}
+
+void debug_print(const char* const in) 
+{
+    #ifdef DEBUG_PRINT
+    puts(in);
+    #endif
 }
 
 

@@ -15,44 +15,44 @@ void ViewCamera_init(ViewCamera* view, glm::vec3 position_start, GLfloat speed, 
     view->max_z = max_z;
 }
 
-void ViewCamera_process_directional_movement(ViewCamera* view, Movement_Direction direction, GLfloat delta_time)
+void ViewCamera_process_directional_movement(ViewCamera* view, MOVEMENT_DIRECTION direction, GLfloat delta_time)
 {
     const GLfloat velocity = view->speed * delta_time;
     glm::vec3* p = &view->position;
 
     #define DB
     switch (direction) {
-    case Movement_Direction::FORWARDS:
+    case MOVEMENT_DIRECTION::FORWARDS:
         #ifdef DB 
         std::cout << "FORWARDS" << std::endl; 
         #endif
         p->z -= velocity;
         break;
-    case Movement_Direction::BACKWARDS:
+    case MOVEMENT_DIRECTION::BACKWARDS:
         #ifdef DB 
         std::cout << "BACKWARDS" << std::endl;
         #endif
         p->z += velocity;
         break;
-    case Movement_Direction::LEFTWARDS:
+    case MOVEMENT_DIRECTION::LEFTWARDS:
         #ifdef DB 
         std::cout << "LEFTWARDS" << std::endl; 
         #endif
         p->x -= velocity;
         break;
-    case Movement_Direction::RIGHTWARDS:
+    case MOVEMENT_DIRECTION::RIGHTWARDS:
         #ifdef DB 
         std::cout << "RIGHTWARDS" << std::endl; 
         #endif
         p->x += velocity;
         break;
-    case Movement_Direction::UPWARDS:
+    case MOVEMENT_DIRECTION::UPWARDS:
         #ifdef DB 
         std::cout << "UPWARDS" << std::endl; 
         #endif
         p->y += velocity;
         break;
-    case Movement_Direction::DOWNWARDS:
+    case MOVEMENT_DIRECTION::DOWNWARDS:
         #ifdef DB 
         std::cout << "DOWNWARDS" << std::endl; 
         #endif
@@ -199,44 +199,44 @@ void FreeCamera_init(FreeCamera* view, glm::vec3 start_position)
 }
 
 
-void FreeCamera_process_directional_movement(FreeCamera* view, Movement_Direction direction, GLfloat delta_time)
+void FreeCamera_process_directional_movement(FreeCamera* view, MOVEMENT_DIRECTION direction, GLfloat delta_time)
 {
     const GLfloat velocity = view->speed * delta_time;
     glm::vec3* p = &view->position;
 
     //#define DB
     switch (direction) {
-    case Movement_Direction::FORWARDS:
+    case MOVEMENT_DIRECTION::FORWARDS:
         #ifdef DB 
         std::cout << "FORWARDS" << std::endl; 
         #endif
         p->z -= velocity;
         break;
-    case Movement_Direction::BACKWARDS:
+    case MOVEMENT_DIRECTION::BACKWARDS:
         #ifdef DB 
         std::cout << "BACKWARDS" << std::endl;
         #endif
         p->z += velocity;
         break;
-    case Movement_Direction::LEFTWARDS:
+    case MOVEMENT_DIRECTION::LEFTWARDS:
         #ifdef DB 
         std::cout << "LEFTWARDS" << std::endl; 
         #endif
         p->x -= velocity;
         break;
-    case Movement_Direction::RIGHTWARDS:
+    case MOVEMENT_DIRECTION::RIGHTWARDS:
         #ifdef DB 
         std::cout << "RIGHTWARDS" << std::endl; 
         #endif
         p->x += velocity;
         break;
-    case Movement_Direction::UPWARDS:
+    case MOVEMENT_DIRECTION::UPWARDS:
         #ifdef DB 
         std::cout << "UPWARDS" << std::endl; 
         #endif
         p->y -= velocity;
         break;
-    case Movement_Direction::DOWNWARDS:
+    case MOVEMENT_DIRECTION::DOWNWARDS:
         #ifdef DB 
         std::cout << "DOWNWARDS" << std::endl; 
         #endif
