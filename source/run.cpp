@@ -8,7 +8,7 @@
 #define EDITOR
 
 //#define DEBUG_PRINT
-//#define FPS_COUNT
+#define FPS_COUNT
 
 
 #include "test.h"
@@ -402,6 +402,13 @@ GlobalData program_data;
 #include "gl_draw2d.h"
 #endif
 
+struct WindowState {
+    bool focused;
+    bool minimized;
+    bool restored;
+} window_state;
+
+
 bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 {
     using namespace input_sys;
@@ -417,6 +424,78 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
         switch (event->type) {
         case SDL_QUIT:
             return false;
+        case SDL_WINDOWEVENT:
+            switch (event->window.event) {
+            // case SDL_WINDOWEVENT_SHOWN:
+            //     SDL_Log("Window %d shown", event->window.windowID);
+            //     break;
+            // case SDL_WINDOWEVENT_HIDDEN:
+            //     SDL_Log("Window %d hidden", event->window.windowID);
+            //     break;
+            // case SDL_WINDOWEVENT_EXPOSED:
+            //     SDL_Log("Window %d exposed", event->window.windowID);
+            //     break;
+            // case SDL_WINDOWEVENT_MOVED:
+            //     SDL_Log("Window %d moved to %d,%d",
+            //             event->window.windowID, event->window.data1,
+            //             event->window.data2);
+            //     break;
+            // case SDL_WINDOWEVENT_RESIZED:
+            //     SDL_Log("Window %d resized to %dx%d",
+            //             event->window.windowID, event->window.data1,
+            //             event->window.data2);
+            //     break;
+            // case SDL_WINDOWEVENT_SIZE_CHANGED:
+            //     SDL_Log("Window %d size changed to %dx%d",
+            //             event->window.windowID, event->window.data1,
+            //             event->window.data2);
+            //     break;
+            case SDL_WINDOWEVENT_MINIMIZED:
+                window_state.minimized = true;
+                // SDL_Log("Window %d minimized", event->window.windowID);
+                break;
+            // case SDL_WINDOWEVENT_MAXIMIZED:
+            //     SDL_Log("Window %d maximized", event->window.windowID);
+            //     break;
+            case SDL_WINDOWEVENT_RESTORED:
+                window_state.minimized = false;
+                window_state.restored = true;
+                // SDL_Log("Window %d restored", event->window.windowID);
+                break;
+            // case SDL_WINDOWEVENT_ENTER:
+            //     SDL_Log("Mouse entered window %d",
+            //             event->window.windowID);
+            //     break;
+            // case SDL_WINDOWEVENT_LEAVE:
+            //     SDL_Log("Mouse left window %d", event->window.windowID);
+            //     break;
+            case SDL_WINDOWEVENT_FOCUS_GAINED:
+                window_state.focused = true;
+                // SDL_Log("Window %d gained keyboard focus",
+                //         event->window.windowID);
+                break;
+            case SDL_WINDOWEVENT_FOCUS_LOST:
+                window_state.focused = false;
+                // SDL_Log("Window %d lost keyboard focus",
+                //         event->window.windowID);
+                break;
+            // case SDL_WINDOWEVENT_CLOSE:
+            //     SDL_Log("Window %d closed", event->window.windowID);
+            //     break;
+    // #if SDL_VERSION_ATLEAST(2, 0, 5)
+    //         case SDL_WINDOWEVENT_TAKE_FOCUS:
+    //             SDL_Log("Window %d is offered a focus", event->window.windowID);
+    //             break;
+    //         case SDL_WINDOWEVENT_HIT_TEST:
+    //             SDL_Log("Window %d has a special hit test", event->window.windowID);
+    //             break;
+    // #endif
+            default:
+                // SDL_Log("Window %d got unknown event %d",
+                //         event->window.windowID, event->window.event);
+                break;
+            }
+            break;
         case SDL_KEYDOWN:
             switch (event->key.keysym.scancode) {
             case SDL_SCANCODE_W:
@@ -517,6 +596,13 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
     SDL_GetMouseState(&input->mouse_x, &input->mouse_y);
 #endif
 
+    if (window_state.minimized) {
+        SDL_Delay(1000);
+    } else if (!window_state.focused) {
+        SDL_Delay(64);
+    }
+
+
     return true;
 }
 
@@ -546,7 +632,7 @@ void draw_player_collision(Player* you, GLDraw2D* ctx)
     ctx->line(floor_sensor_rays.second.first, floor_sensor_rays.second.second);
 }
 
-bool temp_test_collision(Player* you, Collider* c, glm::vec3* out, const bool first_check)
+bool temp_test_collision(Player* you, Collider* c, glm::vec3* out)
 {
     auto sensors = you->floor_sensor_rays();
 
@@ -631,6 +717,7 @@ bool temp_test_collision(Player* you, Collider* c, glm::vec3* out, const bool fi
 int main(int argc, char* argv[])
 {
     using namespace input_sys;
+
     //std::cout << dist_to_segment(glm::vec3(0.0, 0.0, 0.0), glm::vec3(1280.0, 0.0, 0.0), glm::vec3(0.0, 720.0, 0.0)) << std::endl;
     //return 0;
     // FILE* fp = fopen("worlds/lines_test_a.txt", "r");
@@ -701,6 +788,9 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Window could not be created\n");
         return EXIT_FAILURE;
     }
+
+    window_state.focused = true;
+    window_state.minimized = false;
 
     //SDL_SetWindowFullscreen(window, true);
     
@@ -877,7 +967,7 @@ int main(int argc, char* argv[])
     
     FreeCamera main_cam(start_pos);
     main_cam.orientation = glm::quat();
-    main_cam.speed = 0.01 * 360.0f;
+    main_cam.speed = PLAYER_BASE_SPEED;
     // ViewCamera_init(
     //     &main_cam,
     //     start_pos,
@@ -1102,6 +1192,12 @@ int main(int argc, char* argv[])
         // INPUT /////////////////////////////////
         if (!poll_input_events(&input, &event)) {
             is_running = false;
+            continue;
+        } else if (window_state.minimized) {
+            continue;
+        } else if (window_state.restored) {
+            window_state.restored = false;
+            SDL_GL_SwapWindow(window);
             continue;
         }
 
@@ -1601,7 +1697,7 @@ int main(int argc, char* argv[])
             {
                 //Collider_print(it);
                 
-                if (temp_test_collision(&you, it, &out, !collided)) {
+                if (temp_test_collision(&you, it, &out)) {
                     //printf("COLLISION\n");
                     gl_draw2d.line(glm::vec3(0.0), out);
                     you.on_ground = true;

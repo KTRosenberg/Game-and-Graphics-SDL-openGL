@@ -192,6 +192,9 @@ struct BoxComponent {
 void BoxComponent_init(f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height);
 
 
+#define PLAYER_BASE_SPEED (0.01 * 360.0f)
+#define PLAYER_MAX_SPEED (20.0)
+
 struct Player {
     BoxComponent bound;
     bool on_ground;
@@ -227,25 +230,25 @@ struct Player {
         return {
             {
                 glm::vec3(
-                    this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
+                    (this->bound.spatial.x + (this->bound.width / 2)) - 9.0, 
                     this->bound.spatial.y + (this->bound.height / 2),
                     this->bound.spatial.z 
                 ),
                 glm::vec3(
-                    this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
-                    this->bound.spatial.y + this->bound.height + (this->bound.height / 2),
+                    (this->bound.spatial.x + (this->bound.width / 2)) - 9.0, 
+                    this->bound.spatial.y + this->bound.height + (this->bound.height * 0.4),
                     this->bound.spatial.z
                 )
             },
             {
                 glm::vec3(
-                    this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
+                    (this->bound.spatial.x + (this->bound.width / 2)) + 9.0, 
                     this->bound.spatial.y + (this->bound.height / 2),
                     this->bound.spatial.z 
                 ),
                 glm::vec3(
-                    this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
-                    this->bound.spatial.y + this->bound.height + (this->bound.height / 2),
+                    (this->bound.spatial.x + (this->bound.width / 2)) + 9.0, 
+                    this->bound.spatial.y + this->bound.height + (this->bound.height * 0.4),
                     this->bound.spatial.z 
                 )
             }            
@@ -506,8 +509,10 @@ void Player_init(Player* pl, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 heig
 
 void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_time)
 {
-    const GLfloat velocity = (0.01 * 360.0f) * delta_time;
+    const GLfloat velocity = glm::min(PLAYER_BASE_SPEED * delta_time, PLAYER_MAX_SPEED);
     glm::vec4* p = &you->bound.spatial;
+
+    //printf("%f\n", velocity);
 
     //#define DB
     switch (direction) {

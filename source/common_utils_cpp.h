@@ -14,12 +14,16 @@
 
 #define POSITIVE_INFINITY (std::numeric_limits<f64>::infinity())
 
+#define declare_pair_type(type__, name__) typedef std::pair<type__, type__> name__##_pair
+declare_pair_type(glm::vec3, vec3);
+declare_pair_type(glm::vec4, vec4);
+
 inline f64 dist2(glm::vec3 v, glm::vec3 w);
 inline f64 dist_to_segment_squared(glm::vec3 v, glm::vec3 w, glm::vec3 p);
 inline f64 dist_to_segment(glm::vec3 v, glm::vec3 w, glm::vec3 p);
 
 // http://alienryderflex.com/intersect/
-bool line_segment_intersection(const std::pair<glm::vec3, glm::vec3>* s0, const std::pair<glm::vec3, glm::vec3>* s1, glm::vec3* out);
+bool line_segment_intersection(const vec3_pair* s0, const vec3_pair* s1, glm::vec3* out);
 
 template<typename T>
 static std::string to_binary_string(const T& x);
@@ -158,7 +162,7 @@ inline f64 dist_to_segment(glm::vec3 v, glm::vec3 w, glm::vec3 p)
 }
 
 // http://alienryderflex.com/intersect/
-bool line_segment_intersection(const std::pair<glm::vec3, glm::vec3>* s0, const std::pair<glm::vec3, glm::vec3>* s1, glm::vec3* out)
+bool line_segment_intersection(const vec3_pair* s0, const vec3_pair* s1, glm::vec3* out)
 {
     f64 Ax = s0->first.x;
     f64 Ay = s0->first.y;

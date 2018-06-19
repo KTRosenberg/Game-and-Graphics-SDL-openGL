@@ -201,7 +201,7 @@ void FreeCamera_init(FreeCamera* view, glm::vec3 start_position)
 
 void FreeCamera_process_directional_movement(FreeCamera* view, MOVEMENT_DIRECTION direction, GLfloat delta_time)
 {
-    const GLfloat velocity = view->speed * delta_time;
+    const GLfloat velocity = glm::min(PLAYER_BASE_SPEED * delta_time, PLAYER_MAX_SPEED);
     glm::vec3* p = &view->position;
 
     //#define DB
