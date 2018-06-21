@@ -8,7 +8,7 @@
 #define EDITOR
 
 //#define DEBUG_PRINT
-#define FPS_COUNT
+//#define FPS_COUNT
 
 
 #include "test.h"
@@ -16,7 +16,7 @@
 
 #define COMMON_UTILS_IMPLEMENTATION
 #include "common_utils.h"
-#define COMMON_UTILS_IMPLEMENTATION_CPP
+#define COMMON_UTILS_CPP_IMPLEMENTATION
 #include "common_utils_cpp.h"
 #define CORE_UTILS_IMPLEMENTATION
 #include "core_utils.h"
@@ -402,12 +402,7 @@ GlobalData program_data;
 #include "gl_draw2d.h"
 #endif
 
-struct WindowState {
-    bool focused;
-    bool minimized;
-    bool restored;
-} window_state;
-
+WindowState window_state;
 
 bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 {
@@ -870,16 +865,19 @@ int main(int argc, char* argv[])
     GLfloat Y_OFF = (tex_res.y - SCREEN_HEIGHT) / 2.0f;
 
     GLfloat T[] = {
-       0.0f - X_OFF,      tex_res.y - Y_OFF, 0.0f,    0.0f, 1.0f,    // top left
-       0.0f - X_OFF,      0.0f - Y_OFF,      0.0f,    0.0f, 0.0f,    // bottom left
-       tex_res.x - X_OFF, 0.0f - Y_OFF,      0.0f,    1.0f, 0.0f,    // bottom right
-       tex_res.x - X_OFF, tex_res.y - Y_OFF, 0.0f,    1.0f, 1.0f,    // top right
+       0.0f - X_OFF,      0.0f - Y_OFF,      0.0f,    0.0f, 0.0f,    // top left
+       0.0f - X_OFF,      tex_res.y - Y_OFF, 0.0f,    0.0f, 1.0f,    // bottom left
+       tex_res.x - X_OFF, tex_res.y - Y_OFF, 0.0f,    1.0f, 1.0f,    // bottom right
+       tex_res.x - X_OFF, 0.0f - Y_OFF,      0.0f,    1.0f, 0.0f,    // top right
     };
 
     GLuint TI[] = {
         0, 1, 2,
         2, 3, 0,
     };
+
+
+    print_array(T, 4, 6);
 
 // TOTAL ALLOCATION
     // const size_t BATCH_COUNT = 1024;
@@ -932,17 +930,14 @@ int main(int argc, char* argv[])
 
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
    
-    glCullFace(GL_FRONT);
-
    // glEnable(GL_DEPTH_TEST);
  //    glDepthRange(0, 1);
  //    glDepthFunc(GL_LEQUAL);
 
 
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     //glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ONE, GL_ONE);
     //glBlendEquationSeparate(GL_FUNC_ADD, GL_MAX);
@@ -953,8 +948,8 @@ int main(int argc, char* argv[])
     glm::mat4 mat_ident(1.0f);
     glm::mat4 mat_projection = glm::ortho(
         0.0f, 
-        1.0f * ((GLfloat)SCREEN_WIDTH), 
-        1.0f * ((GLfloat)SCREEN_HEIGHT),
+        1.0f * SCREEN_WIDTH, 
+        1.0f * SCREEN_HEIGHT,
         0.0f,
         0.0f, 
         1.0f * 10.0f

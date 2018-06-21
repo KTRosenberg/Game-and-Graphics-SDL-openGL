@@ -136,6 +136,12 @@ static void keys_print(struct Input* in);
 
 }
 
+struct WindowState {
+    bool focused;
+    bool minimized;
+    bool restored;
+};
+
 
 inline i32 snap_to_grid(i32 val_x, i32 len);
 

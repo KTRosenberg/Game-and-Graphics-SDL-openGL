@@ -9,8 +9,9 @@
 #include <glm/gtx/norm.hpp>
 
 #include <bitset>
-
 #include <limits>
+#include <string>
+#include <iostream>
 
 #define POSITIVE_INFINITY (std::numeric_limits<f64>::infinity())
 
@@ -127,15 +128,26 @@ struct DynamicBuffer {
     iterator end() { return &this->array[this->cap]; }
 };
 
+void vec2_print(glm::vec2* v);
+
+void vec2_pair_print(glm::vec2* a, glm::vec2* b);
+
 void vec3_print(glm::vec3* v);
 
 void vec3_pair_print(glm::vec3* a, glm::vec3*b);
+
+void vec4_print(glm::vec4* v);
+
+void vec4_pair_print(glm::vec4* a, glm::vec4* b);
+
+template<typename T>
+void print_array(T* array, const usize N, const usize M = 1);
 
 // }
 #endif
 
 
-#ifdef COMMON_UTILS_IMPLEMENTATION_CPP
+#ifdef COMMON_UTILS_CPP_IMPLEMENTATION
 
 
 inline f64 dist2(glm::vec3 v, glm::vec3 w)
@@ -237,17 +249,54 @@ static std::string to_binary_string(const T& x)
     return std::bitset<sizeof(T) * 8>(x).to_string();
 }
 
+void vec2_print(glm::vec2* v)
+{
+    printf("[%f, %f]", v->x, v->y);      
+}
+
+void vec3_pair_print(glm::vec2* a, glm::vec2* b)
+{
+    printf("[[%f, %f][%f, %f]]", a->x, a->y, b->x, b->y);  
+}
+
 void vec3_print(glm::vec3* v)
 {
     printf("[%f, %f, %f]", v->x, v->y, v->z);  
 }
 
-void vec3_pair_print(glm::vec3* a, glm::vec3*b)
+void vec3_pair_print(glm::vec3* a, glm::vec3* b)
 {
     printf("[[%f, %f, %f][%f, %f, %f]]", a->x, a->y, a->z, b->x, b->y, b->z);  
 }
 
+void vec4_print(glm::vec4* v)
+{
+    printf("[%f, %f, %f, %f]", v->x, v->y, v->z, v->w);  
+}
 
-#undef COMMON_UTILS_IMPLEMENTATION_CPP
+void vec4_pair_print(glm::vec4* a, glm::vec4*b)
+{
+    printf("[[%f, %f, %f, %f][%f, %f, %f, %f]]", a->x, a->y, a->z, a->w, b->x, b->y, b->z, b->w);  
+}
+
+template<typename T>
+void print_array(T* const array, const usize N, const usize M)
+{
+    std::string s = "{\n";
+    for (usize i = 0; i < N; ++i) {
+        T* row = &array[i * M];
+        s += "[";
+        for (usize j = 0; j < M; ++j) {
+            s += std::to_string(row[j]) + ", ";
+        }
+        s += "],\n";
+    }
+    s += "}";
+
+    std::cout << s << std::endl;
+}
+
+
+#undef COMMON_UTILS_CPP_IMPLEMENTATION
 
 #endif
