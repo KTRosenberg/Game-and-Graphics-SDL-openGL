@@ -1182,7 +1182,7 @@ int main(int argc, char* argv[])
         t_delta = (t_now - t_prev);
         t_delta_s = (f64)t_delta / frequency;
 
-        f64 t_since_start = ((f64)(t_now - t_start)) / frequency;
+        f64 t_since_start_s = ((f64)(t_now - t_start)) / frequency;
 
         // INPUT /////////////////////////////////
         if (!poll_input_events(&input, &event)) {
