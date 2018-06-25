@@ -508,6 +508,9 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
             case SDL_SCANCODE_0:
                 key_set_down(input, CONTROL::RESET_POSITION);
                 break;
+            case SDL_SCANCODE_C:
+                key_set_down(input, CONTROL::FREE_CAM);
+                break;                
 #ifdef EDITOR
             case SDL_SCANCODE_E:
                 key_set_down(input, CONTROL::EDIT_GRID);
@@ -543,6 +546,9 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
             case SDL_SCANCODE_0:
                 key_set_up(input, CONTROL::RESET_POSITION);
                 break;
+            case SDL_SCANCODE_C:
+                key_set_up(input, CONTROL::FREE_CAM);
+                break; 
 #ifdef EDITOR
             case SDL_SCANCODE_E:
                 key_set_up(input, CONTROL::EDIT_GRID);
@@ -963,6 +969,8 @@ int main(int argc, char* argv[])
     FreeCamera main_cam(start_pos);
     main_cam.orientation = glm::quat();
     main_cam.speed = PLAYER_BASE_SPEED;
+    main_cam.offset = glm::vec2(SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0);
+    main_cam.target = glm::vec2(0);
     // ViewCamera_init(
     //     &main_cam,
     //     start_pos,
@@ -1067,6 +1075,8 @@ int main(int argc, char* argv[])
     }
     #endif
 
+    Toggle free_cam_toggle = false;
+
     #ifdef EDITOR
     glUseProgram(shader_grid);
 
@@ -1169,7 +1179,8 @@ int main(int argc, char* argv[])
 #endif
 
     Player you;
-    Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0, 0, 20, 40);
+    Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0.0, true, 0, 20, 40);
+    std::cout << sizeof(Player) << std::endl;
     you.state_change_time = t_now;
 
     while (is_running) {
@@ -1196,68 +1207,88 @@ int main(int argc, char* argv[])
             continue;
         }
 
+
+        bool free_cam_is_on = key_is_toggled(&input, CONTROL::FREE_CAM, &free_cam_toggle);
+        bool up_or_down_held = key_is_held(&input, CONTROL::UP) || key_is_held(&input, CONTROL::DOWN);
+
+        if (free_cam_is_on) {
+            main_cam.is_catching_up = true;
+        } else if (up_or_down_held) {
+            main_cam.is_catching_up = true;
+        }
+
+
         {
 
             double CHANGE = t_delta_s;
             main_cam.orientation = glm::quat();
 
-            if (key_is_held(&input, CONTROL::UP)) {
-                FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, CHANGE * up_acc);
-                up_acc *= POS_ACC;
-                up_acc = glm::min(max_acc, up_acc);
-            } else {
-                if (up_acc > 1.0) {
+            if (free_cam_is_on) {
+                if (key_is_held(&input, CONTROL::UP)) {
                     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, CHANGE * up_acc);
+                    up_acc *= POS_ACC;
+                    up_acc = glm::min(max_acc, up_acc);
+                } else {
+                    if (up_acc > 1.0) {
+                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, CHANGE * up_acc);
+                    }
+                    up_acc = glm::max(1.0, up_acc * NEG_ACC);
                 }
-                up_acc = glm::max(1.0, up_acc * NEG_ACC);
-            }
-            if (key_is_held(&input, CONTROL::DOWN)) {
-                FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, CHANGE * down_acc);
-                down_acc *= POS_ACC;
-                down_acc = glm::min(max_acc, down_acc);
-            } else {
-                if (down_acc > 1.0) {
+                if (key_is_held(&input, CONTROL::DOWN)) {
                     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, CHANGE * down_acc);
-                } 
-                down_acc = glm::max(1.0, down_acc * NEG_ACC);
+                    down_acc *= POS_ACC;
+                    down_acc = glm::min(max_acc, down_acc);
+                } else {
+                    if (down_acc > 1.0) {
+                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, CHANGE * down_acc);
+                    } 
+                    down_acc = glm::max(1.0, down_acc * NEG_ACC);
+                }
             }
 
             if (key_is_held(&input, CONTROL::LEFT)) {
-                FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
-
+                if (free_cam_is_on) {
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+                } else {
                 // TEMP
-                Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+                    Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+                }
 
                 left_acc *= POS_ACC;
                 left_acc = glm::min(max_acc, left_acc);
             
             } else {
                 if (left_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
-
+                    if (free_cam_is_on) {
+                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+                    } else {
                     // TEMP
-                    Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
-
+                        Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+                    }
                 }
                 left_acc = glm::max(1.0, left_acc * NEG_ACC);
                 left_acc = glm::min(max_acc, left_acc);
             }
 
             if (key_is_held(&input, CONTROL::RIGHT)) {
-                FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
-
-                // TEMP
-                Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+                if (free_cam_is_on) {
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+                } else {
+                    // TEMP
+                    Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+                }
 
                 right_acc *= POS_ACC;
                 right_acc = glm::min(max_acc, right_acc);
 
             } else {
                 if (right_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
-
-                    // TEMP
-                    Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+                    if (free_cam_is_on) {
+                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+                    } else {
+                        // TEMP
+                        Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+                    }
                 }
                 right_acc = glm::max(1.0, right_acc * NEG_ACC);
             }
@@ -1296,6 +1327,7 @@ int main(int argc, char* argv[])
                 // );
                 main_cam.position = start_pos;
                 main_cam.orientation = glm::quat();
+                main_cam.is_catching_up = false;
 
                 up_acc        = 1.0;
                 down_acc      = 1.0;
@@ -1304,8 +1336,17 @@ int main(int argc, char* argv[])
                 backwards_acc = 1.0;
                 forwards_acc  = 1.0;
 
-                Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0, 0, 20, 40);
+                Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0.0, true, 0, 20, 40);
                 you.state_change_time = t_now;
+            }
+
+            if (!free_cam_is_on && 
+                !(up_or_down_held)) {
+
+                FreeCamera_target_set(&main_cam, you.bound.calc_position_center());
+                FreeCamera_target_follow(&main_cam, t_delta_s);
+                up_acc        = 1.0;
+                down_acc      = 1.0;
             }
         }
 

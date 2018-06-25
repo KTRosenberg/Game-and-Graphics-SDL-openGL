@@ -34,6 +34,7 @@ enum struct CONTROL {
     ZOOM_OUT,
     RESET_POSITION,
     PHYSICS,
+    FREE_CAM,
 
     COUNT
 };
@@ -176,22 +177,36 @@ struct BoxComponent {
         return this->spatial.w;
     }
 
-    inline glm::vec3 calc_position_center(void)
+    inline glm::vec2 calc_position_center(void)
     {
-        return glm::vec3(spatial.x + (width / 2.0f), spatial.y + (height / 2), spatial.z);
+        return glm::vec2(this->spatial.x + (this->width / 2.0f), this->spatial.y + (this->height / 2));
     }
 
-    void reposition(f64 x, f64 y, f64 z)
+    inline void position_set(f64 x, f64 y)
     {
-        spatial.x = x;
-        spatial.y = y;
-        spatial.z = z;
+        this->spatial.x = x;
+        this->spatial.y = y;
     }
 
-    void reposition_and_reorient(f64 x, f64 y, f64 z, f64 angle)
+    inline void position_set_center(f64 x, f64 y)
     {
-        reposition(x, y, z);
-        spatial.w = angle;
+        const f64 half_width = this->width / 2;
+        const f64 half_height = this->height / 2;
+        this->spatial.x = x - half_width;
+        this->spatial.y = y - half_height;
+    }
+
+    inline void position_set_center(void)
+    {
+        const f64 half_width = this->width / 2;
+        const f64 half_height = this->height / 2;
+        this->spatial.x -= half_width;
+        this->spatial.y -= half_height;
+    }
+
+    inline void orientation_set(f64 angle)
+    {
+        this->spatial.w = angle;
     }
 };
 
@@ -294,7 +309,9 @@ struct Player {
 
 };
 
-void Player_init(f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height);
+void Player_init(Player* pl);
+
+void Player_init(Player* pl, f64 x, f64 y, f64 z, bool position_at_center, f64 angle, f64 width, f64 height);
 
 void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_time);
 
@@ -504,9 +521,24 @@ void BoxComponent_init(BoxComponent* bc, f64 x, f64 y, f64 z, f64 angle, f64 wid
     bc->height = height;
 }
 
-void Player_init(Player* pl, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height)
+void Player_init(Player* pl /*, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height*/)
+{
+    // BoxComponent_init(&pl->bound, x, y, z, angle, width, height);
+    // pl->on_ground = false;
+    // pl->state_change_time = 0.0;
+    // pl->ground_speed = glm::vec3(0.0);
+    // pl->air_speed = glm::vec3(0.0);
+
+    memset(pl, 0x00, sizeof(Player));
+}
+
+void Player_init(Player* pl, f64 x, f64 y, f64 z, bool position_at_center, f64 angle, f64 width, f64 height)
 {
     BoxComponent_init(&pl->bound, x, y, z, angle, width, height);
+    if (position_at_center) {
+        pl->bound.position_set_center();
+    }
+
     pl->on_ground = false;
     pl->state_change_time = 0.0;
     pl->ground_speed = glm::vec3(0.0);

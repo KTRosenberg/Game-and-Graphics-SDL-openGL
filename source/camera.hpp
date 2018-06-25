@@ -116,10 +116,18 @@ struct FreeCamera {
     glm::mat4 matrix;
     GLfloat speed;
 
+    glm::vec2 target;
+
+    glm::vec2 offset;
+
+    glm::vec2 target_diff;
+
+    bool is_catching_up;
+
 	//FreeCamera (void) = default;
 	FreeCamera (const FreeCamera &) = default;
 
-	FreeCamera (const glm::vec3 &position) : position(position) {}
+	FreeCamera (const glm::vec3 &position) : position(position) { is_catching_up = false; }
 	FreeCamera (const glm::vec3 &position, const glm::quat &orientation) : position(position), orientation(orientation) {}
 
 	FreeCamera  &operator=(const FreeCamera&) = default;
@@ -144,6 +152,11 @@ void FreeCamera_process_directional_movement(FreeCamera* view, MOVEMENT_DIRECTIO
 
 glm::mat4 FreeCamera_calc_view_matrix(FreeCamera* view);
 glm::mat4 FreeCamera_calc_view_matrix_reverse(FreeCamera* view);
+
+void FreeCamera_target_set(FreeCamera* view, glm::vec2 target);
+void FreeCamera_target_follow(FreeCamera* view, f64 t_delta_s);
+
+
 
 
 
