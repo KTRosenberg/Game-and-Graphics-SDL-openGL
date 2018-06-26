@@ -2,6 +2,8 @@
 #define GL_DRAW2D_H
 
 #include "common_utils.h"
+#include "common_utils_cpp.h"
+
 #include "opengl.hpp"
 #include "shader.hpp"
 #include "sdl.hpp"
@@ -295,7 +297,7 @@ struct GLDraw2D {
         size_t v_count = 0;
         size_t i_count = 0;
         size_t v_idx = 0;
-        GLdouble angle_turn = angle_turn = (2 * glm::pi<GLdouble>()) / count_sides;
+        GLdouble angle_turn = -(2 * glm::pi<float64>()) / count_sides;
 
         switch (draw_type) {
         case GL_TRIANGLES:
@@ -325,6 +327,7 @@ struct GLDraw2D {
                         1.0f
                     )
                 );
+
                 vertices_triangles[v_idx + off]     = point.x;
                 vertices_triangles[v_idx + off + 1] = point.y;
                 vertices_triangles[v_idx + off + 2] = point.z;

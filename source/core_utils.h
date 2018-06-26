@@ -29,11 +29,13 @@ enum struct CONTROL {
     DOWN,
     LEFT,
     RIGHT,
-    EDIT_GRID,
+    EDIT_MODE,
+    EDIT_VERBOSE,
     ZOOM_IN,
     ZOOM_OUT,
     RESET_POSITION,
     PHYSICS,
+    FREE_CAM,
 
     COUNT
 };
@@ -136,6 +138,12 @@ static void keys_print(struct Input* in);
 
 }
 
+struct WindowState {
+    bool focused;
+    bool minimized;
+    bool restored;
+};
+
 
 inline i32 snap_to_grid(i32 val_x, i32 len);
 
@@ -170,39 +178,56 @@ struct BoxComponent {
         return this->spatial.w;
     }
 
-    inline glm::vec3 calc_position_center(void)
+    inline glm::vec2 calc_position_center(void)
     {
-        return glm::vec3(spatial.x + (width / 2.0f), spatial.y + (height / 2), spatial.z);
+        return glm::vec2(this->spatial.x + (this->width / 2.0f), this->spatial.y + (this->height / 2));
     }
 
-    void reposition(f64 x, f64 y, f64 z)
+    inline void position_set(f64 x, f64 y)
     {
-        spatial.x = x;
-        spatial.y = y;
-        spatial.z = z;
+        this->spatial.x = x;
+        this->spatial.y = y;
     }
 
-    void reposition_and_reorient(f64 x, f64 y, f64 z, f64 angle)
+    inline void position_set_center(f64 x, f64 y)
     {
-        reposition(x, y, z);
-        spatial.w = angle;
+        const f64 half_width = this->width / 2;
+        const f64 half_height = this->height / 2;
+        this->spatial.x = x - half_width;
+        this->spatial.y = y - half_height;
+    }
+
+    inline void position_set_center(void)
+    {
+        const f64 half_width = this->width / 2;
+        const f64 half_height = this->height / 2;
+        this->spatial.x -= half_width;
+        this->spatial.y -= half_height;
+    }
+
+    inline void orientation_set(f64 angle)
+    {
+        this->spatial.w = angle;
     }
 };
 
 void BoxComponent_init(f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height);
 
 
+#define PLAYER_BASE_SPEED (0.01 * 360.0f)
+#define PLAYER_MAX_SPEED (32.0)
+
 struct Player {
     BoxComponent bound;
     bool on_ground;
     f64 state_change_time;
-    glm::vec3 ground_speed;
-    glm::vec3 air_speed;
+    glm::vec2 speed_ground;
+    glm::vec2 speed_air;
 
     inline std::pair<glm::vec4, glm::vec4> floor_sensors(void)
     {
         return {
-            // TODO each will have angle for w component
+            // TODO each might have angle for w component
             glm::vec4(
                 this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
                 this->bound.spatial.y + (this->bound.height / 2),
@@ -227,25 +252,25 @@ struct Player {
         return {
             {
                 glm::vec3(
-                    this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
+                    (this->bound.spatial.x + (this->bound.width / 2)) - 9.0, 
                     this->bound.spatial.y + (this->bound.height / 2),
                     this->bound.spatial.z 
                 ),
                 glm::vec3(
-                    this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
-                    this->bound.spatial.y + this->bound.height + (this->bound.height / 2),
+                    (this->bound.spatial.x + (this->bound.width / 2)) - 9.0, 
+                    this->bound.spatial.y + this->bound.height + (this->bound.height * 0.4),
                     this->bound.spatial.z
                 )
             },
             {
                 glm::vec3(
-                    this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
+                    (this->bound.spatial.x + (this->bound.width / 2)) + 9.0, 
                     this->bound.spatial.y + (this->bound.height / 2),
                     this->bound.spatial.z 
                 ),
                 glm::vec3(
-                    this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
-                    this->bound.spatial.y + this->bound.height + (this->bound.height / 2),
+                    (this->bound.spatial.x + (this->bound.width / 2)) + 9.0, 
+                    this->bound.spatial.y + this->bound.height + (this->bound.height * 0.4),
                     this->bound.spatial.z 
                 )
             }            
@@ -285,7 +310,9 @@ struct Player {
 
 };
 
-void Player_init(f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height);
+void Player_init(Player* pl);
+
+void Player_init(Player* pl, f64 x, f64 y, f64 z, bool position_at_center, f64 angle, f64 width, f64 height);
 
 void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_time);
 
@@ -495,19 +522,36 @@ void BoxComponent_init(BoxComponent* bc, f64 x, f64 y, f64 z, f64 angle, f64 wid
     bc->height = height;
 }
 
-void Player_init(Player* pl, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height)
+void Player_init(Player* pl /*, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height*/)
+{
+    // BoxComponent_init(&pl->bound, x, y, z, angle, width, height);
+    // pl->on_ground = false;
+    // pl->state_change_time = 0.0;
+    // pl->speed_ground = glm::vec3(0.0);
+    // pl->speed_air = glm::vec3(0.0);
+
+    memset(pl, 0x00, sizeof(Player));
+}
+
+void Player_init(Player* pl, f64 x, f64 y, f64 z, bool position_at_center, f64 angle, f64 width, f64 height)
 {
     BoxComponent_init(&pl->bound, x, y, z, angle, width, height);
+    if (position_at_center) {
+        pl->bound.position_set_center();
+    }
+
     pl->on_ground = false;
     pl->state_change_time = 0.0;
-    pl->ground_speed = glm::vec3(0.0);
-    pl->air_speed = glm::vec3(0.0);
+    pl->speed_ground = glm::vec2(0.0);
+    pl->speed_air = glm::vec2(0.0);
 }
 
 void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_time)
 {
-    const GLfloat velocity = (0.01 * 360.0f) * delta_time;
+    const GLfloat velocity = glm::min(PLAYER_BASE_SPEED * delta_time, PLAYER_MAX_SPEED);
     glm::vec4* p = &you->bound.spatial;
+
+    //printf("%f\n", velocity);
 
     //#define DB
     switch (direction) {

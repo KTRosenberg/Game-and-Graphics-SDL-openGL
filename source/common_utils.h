@@ -9,6 +9,9 @@ extern "C"
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <math.h>
+#include <stdbool.h>
+#include <getopt.h>
 
 // Credit to Handmade Network person for the following macros {
 typedef int8_t   int8;
@@ -92,8 +95,23 @@ void ArenaAllocator_delete(ArenaAllocator* arena);
 
 void debug_print(const char* const in);
 
+// https://stackoverflow.com/questions/3767869/adding-message-to-assert
+#define ASSERT(condition,...) assert( \
+    condition|| \
+    (fprintf(stderr,__VA_ARGS__)&&fprintf(stderr," at %s:%d\n",__FILE__,__LINE__)) \
+);
+
 typedef void* (*Fn_MemoryAllocator)(size_t bytes);
 
+#define PROGRAM_ARGS_COUNT (1)
+extern struct option program_args[PROGRAM_ARGS_COUNT];
+
+typedef struct {
+    // later
+    char temp_padding;
+} CommandLineArgs;
+
+bool parse_command_line_args(CommandLineArgs* cmd, const int argc, char* argv[]);
 
 #ifdef __cplusplus
 }
@@ -205,6 +223,48 @@ void debug_print(const char* const in)
     #ifdef DEBUG_PRINT
     puts(in);
     #endif
+}
+
+struct option program_args[PROGRAM_ARGS_COUNT] = {
+    {"test_arg", optional_argument, 0, 't'}
+};
+
+bool parse_command_line_args(CommandLineArgs* cmd, const int argc, char* argv[])
+{
+    // later
+    char c = '\0';
+
+    while ((c = getopt_long(argc, argv, ":t:", program_args, nullptr)) != -1) {
+        switch (c) {
+        // number of additional threads
+        case 't':
+            fprintf(stdout, "%s\n", optarg);
+            break;
+        // missing arg
+        case ':':
+            fprintf(stderr, "%s: option '-%c' requires an argument\n",
+                    argv[0], optopt);
+            return false;
+        // help
+        case '?':
+            puts("opt: ");
+            return false;
+        // invalid
+        case 0:
+            fprintf(stderr, "%s: option `-%c' is invalid\n",
+                    argv[0], optopt);
+            return false;            
+        // invalid
+        default:
+            fprintf(stderr, "%s: option `-%c' is invalid\n",
+                    argv[0], optopt);
+            return false;
+        }
+    }
+
+
+    return true;
+
 }
 
 

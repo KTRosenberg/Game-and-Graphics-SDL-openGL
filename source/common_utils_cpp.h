@@ -9,17 +9,47 @@
 #include <glm/gtx/norm.hpp>
 
 #include <bitset>
-
 #include <limits>
+#include <string>
+#include <iostream>
 
 #define POSITIVE_INFINITY (std::numeric_limits<f64>::infinity())
+
+#define declare_pair_type(type__, name__) typedef std::pair<type__, type__> name__##_pair
+declare_pair_type(glm::vec3, vec3);
+declare_pair_type(glm::vec4, vec4);
 
 inline f64 dist2(glm::vec3 v, glm::vec3 w);
 inline f64 dist_to_segment_squared(glm::vec3 v, glm::vec3 w, glm::vec3 p);
 inline f64 dist_to_segment(glm::vec3 v, glm::vec3 w, glm::vec3 p);
 
 // http://alienryderflex.com/intersect/
-bool line_segment_intersection(const std::pair<glm::vec3, glm::vec3>* s0, const std::pair<glm::vec3, glm::vec3>* s1, glm::vec3* out);
+bool line_segment_intersection(const vec3_pair* s0, const vec3_pair* s1, glm::vec3* out);
+
+#define sort_by_y(v) \
+do { \
+    if (v[0].y > v[1].y) { \
+        auto val = v[0]; \
+        v[0] = v[1]; \
+        v[1] = val; \
+    } \
+} while (0)
+
+#define sort_collision(v, c) \
+do { \
+    if (v[0].y > v[1].y) { \
+        { \
+            auto val = v[0]; \
+            v[0] = v[1]; \
+            v[1] = val; \
+        } \
+        { \
+            auto val = c->a; \
+            c->a = c->b; \
+            c->b = c->a; \
+        } \
+    } \
+} while (0)
 
 template<typename T>
 static std::string to_binary_string(const T& x);
@@ -123,15 +153,32 @@ struct DynamicBuffer {
     iterator end() { return &this->array[this->cap]; }
 };
 
+void vec2_print(glm::vec2* v);
+
+void vec2_pair_print(glm::vec2* a, glm::vec2* b);
+
 void vec3_print(glm::vec3* v);
 
 void vec3_pair_print(glm::vec3* a, glm::vec3*b);
+
+void vec4_print(glm::vec4* v);
+
+void vec4_pair_print(glm::vec4* a, glm::vec4* b);
+
+template<typename T>
+void print_array(T* array, const usize N, const usize M = 1);
+
+#define atan2_32(y, x) -glm::atan2<f32, glm::highp>(y, x)
+#define atan2_64(y, x) -glm::atan2<f64, glm::highp>(y, x)
+
+static inline f32 atan2pos_32(f64 y, f64 x);
+static inline f64 atan2pos_64(f64 y, f64 x);
 
 // }
 #endif
 
 
-#ifdef COMMON_UTILS_IMPLEMENTATION_CPP
+#ifdef COMMON_UTILS_CPP_IMPLEMENTATION
 
 
 inline f64 dist2(glm::vec3 v, glm::vec3 w)
@@ -158,7 +205,7 @@ inline f64 dist_to_segment(glm::vec3 v, glm::vec3 w, glm::vec3 p)
 }
 
 // http://alienryderflex.com/intersect/
-bool line_segment_intersection(const std::pair<glm::vec3, glm::vec3>* s0, const std::pair<glm::vec3, glm::vec3>* s1, glm::vec3* out)
+bool line_segment_intersection(const vec3_pair* s0, const vec3_pair* s1, glm::vec3* out)
 {
     f64 Ax = s0->first.x;
     f64 Ay = s0->first.y;
@@ -233,17 +280,67 @@ static std::string to_binary_string(const T& x)
     return std::bitset<sizeof(T) * 8>(x).to_string();
 }
 
+void vec2_print(glm::vec2* v)
+{
+    printf("[%f, %f]", v->x, v->y);      
+}
+
+void vec3_pair_print(glm::vec2* a, glm::vec2* b)
+{
+    printf("[[%f, %f][%f, %f]]", a->x, a->y, b->x, b->y);  
+}
+
 void vec3_print(glm::vec3* v)
 {
     printf("[%f, %f, %f]", v->x, v->y, v->z);  
 }
 
-void vec3_pair_print(glm::vec3* a, glm::vec3*b)
+void vec3_pair_print(glm::vec3* a, glm::vec3* b)
 {
     printf("[[%f, %f, %f][%f, %f, %f]]", a->x, a->y, a->z, b->x, b->y, b->z);  
 }
 
+void vec4_print(glm::vec4* v)
+{
+    printf("[%f, %f, %f, %f]", v->x, v->y, v->z, v->w);  
+}
 
-#undef COMMON_UTILS_IMPLEMENTATION_CPP
+void vec4_pair_print(glm::vec4* a, glm::vec4*b)
+{
+    printf("[[%f, %f, %f, %f][%f, %f, %f, %f]]", a->x, a->y, a->z, a->w, b->x, b->y, b->z, b->w);  
+}
+
+template<typename T>
+void print_array(T* const array, const usize N, const usize M)
+{
+    std::string s = "{\n";
+    for (usize i = 0; i < N; ++i) {
+        T* row = &array[i * M];
+        s += "[";
+        for (usize j = 0; j < M; ++j) {
+            s += std::to_string(row[j]) + ", ";
+        }
+        s += "],\n";
+    }
+    s += "}";
+
+    std::cout << s << std::endl;
+}
+
+static inline f32 atan2pos_32(f64 y, f64 x)
+{
+    f32 val = glm::atan2<f32, glm::highp>(-y, x);
+
+    return (val < 0) ? val + 2 * glm::pi<f64>() : val;
+}
+static inline f64 atan2pos_64(f64 y, f64 x)
+{
+    f64 val = glm::atan2<f64, glm::highp>(-y, x);
+
+    return (val < 0) ? val + 2 * glm::pi<f64>() : val;
+}
+
+
+#undef COMMON_UTILS_CPP_IMPLEMENTATION
 
 #endif

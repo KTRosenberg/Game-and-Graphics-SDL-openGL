@@ -199,9 +199,30 @@ void FreeCamera_init(FreeCamera* view, glm::vec3 start_position)
 }
 
 
+void FreeCamera_target_set(FreeCamera* view, glm::vec2 target)
+{
+    view->target_diff = (target - view->offset) - view->target;
+    view->target = target - view->offset;
+}
+
+void FreeCamera_target_follow(FreeCamera* view, f64 t_delta_s)
+{
+    //f64 next_x = position.x + (view->target.x - view->position.x) * 16 * glm::min(1.0, t_delta_s);
+
+    if (view->is_catching_up) {
+        view->position.x += (view->target.x - view->position.x) * 8 * glm::min(1.0, t_delta_s);
+        if (glm::abs(view->position.x - view->target.x) < 1) {
+            view->is_catching_up = false;
+        }
+    } else {
+        view->position.x = view->target.x;   
+    }
+    view->position.y += (view->target.y - view->position.y) * 16 * glm::min(1.0, t_delta_s); 
+}
+
 void FreeCamera_process_directional_movement(FreeCamera* view, MOVEMENT_DIRECTION direction, GLfloat delta_time)
 {
-    const GLfloat velocity = view->speed * delta_time;
+    const GLfloat velocity = glm::min(PLAYER_BASE_SPEED * delta_time, PLAYER_MAX_SPEED);
     glm::vec3* p = &view->position;
 
     //#define DB

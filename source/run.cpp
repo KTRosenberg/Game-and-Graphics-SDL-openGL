@@ -16,7 +16,7 @@
 
 #define COMMON_UTILS_IMPLEMENTATION
 #include "common_utils.h"
-#define COMMON_UTILS_IMPLEMENTATION_CPP
+#define COMMON_UTILS_CPP_IMPLEMENTATION
 #include "common_utils_cpp.h"
 #define CORE_UTILS_IMPLEMENTATION
 #include "core_utils.h"
@@ -402,6 +402,8 @@ GlobalData program_data;
 #include "gl_draw2d.h"
 #endif
 
+WindowState window_state;
+
 bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 {
     using namespace input_sys;
@@ -417,6 +419,78 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
         switch (event->type) {
         case SDL_QUIT:
             return false;
+        case SDL_WINDOWEVENT:
+            switch (event->window.event) {
+            // case SDL_WINDOWEVENT_SHOWN:
+            //     SDL_Log("Window %d shown", event->window.windowID);
+            //     break;
+            // case SDL_WINDOWEVENT_HIDDEN:
+            //     SDL_Log("Window %d hidden", event->window.windowID);
+            //     break;
+            // case SDL_WINDOWEVENT_EXPOSED:
+            //     SDL_Log("Window %d exposed", event->window.windowID);
+            //     break;
+            // case SDL_WINDOWEVENT_MOVED:
+            //     SDL_Log("Window %d moved to %d,%d",
+            //             event->window.windowID, event->window.data1,
+            //             event->window.data2);
+            //     break;
+            // case SDL_WINDOWEVENT_RESIZED:
+            //     SDL_Log("Window %d resized to %dx%d",
+            //             event->window.windowID, event->window.data1,
+            //             event->window.data2);
+            //     break;
+            // case SDL_WINDOWEVENT_SIZE_t_delta_sD:
+            //     SDL_Log("Window %d size changed to %dx%d",
+            //             event->window.windowID, event->window.data1,
+            //             event->window.data2);
+            //     break;
+            case SDL_WINDOWEVENT_MINIMIZED:
+                window_state.minimized = true;
+                // SDL_Log("Window %d minimized", event->window.windowID);
+                break;
+            // case SDL_WINDOWEVENT_MAXIMIZED:
+            //     SDL_Log("Window %d maximized", event->window.windowID);
+            //     break;
+            case SDL_WINDOWEVENT_RESTORED:
+                window_state.minimized = false;
+                window_state.restored = true;
+                // SDL_Log("Window %d restored", event->window.windowID);
+                break;
+            // case SDL_WINDOWEVENT_ENTER:
+            //     SDL_Log("Mouse entered window %d",
+            //             event->window.windowID);
+            //     break;
+            // case SDL_WINDOWEVENT_LEAVE:
+            //     SDL_Log("Mouse left window %d", event->window.windowID);
+            //     break;
+            case SDL_WINDOWEVENT_FOCUS_GAINED:
+                window_state.focused = true;
+                // SDL_Log("Window %d gained keyboard focus",
+                //         event->window.windowID);
+                break;
+            case SDL_WINDOWEVENT_FOCUS_LOST:
+                window_state.focused = false;
+                // SDL_Log("Window %d lost keyboard focus",
+                //         event->window.windowID);
+                break;
+            // case SDL_WINDOWEVENT_CLOSE:
+            //     SDL_Log("Window %d closed", event->window.windowID);
+            //     break;
+    // #if SDL_VERSION_ATLEAST(2, 0, 5)
+    //         case SDL_WINDOWEVENT_TAKE_FOCUS:
+    //             SDL_Log("Window %d is offered a focus", event->window.windowID);
+    //             break;
+    //         case SDL_WINDOWEVENT_HIT_TEST:
+    //             SDL_Log("Window %d has a special hit test", event->window.windowID);
+    //             break;
+    // #endif
+            default:
+                // SDL_Log("Window %d got unknown event %d",
+                //         event->window.windowID, event->window.event);
+                break;
+            }
+            break;
         case SDL_KEYDOWN:
             switch (event->key.keysym.scancode) {
             case SDL_SCANCODE_W:
@@ -434,12 +508,18 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
             case SDL_SCANCODE_0:
                 key_set_down(input, CONTROL::RESET_POSITION);
                 break;
+            case SDL_SCANCODE_C:
+                key_set_down(input, CONTROL::FREE_CAM);
+                break;                
 #ifdef EDITOR
             case SDL_SCANCODE_E:
-                key_set_down(input, CONTROL::EDIT_GRID);
+                key_set_down(input, CONTROL::EDIT_MODE);
                 break;
             case SDL_SCANCODE_P:
                 key_set_down(input, CONTROL::PHYSICS);
+                break;
+            case SDL_SCANCODE_V:
+                key_set_down(input, CONTROL::EDIT_VERBOSE);
                 break;
 #endif
             case SDL_SCANCODE_UP:
@@ -469,12 +549,18 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
             case SDL_SCANCODE_0:
                 key_set_up(input, CONTROL::RESET_POSITION);
                 break;
+            case SDL_SCANCODE_C:
+                key_set_up(input, CONTROL::FREE_CAM);
+                break; 
 #ifdef EDITOR
             case SDL_SCANCODE_E:
-                key_set_up(input, CONTROL::EDIT_GRID);
+                key_set_up(input, CONTROL::EDIT_MODE);
                 break;
             case SDL_SCANCODE_P:
                 key_set_up(input, CONTROL::PHYSICS);
+                break;
+            case SDL_SCANCODE_V:
+                key_set_up(input, CONTROL::EDIT_VERBOSE);
                 break;
 #endif
             case SDL_SCANCODE_UP:
@@ -517,6 +603,13 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
     SDL_GetMouseState(&input->mouse_x, &input->mouse_y);
 #endif
 
+    if (window_state.minimized) {
+        SDL_Delay(1000);
+    } else if (!window_state.focused) {
+        SDL_Delay(64);
+    }
+
+
     return true;
 }
 
@@ -546,7 +639,7 @@ void draw_player_collision(Player* you, GLDraw2D* ctx)
     ctx->line(floor_sensor_rays.second.first, floor_sensor_rays.second.second);
 }
 
-bool temp_test_collision(Player* you, Collider* c, glm::vec3* out, const bool first_check)
+bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
 {
     auto sensors = you->floor_sensor_rays();
 
@@ -585,6 +678,8 @@ bool temp_test_collision(Player* you, Collider* c, glm::vec3* out, const bool fi
         return false;
     }
 
+    glm::vec3* out = &status->intersection;
+
     // TODO FIX BUG: HEIGHT OVERRIDDEN BY SUCCESSIVE COLLIDERS EVEN IF LOWER,
     // MUST COMPARE ALL COLLIDERS BEFORE MODIFYING VALUE
    // std::cout << "ON_GROUND: " << ((you->on_ground) ? "TRUE" : "FALSE") << std::endl;
@@ -603,6 +698,7 @@ bool temp_test_collision(Player* you, Collider* c, glm::vec3* out, const bool fi
         out->x = choice->x;
         out->y = choice->y;
         out->z = 0.0;
+        status->collider = c;
         
         return true;
     } else if (you->on_ground) {
@@ -619,6 +715,14 @@ bool temp_test_collision(Player* you, Collider* c, glm::vec3* out, const bool fi
         out->x = choice->x;
         out->y = choice->y;
         out->z = 0.0;
+        status->collider = c;
+
+        // glm::vec3* a = &c->a;
+        // glm::vec3* b = &c->b;
+        //std::cout << glm::degrees(atan2pos_64(b->y - a->y, b->x - a->x)) << std::endl;
+
+
+        //vec3_pair_print(&c->a, &c->b);
         
         return true;        
     }
@@ -628,9 +732,17 @@ bool temp_test_collision(Player* you, Collider* c, glm::vec3* out, const bool fi
 
 }
 
+
+
 int main(int argc, char* argv[])
 {
     using namespace input_sys;
+
+    CommandLineArgs cmd;
+    if (!parse_command_line_args(&cmd, argc, argv)) {
+        return EXIT_FAILURE;
+    }
+
     //std::cout << dist_to_segment(glm::vec3(0.0, 0.0, 0.0), glm::vec3(1280.0, 0.0, 0.0), glm::vec3(0.0, 720.0, 0.0)) << std::endl;
     //return 0;
     // FILE* fp = fopen("worlds/lines_test_a.txt", "r");
@@ -701,6 +813,9 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Window could not be created\n");
         return EXIT_FAILURE;
     }
+
+    window_state.focused = true;
+    window_state.minimized = false;
 
     //SDL_SetWindowFullscreen(window, true);
     
@@ -780,16 +895,19 @@ int main(int argc, char* argv[])
     GLfloat Y_OFF = (tex_res.y - SCREEN_HEIGHT) / 2.0f;
 
     GLfloat T[] = {
-       0.0f - X_OFF,      tex_res.y - Y_OFF, 0.0f,    0.0f, 1.0f,    // top left
-       0.0f - X_OFF,      0.0f - Y_OFF,      0.0f,    0.0f, 0.0f,    // bottom left
-       tex_res.x - X_OFF, 0.0f - Y_OFF,      0.0f,    1.0f, 0.0f,    // bottom right
-       tex_res.x - X_OFF, tex_res.y - Y_OFF, 0.0f,    1.0f, 1.0f,    // top right
+       0.0f - X_OFF,      0.0f - Y_OFF,      0.0f,    0.0f, 0.0f,    // top left
+       0.0f - X_OFF,      tex_res.y - Y_OFF, 0.0f,    0.0f, 1.0f,    // bottom left
+       tex_res.x - X_OFF, tex_res.y - Y_OFF, 0.0f,    1.0f, 1.0f,    // bottom right
+       tex_res.x - X_OFF, 0.0f - Y_OFF,      0.0f,    1.0f, 0.0f,    // top right
     };
 
     GLuint TI[] = {
         0, 1, 2,
         2, 3, 0,
     };
+
+
+    print_array(T, 4, 6);
 
 // TOTAL ALLOCATION
     // const size_t BATCH_COUNT = 1024;
@@ -842,17 +960,14 @@ int main(int argc, char* argv[])
 
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
    
-    glCullFace(GL_FRONT);
-
    // glEnable(GL_DEPTH_TEST);
  //    glDepthRange(0, 1);
  //    glDepthFunc(GL_LEQUAL);
 
 
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     //glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ONE, GL_ONE);
     //glBlendEquationSeparate(GL_FUNC_ADD, GL_MAX);
@@ -863,8 +978,8 @@ int main(int argc, char* argv[])
     glm::mat4 mat_ident(1.0f);
     glm::mat4 mat_projection = glm::ortho(
         0.0f, 
-        1.0f * ((GLfloat)SCREEN_WIDTH), 
-        1.0f * ((GLfloat)SCREEN_HEIGHT),
+        1.0f * SCREEN_WIDTH, 
+        1.0f * SCREEN_HEIGHT,
         0.0f,
         0.0f, 
         1.0f * 10.0f
@@ -877,7 +992,9 @@ int main(int argc, char* argv[])
     
     FreeCamera main_cam(start_pos);
     main_cam.orientation = glm::quat();
-    main_cam.speed = 0.01 * 360.0f;
+    main_cam.speed = PLAYER_BASE_SPEED;
+    main_cam.offset = glm::vec2(SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0);
+    main_cam.target = glm::vec2(0);
     // ViewCamera_init(
     //     &main_cam,
     //     start_pos,
@@ -982,6 +1099,8 @@ int main(int argc, char* argv[])
     }
     #endif
 
+    Toggle free_cam_toggle = false;
+
     #ifdef EDITOR
     glUseProgram(shader_grid);
 
@@ -1002,6 +1121,7 @@ int main(int argc, char* argv[])
     GLDraw2D in_prog;
     Toggle drawing = false;
     Toggle deletion = false;
+
     if (!existing.init(mat_projection)) {
         fprintf(stderr, "FAILED TO INITIALIZE EDITOR DATA \"existing\"\n");
         return EXIT_FAILURE;
@@ -1055,6 +1175,7 @@ int main(int argc, char* argv[])
 #ifdef EDITOR
     Toggle grid_toggle = false;
     Toggle physics_toggle = false;
+    Toggle normals = false;
     glm::vec3 in_progress_line[2];
     in_progress_line[0] = glm::vec3(0.0f);
     in_progress_line[1] = glm::vec3(0.0f);
@@ -1084,8 +1205,27 @@ int main(int argc, char* argv[])
 #endif
 
     Player you;
-    Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0, 0, 20, 40);
+    Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0.0, true, 0, 20, 40);
     you.state_change_time = t_now;
+
+
+    // f64 X[8] = {
+    //     glm::degrees(atan2pos_64(0.0, 1.0)),
+    //     glm::degrees(atan2pos_64(0.5, 0.5)),
+    //     glm::degrees(atan2pos_64(1.0, 0.0)),
+    //     glm::degrees(atan2pos_64(0.5, -0.5)),
+    //     glm::degrees(atan2pos_64(0.0, -1.0)),
+    //     glm::degrees(atan2pos_64(-0.5, -0.5)),
+    //     glm::degrees(atan2pos_64(-1.0, 0.0)),
+    //     glm::degrees(atan2pos_64(-0.5, 0.5))
+    // };
+    // print_array(X, 8);
+    // return 0;
+
+
+    // glm::vec2 a(0, 0);
+    // glm::vec2 b(1, 1);
+    // std::cout << glm::degrees(atan2pos_64(b.y - a.y, b.x - a.x)) << std::endl;
 
     while (is_running) {
         t_prev = t_now;
@@ -1097,97 +1237,122 @@ int main(int argc, char* argv[])
         t_delta = (t_now - t_prev);
         t_delta_s = (f64)t_delta / frequency;
 
-        f64 t_since_start = ((f64)(t_now - t_start)) / frequency;
+        f64 t_since_start_s = ((f64)(t_now - t_start)) / frequency;
 
         // INPUT /////////////////////////////////
         if (!poll_input_events(&input, &event)) {
             is_running = false;
             continue;
+        } else if (window_state.minimized) {
+            continue;
+        } else if (window_state.restored) {
+            window_state.restored = false;
+            SDL_GL_SwapWindow(window);
+            continue;
         }
+
+
+        bool free_cam_is_on = key_is_toggled(&input, CONTROL::FREE_CAM, &free_cam_toggle);
+        bool camera_locked = key_is_held(&input, CONTROL::UP);
+
+        if (free_cam_is_on) {
+            main_cam.is_catching_up = true;
+        } else if (camera_locked) {
+            main_cam.is_catching_up = true;
+        }
+
 
         {
 
-            double CHANGE = t_delta_s;
             main_cam.orientation = glm::quat();
 
-            if (key_is_held(&input, CONTROL::UP)) {
-                FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, CHANGE * up_acc);
-                up_acc *= POS_ACC;
-                up_acc = glm::min(max_acc, up_acc);
-            } else {
-                if (up_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, CHANGE * up_acc);
+            if (free_cam_is_on) {
+                if (key_is_held(&input, CONTROL::UP)) {
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, t_delta_s * up_acc);
+                    up_acc *= POS_ACC;
+                    up_acc = glm::min(max_acc, up_acc);
+                } else {
+                    if (up_acc > 1.0) {
+                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, t_delta_s * up_acc);
+                    }
+                    up_acc = glm::max(1.0, up_acc * NEG_ACC);
                 }
-                up_acc = glm::max(1.0, up_acc * NEG_ACC);
-            }
-            if (key_is_held(&input, CONTROL::DOWN)) {
-                FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, CHANGE * down_acc);
-                down_acc *= POS_ACC;
-                down_acc = glm::min(max_acc, down_acc);
-            } else {
-                if (down_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, CHANGE * down_acc);
-                } 
-                down_acc = glm::max(1.0, down_acc * NEG_ACC);
+                if (key_is_held(&input, CONTROL::DOWN)) {
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, t_delta_s * down_acc);
+                    down_acc *= POS_ACC;
+                    down_acc = glm::min(max_acc, down_acc);
+                } else {
+                    if (down_acc > 1.0) {
+                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, t_delta_s * down_acc);
+                    } 
+                    down_acc = glm::max(1.0, down_acc * NEG_ACC);
+                }
             }
 
             if (key_is_held(&input, CONTROL::LEFT)) {
-                FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
-
+                if (free_cam_is_on) {
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
+                } else {
                 // TEMP
-                Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+                    Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
+                }
 
                 left_acc *= POS_ACC;
                 left_acc = glm::min(max_acc, left_acc);
             
             } else {
                 if (left_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
-
+                    if (free_cam_is_on) {
+                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
+                    } else {
                     // TEMP
-                    Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
-
+                        Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
+                    }
                 }
                 left_acc = glm::max(1.0, left_acc * NEG_ACC);
                 left_acc = glm::min(max_acc, left_acc);
             }
 
             if (key_is_held(&input, CONTROL::RIGHT)) {
-                FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
-
-                // TEMP
-                Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+                if (free_cam_is_on) {
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
+                } else {
+                    // TEMP
+                    Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
+                }
 
                 right_acc *= POS_ACC;
                 right_acc = glm::min(max_acc, right_acc);
 
             } else {
                 if (right_acc > 1.0) {
-                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
-
-                    // TEMP
-                    Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+                    if (free_cam_is_on) {
+                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
+                    } else {
+                        // TEMP
+                        Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
+                    }
                 }
                 right_acc = glm::max(1.0, right_acc * NEG_ACC);
             }
 
             // if (*forwards) {
-            //     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::FORWARDS, CHANGE * forwards_acc);
+            //     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::FORWARDS, t_delta_s * forwards_acc);
             //     forwards_acc *= POS_ACC;
             //     forwards_acc = glm::min(max_acc, forwards_acc);
             // } else {
             //     if (forwards_acc > 1.0) {
-            //         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::FORWARDS, CHANGE * forwards_acc);
+            //         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::FORWARDS, t_delta_s * forwards_acc);
             //     }
             //     forwards_acc = glm::max(1.0, forwards_acc * NEG_ACC);
             // }
             // if (*backwards) {
-            //     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::BACKWARDS, CHANGE * backwards_acc);
+            //     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::BACKWARDS, t_delta_s * backwards_acc);
             //     backwards_acc *= POS_ACC;
             //     backwards_acc = glm::min(max_acc, backwards_acc);
             // } else {
             //     if (backwards_acc > 1.0) {
-            //         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::BACKWARDS, CHANGE * backwards_acc);
+            //         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::BACKWARDS, t_delta_s * backwards_acc);
             //     } 
             //     backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
             // }
@@ -1205,6 +1370,7 @@ int main(int argc, char* argv[])
                 // );
                 main_cam.position = start_pos;
                 main_cam.orientation = glm::quat();
+                main_cam.is_catching_up = false;
 
                 up_acc        = 1.0;
                 down_acc      = 1.0;
@@ -1213,8 +1379,17 @@ int main(int argc, char* argv[])
                 backwards_acc = 1.0;
                 forwards_acc  = 1.0;
 
-                Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0, 0, 20, 40);
+                Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0.0, true, 0, 20, 40);
                 you.state_change_time = t_now;
+            }
+
+            if (!free_cam_is_on && 
+                !(camera_locked)) {
+
+                FreeCamera_target_set(&main_cam, you.bound.calc_position_center());
+                FreeCamera_target_follow(&main_cam, t_delta_s);
+                up_acc        = 1.0;
+                down_acc      = 1.0;
             }
         }
 
@@ -1349,7 +1524,7 @@ int main(int argc, char* argv[])
 
         #ifdef EDITOR
 
-        if (key_is_toggled(&input, CONTROL::EDIT_GRID, &grid_toggle)) {
+        if (key_is_toggled(&input, CONTROL::EDIT_MODE, &grid_toggle)) {
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -1531,7 +1706,31 @@ int main(int argc, char* argv[])
                     existing.begin();
                     existing.draw_type = GL_LINES;
                     //existing.transform_matrix = cam;
+
+                    //sort_segment(in_progress_line);
+                    
                     existing.line(in_progress_line[0], in_progress_line[1]);
+                    
+                    // {
+                    //     f64 dy = in_progress_line[1].y - in_progress_line[0].y;
+                    //     f64 dx = in_progress_line[1].x - in_progress_line[0].x;
+                    //     existing.color = Color::BLUE;
+
+                    //     glm::vec3 na(-dy, dx, 0.0);
+                    //     glm::vec3 nb(dy, -dx, 0.0);
+
+                    //     //na = glm::normalize(na);
+                    //     //nb = glm::normalize(nb);
+
+                    //     existing.line(na, nb);
+
+                        
+                    //     existing.color = Color::BLACK;
+                    //     vec3_pair_print(&na, &nb);
+
+
+                    // }
+
                     existing.end_no_reset();
                     break;
                 case TOGGLE_BRANCH::OFF:
@@ -1596,14 +1795,15 @@ int main(int argc, char* argv[])
 
             bool collided = false;
 
-            glm::vec3 out(POSITIVE_INFINITY);
+            CollisionStatus status;
+            CollisionStatus_init(&status);
             for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
             {
                 //Collider_print(it);
                 
-                if (temp_test_collision(&you, it, &out, !collided)) {
+                if (temp_test_collision(&you, it, &status)) {
                     //printf("COLLISION\n");
-                    gl_draw2d.line(glm::vec3(0.0), out);
+                    gl_draw2d.line(glm::vec3(0.0), status.intersection);
                     you.on_ground = true;
                     you.state_change_time = t_now;
                     collided = true;
@@ -1618,7 +1818,30 @@ int main(int argc, char* argv[])
                 you.on_ground = false;
             } else {
                 //you.bound.spatial.x = out.x - (1 * you.bound.width); <-- ENABLE TO MAKE THE FLOOR A TREADMILL
-                you.bound.spatial.y = out.y - (1 * you.bound.height);
+                you.bound.spatial.y = status.intersection.y - (1 * you.bound.height);
+
+                // draw surface and normals
+                if (key_is_toggled(&input, CONTROL::EDIT_VERBOSE, &normals)) {
+                    Collider* col = status.collider;
+                    f64 dy = col->b.y - col->a.y;
+                    f64 dx = col->b.x - col->a.x;
+
+                    glm::vec3 na(-dy, dx, 0.0);
+                    glm::vec3 nb(dy, -dx, 0.0);
+
+                    //na = glm::normalize(na);
+                    //nb = glm::normalize(nb);
+
+                    gl_draw2d.color = Color::GREEN;
+                    gl_draw2d.line(status.collider->a, status.collider->b);
+                    gl_draw2d.color = Color::BLUE;
+                    gl_draw2d.line(na + col->a, nb + col->a);
+
+                    
+                    //existing.color = Color::BLACK;
+                    //vec3_pair_print(&na, &nb);
+                } 
+
             }
 
             gl_draw2d.end();
