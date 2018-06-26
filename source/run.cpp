@@ -440,7 +440,7 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
             //             event->window.windowID, event->window.data1,
             //             event->window.data2);
             //     break;
-            // case SDL_WINDOWEVENT_SIZE_CHANGED:
+            // case SDL_WINDOWEVENT_SIZE_t_delta_sD:
             //     SDL_Log("Window %d size changed to %dx%d",
             //             event->window.windowID, event->window.data1,
             //             event->window.data2);
@@ -513,10 +513,13 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 break;                
 #ifdef EDITOR
             case SDL_SCANCODE_E:
-                key_set_down(input, CONTROL::EDIT_GRID);
+                key_set_down(input, CONTROL::EDIT_MODE);
                 break;
             case SDL_SCANCODE_P:
                 key_set_down(input, CONTROL::PHYSICS);
+                break;
+            case SDL_SCANCODE_V:
+                key_set_down(input, CONTROL::EDIT_VERBOSE);
                 break;
 #endif
             case SDL_SCANCODE_UP:
@@ -551,10 +554,13 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 break; 
 #ifdef EDITOR
             case SDL_SCANCODE_E:
-                key_set_up(input, CONTROL::EDIT_GRID);
+                key_set_up(input, CONTROL::EDIT_MODE);
                 break;
             case SDL_SCANCODE_P:
                 key_set_up(input, CONTROL::PHYSICS);
+                break;
+            case SDL_SCANCODE_V:
+                key_set_up(input, CONTROL::EDIT_VERBOSE);
                 break;
 #endif
             case SDL_SCANCODE_UP:
@@ -633,7 +639,7 @@ void draw_player_collision(Player* you, GLDraw2D* ctx)
     ctx->line(floor_sensor_rays.second.first, floor_sensor_rays.second.second);
 }
 
-bool temp_test_collision(Player* you, Collider* c, glm::vec3* out)
+bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
 {
     auto sensors = you->floor_sensor_rays();
 
@@ -672,6 +678,8 @@ bool temp_test_collision(Player* you, Collider* c, glm::vec3* out)
         return false;
     }
 
+    glm::vec3* out = &status->intersection;
+
     // TODO FIX BUG: HEIGHT OVERRIDDEN BY SUCCESSIVE COLLIDERS EVEN IF LOWER,
     // MUST COMPARE ALL COLLIDERS BEFORE MODIFYING VALUE
    // std::cout << "ON_GROUND: " << ((you->on_ground) ? "TRUE" : "FALSE") << std::endl;
@@ -690,6 +698,7 @@ bool temp_test_collision(Player* you, Collider* c, glm::vec3* out)
         out->x = choice->x;
         out->y = choice->y;
         out->z = 0.0;
+        status->collider = c;
         
         return true;
     } else if (you->on_ground) {
@@ -706,6 +715,14 @@ bool temp_test_collision(Player* you, Collider* c, glm::vec3* out)
         out->x = choice->x;
         out->y = choice->y;
         out->z = 0.0;
+        status->collider = c;
+
+        // glm::vec3* a = &c->a;
+        // glm::vec3* b = &c->b;
+        //std::cout << glm::degrees(atan2pos_64(b->y - a->y, b->x - a->x)) << std::endl;
+
+
+        //vec3_pair_print(&c->a, &c->b);
         
         return true;        
     }
@@ -715,9 +732,16 @@ bool temp_test_collision(Player* you, Collider* c, glm::vec3* out)
 
 }
 
+
+
 int main(int argc, char* argv[])
 {
     using namespace input_sys;
+
+    CommandLineArgs cmd;
+    if (!parse_command_line_args(&cmd, argc, argv)) {
+        return EXIT_FAILURE;
+    }
 
     //std::cout << dist_to_segment(glm::vec3(0.0, 0.0, 0.0), glm::vec3(1280.0, 0.0, 0.0), glm::vec3(0.0, 720.0, 0.0)) << std::endl;
     //return 0;
@@ -1097,6 +1121,7 @@ int main(int argc, char* argv[])
     GLDraw2D in_prog;
     Toggle drawing = false;
     Toggle deletion = false;
+
     if (!existing.init(mat_projection)) {
         fprintf(stderr, "FAILED TO INITIALIZE EDITOR DATA \"existing\"\n");
         return EXIT_FAILURE;
@@ -1150,6 +1175,7 @@ int main(int argc, char* argv[])
 #ifdef EDITOR
     Toggle grid_toggle = false;
     Toggle physics_toggle = false;
+    Toggle normals = false;
     glm::vec3 in_progress_line[2];
     in_progress_line[0] = glm::vec3(0.0f);
     in_progress_line[1] = glm::vec3(0.0f);
@@ -1180,8 +1206,26 @@ int main(int argc, char* argv[])
 
     Player you;
     Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0.0, true, 0, 20, 40);
-    std::cout << sizeof(Player) << std::endl;
     you.state_change_time = t_now;
+
+
+    // f64 X[8] = {
+    //     glm::degrees(atan2pos_64(0.0, 1.0)),
+    //     glm::degrees(atan2pos_64(0.5, 0.5)),
+    //     glm::degrees(atan2pos_64(1.0, 0.0)),
+    //     glm::degrees(atan2pos_64(0.5, -0.5)),
+    //     glm::degrees(atan2pos_64(0.0, -1.0)),
+    //     glm::degrees(atan2pos_64(-0.5, -0.5)),
+    //     glm::degrees(atan2pos_64(-1.0, 0.0)),
+    //     glm::degrees(atan2pos_64(-0.5, 0.5))
+    // };
+    // print_array(X, 8);
+    // return 0;
+
+
+    // glm::vec2 a(0, 0);
+    // glm::vec2 b(1, 1);
+    // std::cout << glm::degrees(atan2pos_64(b.y - a.y, b.x - a.x)) << std::endl;
 
     while (is_running) {
         t_prev = t_now;
@@ -1209,38 +1253,37 @@ int main(int argc, char* argv[])
 
 
         bool free_cam_is_on = key_is_toggled(&input, CONTROL::FREE_CAM, &free_cam_toggle);
-        bool up_or_down_held = key_is_held(&input, CONTROL::UP) || key_is_held(&input, CONTROL::DOWN);
+        bool camera_locked = key_is_held(&input, CONTROL::UP);
 
         if (free_cam_is_on) {
             main_cam.is_catching_up = true;
-        } else if (up_or_down_held) {
+        } else if (camera_locked) {
             main_cam.is_catching_up = true;
         }
 
 
         {
 
-            double CHANGE = t_delta_s;
             main_cam.orientation = glm::quat();
 
             if (free_cam_is_on) {
                 if (key_is_held(&input, CONTROL::UP)) {
-                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, CHANGE * up_acc);
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, t_delta_s * up_acc);
                     up_acc *= POS_ACC;
                     up_acc = glm::min(max_acc, up_acc);
                 } else {
                     if (up_acc > 1.0) {
-                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, CHANGE * up_acc);
+                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, t_delta_s * up_acc);
                     }
                     up_acc = glm::max(1.0, up_acc * NEG_ACC);
                 }
                 if (key_is_held(&input, CONTROL::DOWN)) {
-                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, CHANGE * down_acc);
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, t_delta_s * down_acc);
                     down_acc *= POS_ACC;
                     down_acc = glm::min(max_acc, down_acc);
                 } else {
                     if (down_acc > 1.0) {
-                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, CHANGE * down_acc);
+                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, t_delta_s * down_acc);
                     } 
                     down_acc = glm::max(1.0, down_acc * NEG_ACC);
                 }
@@ -1248,10 +1291,10 @@ int main(int argc, char* argv[])
 
             if (key_is_held(&input, CONTROL::LEFT)) {
                 if (free_cam_is_on) {
-                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
                 } else {
                 // TEMP
-                    Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+                    Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
                 }
 
                 left_acc *= POS_ACC;
@@ -1260,10 +1303,10 @@ int main(int argc, char* argv[])
             } else {
                 if (left_acc > 1.0) {
                     if (free_cam_is_on) {
-                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
                     } else {
                     // TEMP
-                        Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, CHANGE * left_acc);
+                        Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
                     }
                 }
                 left_acc = glm::max(1.0, left_acc * NEG_ACC);
@@ -1272,10 +1315,10 @@ int main(int argc, char* argv[])
 
             if (key_is_held(&input, CONTROL::RIGHT)) {
                 if (free_cam_is_on) {
-                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
                 } else {
                     // TEMP
-                    Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+                    Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
                 }
 
                 right_acc *= POS_ACC;
@@ -1284,32 +1327,32 @@ int main(int argc, char* argv[])
             } else {
                 if (right_acc > 1.0) {
                     if (free_cam_is_on) {
-                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
                     } else {
                         // TEMP
-                        Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, CHANGE * right_acc);
+                        Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
                     }
                 }
                 right_acc = glm::max(1.0, right_acc * NEG_ACC);
             }
 
             // if (*forwards) {
-            //     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::FORWARDS, CHANGE * forwards_acc);
+            //     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::FORWARDS, t_delta_s * forwards_acc);
             //     forwards_acc *= POS_ACC;
             //     forwards_acc = glm::min(max_acc, forwards_acc);
             // } else {
             //     if (forwards_acc > 1.0) {
-            //         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::FORWARDS, CHANGE * forwards_acc);
+            //         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::FORWARDS, t_delta_s * forwards_acc);
             //     }
             //     forwards_acc = glm::max(1.0, forwards_acc * NEG_ACC);
             // }
             // if (*backwards) {
-            //     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::BACKWARDS, CHANGE * backwards_acc);
+            //     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::BACKWARDS, t_delta_s * backwards_acc);
             //     backwards_acc *= POS_ACC;
             //     backwards_acc = glm::min(max_acc, backwards_acc);
             // } else {
             //     if (backwards_acc > 1.0) {
-            //         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::BACKWARDS, CHANGE * backwards_acc);
+            //         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::BACKWARDS, t_delta_s * backwards_acc);
             //     } 
             //     backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
             // }
@@ -1341,7 +1384,7 @@ int main(int argc, char* argv[])
             }
 
             if (!free_cam_is_on && 
-                !(up_or_down_held)) {
+                !(camera_locked)) {
 
                 FreeCamera_target_set(&main_cam, you.bound.calc_position_center());
                 FreeCamera_target_follow(&main_cam, t_delta_s);
@@ -1481,7 +1524,7 @@ int main(int argc, char* argv[])
 
         #ifdef EDITOR
 
-        if (key_is_toggled(&input, CONTROL::EDIT_GRID, &grid_toggle)) {
+        if (key_is_toggled(&input, CONTROL::EDIT_MODE, &grid_toggle)) {
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -1663,7 +1706,31 @@ int main(int argc, char* argv[])
                     existing.begin();
                     existing.draw_type = GL_LINES;
                     //existing.transform_matrix = cam;
+
+                    //sort_segment(in_progress_line);
+                    
                     existing.line(in_progress_line[0], in_progress_line[1]);
+                    
+                    // {
+                    //     f64 dy = in_progress_line[1].y - in_progress_line[0].y;
+                    //     f64 dx = in_progress_line[1].x - in_progress_line[0].x;
+                    //     existing.color = Color::BLUE;
+
+                    //     glm::vec3 na(-dy, dx, 0.0);
+                    //     glm::vec3 nb(dy, -dx, 0.0);
+
+                    //     //na = glm::normalize(na);
+                    //     //nb = glm::normalize(nb);
+
+                    //     existing.line(na, nb);
+
+                        
+                    //     existing.color = Color::BLACK;
+                    //     vec3_pair_print(&na, &nb);
+
+
+                    // }
+
                     existing.end_no_reset();
                     break;
                 case TOGGLE_BRANCH::OFF:
@@ -1728,14 +1795,15 @@ int main(int argc, char* argv[])
 
             bool collided = false;
 
-            glm::vec3 out(POSITIVE_INFINITY);
+            CollisionStatus status;
+            CollisionStatus_init(&status);
             for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
             {
                 //Collider_print(it);
                 
-                if (temp_test_collision(&you, it, &out)) {
+                if (temp_test_collision(&you, it, &status)) {
                     //printf("COLLISION\n");
-                    gl_draw2d.line(glm::vec3(0.0), out);
+                    gl_draw2d.line(glm::vec3(0.0), status.intersection);
                     you.on_ground = true;
                     you.state_change_time = t_now;
                     collided = true;
@@ -1750,7 +1818,30 @@ int main(int argc, char* argv[])
                 you.on_ground = false;
             } else {
                 //you.bound.spatial.x = out.x - (1 * you.bound.width); <-- ENABLE TO MAKE THE FLOOR A TREADMILL
-                you.bound.spatial.y = out.y - (1 * you.bound.height);
+                you.bound.spatial.y = status.intersection.y - (1 * you.bound.height);
+
+                // draw surface and normals
+                if (key_is_toggled(&input, CONTROL::EDIT_VERBOSE, &normals)) {
+                    Collider* col = status.collider;
+                    f64 dy = col->b.y - col->a.y;
+                    f64 dx = col->b.x - col->a.x;
+
+                    glm::vec3 na(-dy, dx, 0.0);
+                    glm::vec3 nb(dy, -dx, 0.0);
+
+                    //na = glm::normalize(na);
+                    //nb = glm::normalize(nb);
+
+                    gl_draw2d.color = Color::GREEN;
+                    gl_draw2d.line(status.collider->a, status.collider->b);
+                    gl_draw2d.color = Color::BLUE;
+                    gl_draw2d.line(na + col->a, nb + col->a);
+
+                    
+                    //existing.color = Color::BLACK;
+                    //vec3_pair_print(&na, &nb);
+                } 
+
             }
 
             gl_draw2d.end();

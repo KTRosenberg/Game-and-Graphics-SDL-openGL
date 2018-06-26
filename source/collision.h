@@ -6,19 +6,6 @@
 #include "core_utils.h"
 #include "opengl.hpp"
 
-// x, y, z, collided
-struct CollisionStatus {
-    glm::vec4 data;
-
-    float64 x(void);
-
-    float64 y(void);
-
-    float64 z(void);
-
-    bool collided(void);
-};
-
 //typedef CollisionStatus (*Fn_CollisionHandler)(glm::vec3 incoming);
 
 struct Collider {
@@ -28,6 +15,20 @@ struct Collider {
 };
 
 void Collider_print(Collider* c);
+
+// x, y, z, collided
+struct CollisionStatus {
+    Collider* collider;
+
+    glm::vec3 intersection;
+
+    inline bool collided(void)
+    {
+        return this->collider != nullptr;
+    }
+};
+
+void CollisionStatus_init(CollisionStatus* out);
 
 #define MAX_COLLIDERS (2048)
 extern Buffer<Collider, MAX_COLLIDERS> collision_map; 
@@ -40,27 +41,14 @@ glm::vec3 temp_test_collision(Player* you, Collider* c);
 
 #ifdef COLLISION_IMPLEMENTATION
 
+void CollisionStatus_init(CollisionStatus* out)
+{
+    out->collider = nullptr;
+    out->intersection = glm::vec3(POSITIVE_INFINITY);
+}
+
 Buffer<Collider, MAX_COLLIDERS> collision_map;
 
-float64 CollisionStatus::x(void) 
-{
-    return this->data.x;
-}
-
-float64 CollisionStatus::y(void)
-{
-    return this->data.y;
-}
-
-float64 CollisionStatus::z(void)
-{
-    return this->data.z;
-}
-
-bool CollisionStatus::collided(void)
-{
-    return this->data.w;
-}
 
 void Collider_print(Collider* c)
 {
