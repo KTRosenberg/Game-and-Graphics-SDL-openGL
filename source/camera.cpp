@@ -205,6 +205,19 @@ void FreeCamera_target_set(FreeCamera* view, glm::vec2 target)
     view->target = target - view->offset;
 }
 
+void FreeCamera_target_x_set(FreeCamera* view, f64 target)
+{
+    view->target_diff = glm::vec2((target - view->offset.x) - view->target.x, 0.0);
+    view->target.x = target;
+}
+
+void FreeCamera_target_y_set(FreeCamera* view, f64 target)
+{
+    view->target_diff = glm::vec2(0.0, (target - view->offset.y) - view->target.y);
+    view->target.y = target;    
+}
+
+
 void FreeCamera_target_follow(FreeCamera* view, f64 t_delta_s)
 {
     //f64 next_x = position.x + (view->target.x - view->position.x) * 16 * glm::min(1.0, t_delta_s);
@@ -218,6 +231,23 @@ void FreeCamera_target_follow(FreeCamera* view, f64 t_delta_s)
         view->position.x = view->target.x;   
     }
     view->position.y += (view->target.y - view->position.y) * 16 * glm::min(1.0, t_delta_s); 
+}
+
+void FreeCamera_target_follow_x(FreeCamera* view, f64 t_delta_s)
+{
+    if (view->is_catching_up) {
+        view->position.x += (view->target.x - view->position.x) * 8 * glm::min(1.0, t_delta_s);
+        if (glm::abs(view->position.x - view->target.x) < 1) {
+            view->is_catching_up = false;
+        }
+    } else {
+        view->position.x = view->target.x;   
+    }
+}
+
+void FreeCamera_target_follow_y(FreeCamera* view, f64 t_delta_s)
+{
+    view->position.y += (view->target.y - view->position.y) * 16 * glm::min(1.0, t_delta_s);
 }
 
 void FreeCamera_process_directional_movement(FreeCamera* view, MOVEMENT_DIRECTION direction, GLfloat delta_time)

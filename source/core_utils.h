@@ -29,6 +29,7 @@ enum struct CONTROL {
     DOWN,
     LEFT,
     RIGHT,
+    JUMP,
     EDIT_MODE,
     EDIT_VERBOSE,
     ZOOM_IN,
@@ -217,12 +218,16 @@ void BoxComponent_init(f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height);
 #define PLAYER_BASE_SPEED (0.01 * 360.0f)
 #define PLAYER_MAX_SPEED (32.0)
 
+extern f64 gravity_constant;
+
 struct Player {
     BoxComponent bound;
     bool on_ground;
     f64 state_change_time;
     glm::vec2 speed_ground;
     glm::vec2 speed_air;
+    f64 acceleration_ground;
+    f64 acceleration_air;
 
     inline std::pair<glm::vec4, glm::vec4> floor_sensors(void)
     {
@@ -521,6 +526,9 @@ void BoxComponent_init(BoxComponent* bc, f64 x, f64 y, f64 z, f64 angle, f64 wid
     bc->width = width;
     bc->height = height;
 }
+
+
+f64 gravity_constant = 9.81;
 
 void Player_init(Player* pl /*, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height*/)
 {

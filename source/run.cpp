@@ -505,6 +505,11 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
             case SDL_SCANCODE_D:
                 key_set_down(input, CONTROL::RIGHT);
                 break;
+            case SDL_SCANCODE_J:
+            case SDL_SCANCODE_K:
+            case SDL_SCANCODE_L:
+                key_set_down(input, CONTROL::JUMP);
+                break;            
             case SDL_SCANCODE_0:
                 key_set_down(input, CONTROL::RESET_POSITION);
                 break;
@@ -546,6 +551,11 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
             case SDL_SCANCODE_D:
                 key_set_up(input, CONTROL::RIGHT);
                 break;
+            case SDL_SCANCODE_J:
+            case SDL_SCANCODE_K:
+            case SDL_SCANCODE_L:
+                key_set_up(input, CONTROL::JUMP);
+                break; 
             case SDL_SCANCODE_0:
                 key_set_up(input, CONTROL::RESET_POSITION);
                 break;
@@ -907,7 +917,7 @@ int main(int argc, char* argv[])
     };
 
 
-    print_array(T, 4, 6);
+    //print_array(T, 4, 6);
 
 // TOTAL ALLOCATION
     // const size_t BATCH_COUNT = 1024;
@@ -1175,7 +1185,7 @@ int main(int argc, char* argv[])
 #ifdef EDITOR
     Toggle grid_toggle = false;
     Toggle physics_toggle = false;
-    Toggle normals = false;
+    Toggle verbose_view_toggle = false;
     glm::vec3 in_progress_line[2];
     in_progress_line[0] = glm::vec3(0.0f);
     in_progress_line[1] = glm::vec3(0.0f);
@@ -1381,6 +1391,7 @@ int main(int argc, char* argv[])
 
                 Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0.0, true, 0, 20, 40);
                 you.state_change_time = t_now;
+                you.on_ground = false;
             }
 
             if (!free_cam_is_on && 
@@ -1781,6 +1792,8 @@ int main(int argc, char* argv[])
 
             if (/*key_is_toggled(&input, CONTROL::PHYSICS, &physics_toggle) && */!you.on_ground) {
                 you.bound.spatial.y = you.bound.spatial.y + 1 * 9.81 * (WEE * WEE);
+            } else if (key_is_pressed(&input, CONTROL::JUMP)) { // TEMPORARY
+                you.bound.spatial.y -= you.bound.height * 4;
             }
             
             gl_draw2d.end();
@@ -1820,9 +1833,13 @@ int main(int argc, char* argv[])
                 //you.bound.spatial.x = out.x - (1 * you.bound.width); <-- ENABLE TO MAKE THE FLOOR A TREADMILL
                 you.bound.spatial.y = status.intersection.y - (1 * you.bound.height);
 
+                Collider* col = status.collider;
+                glm::vec3* a = &col->a;
+                glm::vec3* b = &col->b;
+                you.bound.spatial.w = glm::mod(atan2pos_64(b->y - a->y, b->x - a->x), glm::pi<f64>());
+
                 // draw surface and normals
-                if (key_is_toggled(&input, CONTROL::EDIT_VERBOSE, &normals)) {
-                    Collider* col = status.collider;
+                if (key_is_toggled(&input, CONTROL::EDIT_VERBOSE, &verbose_view_toggle)) {
                     f64 dy = col->b.y - col->a.y;
                     f64 dx = col->b.x - col->a.x;
 
@@ -1840,7 +1857,9 @@ int main(int argc, char* argv[])
                     
                     //existing.color = Color::BLACK;
                     //vec3_pair_print(&na, &nb);
-                } 
+
+                    //std::cout << glm::degrees(you.bound.spatial.w) << std::endl;
+                }
 
             }
 
