@@ -401,7 +401,10 @@ GlobalData program_data;
 WindowState window_state;
 
 #define MAX_CONTROLLERS (1)
-SDL_GameController* controller_handles[MAX_CONTROLLERS];
+//SDL_GameController* controller_handles[MAX_CONTROLLERS];
+//int controller_index = 0;
+SDL_GameController* controller_handle = nullptr;
+char* controller_mapping = nullptr;
 
 bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 {
@@ -416,12 +419,6 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
     while (SDL_PollEvent(event)) {
 
         switch (event->type) {
-        case SDL_CONTROLLERDEVICEADDED:
-            puts("ADDED");
-            break;
-        case SDL_CONTROLLERDEVICEREMOVED:
-            puts("REMOVED");
-            break;
         case SDL_QUIT:
             return false;
         case SDL_WINDOWEVENT:
@@ -495,6 +492,175 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 //         event->window.windowID, event->window.event);
                 break;
             }
+            break;
+        case SDL_CONTROLLERDEVICEADDED:
+            if (SDL_IsGameController(event->cdevice.which)) {
+                controller_handle = SDL_GameControllerOpen(event->cdevice.which);
+                fprintf(
+                    stdout, 
+                    "ADDING CONTROLLER (%s) TO PORT (%d)\n", 
+                    SDL_GameControllerName(controller_handle), event->cdevice.which
+                );
+
+                controller_mapping = SDL_GameControllerMapping(controller_handle);
+                SDL_Log("CONTROLLER IS MAPPED AS \"%s\".", controller_mapping);
+                SDL_free(controller_mapping);
+            } else {
+                fprintf(stderr, "CONTROLLER INCOMPATIBLE");
+            }
+            break;
+        case SDL_CONTROLLERDEVICEREMOVED:
+            if (controller_handle != nullptr) {
+                fprintf(
+                    stdout, 
+                    "REMOVING CONTROLLER (%s) FROM PORT (%d)\n",
+                    SDL_GameControllerName(controller_handle), event->cdevice.which
+                );
+                SDL_GameControllerClose(controller_handle);
+                input_sys::init(input);
+            }
+            break;
+        case SDL_CONTROLLERBUTTONDOWN:
+            switch (event->cbutton.button) {
+            case SDL_CONTROLLER_BUTTON_A:
+                std::cout << "DOWN_BUTTON_A" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_B:
+                std::cout << "DOWN_BUTTON_B" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_X:
+                std::cout << "DOWN_BUTTON_X" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_Y:
+                std::cout << "DOWN_BUTTON_Y" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_BACK:
+                std::cout << "DOWN_BUTTON_BACK" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_GUIDE:
+                std::cout << "DOWN_BUTTON_GUIDE" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_START:
+                std::cout << "DOWN_BUTTON_START" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+                std::cout << "DOWN_BUTTON_LEFTSTICK" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+                std::cout << "DOWN_BUTTON_RIGHTSTICK" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+                std::cout << "DOWN_BUTTON_LEFTSHOULDER" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+                std::cout << "DOWN_BUTTON_RIGHTSHOULDER" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_UP:
+                std::cout << "DOWN_BUTTON_DPAD_UP" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+                std::cout << "DOWN_BUTTON_DPAD_DOWN" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+                std::cout << "DOWN_BUTTON_DPAD_LEFT" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+                std::cout << "DOWN_BUTTON_DPAD_RIGHT" << std::endl;
+                break;
+            default:
+                //std::cout << "UNKNOWN" << std::endl;
+                break;
+            }
+            break;
+        case SDL_CONTROLLERAXISMOTION:
+            #define JOYSTICK_DEADZONE (8000)
+            switch (event->caxis.axis) {
+            case SDL_CONTROLLER_AXIS_MAX:
+                std::cout << "AXIS_MAX " << event->caxis.value << std::endl;
+                break;
+            case SDL_CONTROLLER_AXIS_LEFTY:
+                if (glm::abs(event->caxis.value) > JOYSTICK_DEADZONE) {
+                    std::cout << "AXIS_LEFTY " << event->caxis.value << std::endl;
+                }
+                break;
+            case SDL_CONTROLLER_AXIS_RIGHTY:
+                if (glm::abs(event->caxis.value) > JOYSTICK_DEADZONE) {
+                    std::cout << "AXIS_RIGHTY " << event->caxis.value << std::endl;
+                }
+                break;
+            case SDL_CONTROLLER_AXIS_LEFTX:
+                if (glm::abs(event->caxis.value) > JOYSTICK_DEADZONE) {
+                    std::cout << "AXIS_LEFTX " << event->caxis.value << std::endl;
+                }
+                break;
+            case SDL_CONTROLLER_AXIS_RIGHTX:
+                if (glm::abs(event->caxis.value) > JOYSTICK_DEADZONE) {
+                    std::cout << "AXIS_RIGHTX " << event->caxis.value << std::endl;
+                }
+                break;
+            case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
+                std::cout << "AXIS_TRIGGERLEFT " << event->caxis.value << std::endl;
+                break;
+            case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
+                std::cout << "AXIS_TRIGGERRIGHT " << event->caxis.value << std::endl;
+                break;
+            default:
+                //std::cout << "UNKNOWN" << std::endl;
+                break;
+            }
+            break;
+        case SDL_CONTROLLERBUTTONUP:
+            switch (event->cbutton.button) {
+            case SDL_CONTROLLER_BUTTON_A:
+                std::cout << "UP_BUTTON_A" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_B:
+                std::cout << "UP_BUTTON_B" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_X:
+                std::cout << "UP_BUTTON_X" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_Y:
+                std::cout << "UP_BUTTON_Y" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_BACK:
+                std::cout << "UP_BUTTON_BACK" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_GUIDE:
+                std::cout << "UP_BUTTON_GUIDE" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_START:
+                std::cout << "UP_BUTTON_START" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+                std::cout << "UP_BUTTON_LEFTSTICK" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+                std::cout << "UP_BUTTON_RIGHTSTICK" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+                std::cout << "UP_BUTTON_LEFTSHOULDER" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+                std::cout << "UP_BUTTON_RIGHTSHOULDER" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_UP:
+                std::cout << "UP_BUTTON_DPAD_UP" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+                std::cout << "UP_BUTTON_DPAD_DOWN" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+                std::cout << "UP_BUTTON_DPAD_LEFT" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+                std::cout << "UP_BUTTON_DPAD_RIGHT" << std::endl;
+                break;
+            default:
+                //std::cout << "UNKNOWN" << std::endl;
+                break;
+            }
+            break;
             break;
         case SDL_KEYDOWN:
             switch (event->key.keysym.scancode) {
@@ -1217,31 +1383,24 @@ int main(int argc, char* argv[])
     input_sys::Input input = {};
     input_sys::init(&input);
 
-    memset(controller_handles, 0x0, sizeof(controller_handles));
-
-    if (SDL_GameControllerAddMappingsFromFile("./mapping/gamecontrollerdb.txt") < 0) {
-
+    #define CONTROLLER_MAPPING_FILE "./mapping/gamecontrollerdb.txt"
+    if (SDL_GameControllerAddMappingsFromFile(CONTROLLER_MAPPING_FILE) < 0) {
+        fprintf(stderr, "FAILED TO LOAD CONTROLLER MAPPINGS FROM %s\n", CONTROLLER_MAPPING_FILE);
     }
 
-    int max_joysticks = SDL_NumJoysticks();
-    int controller_index = 0;
+    // for (int joystick_index = 0; joystick_index < max_joysticks; ++joystick_index) {
+    //     if (!SDL_IsGameController(joystick_index)) {
+    //         std::cout << "NOT GAME CONTROLLER" << std::endl;
+    //         continue;
+    //     }
+    //     if (controller_index >= MAX_CONTROLLERS) {
+    //         break;
+    //     }
 
-    for (int joystick_index = 0; joystick_index < max_joysticks; ++joystick_index) {
-        if (!SDL_IsGameController(joystick_index)) {
-            std::cout << "NOT GAME CONTROLLER" << std::endl;
-            continue;
-        }
-        if (controller_index >= MAX_CONTROLLERS) {
-            break;
-        }
-
-        controller_handles[controller_index] = SDL_GameControllerOpen(joystick_index);
+    //     controller_handles[controller_index] = SDL_GameControllerOpen(joystick_index);
         
-        fprintf(stdout, "CONTROLLER: %s\n", SDL_GameControllerName(controller_handles[controller_index]));
-
-        controller_index += 1;
-
-    }
+    //     fprintf(stdout, "CONTROLLER: %s\n", SDL_GameControllerName(controller_handles[controller_index]));
+    // }
 
     bool is_running = true;
     SDL_Event event;
@@ -1972,13 +2131,10 @@ int main(int argc, char* argv[])
     #endif
     glDeleteProgram(shader_2d);
 
-
-    for (int controller_index = 0; controller_index < MAX_CONTROLLERS; ++controller_index) {
-        if (controller_handles[controller_index] != 0) {
-            SDL_GameControllerClose(controller_handles[controller_index]);
-        }
+    if (controller_handle != nullptr) {
+        SDL_GameControllerClose(controller_handle);
     }
-    
+
     SDL_GL_DeleteContext(program_data.context);
     SDL_DestroyWindow(window);
     IMG_Quit();
