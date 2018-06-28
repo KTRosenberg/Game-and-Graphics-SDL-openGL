@@ -8,9 +8,11 @@
 
 #include <ostream>
 
+#include "sdl.h"
 #include "common_utils.h"
 #include "common_utils_cpp.h"
 #include "opengl.hpp"
+//#include "gl_draw2d.h"
 
 enum struct MOVEMENT_DIRECTION : unsigned char 
 {
@@ -136,6 +138,7 @@ static inline TOGGLE_BRANCH mouse_is_toggled_4_states(struct Input* in, MOUSE_BU
 
 
 static void keys_print(struct Input* in);
+
 
 }
 

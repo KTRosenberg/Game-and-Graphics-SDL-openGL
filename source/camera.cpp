@@ -230,7 +230,7 @@ void FreeCamera_target_follow(FreeCamera* view, f64 t_delta_s)
     } else {
         view->position.x = view->target.x;   
     }
-    view->position.y += (view->target.y - view->position.y) * 16 * glm::min(1.0, t_delta_s); 
+    view->position.y += (view->target.y - view->position.y) * 16 * glm::min(1.0, t_delta_s);
 }
 
 void FreeCamera_target_follow_x(FreeCamera* view, f64 t_delta_s)

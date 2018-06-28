@@ -396,13 +396,12 @@ struct GlobalData {
 GlobalData program_data;
 
 #define GL_DRAW2D
-
-#ifdef GL_DRAW2D
-#define GL_DRAW2D_SIZE 2048
 #include "gl_draw2d.h"
-#endif
 
 WindowState window_state;
+
+#define MAX_CONTROLLERS (1)
+SDL_GameController* controller_handles[MAX_CONTROLLERS];
 
 bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 {
@@ -417,6 +416,12 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
     while (SDL_PollEvent(event)) {
 
         switch (event->type) {
+        case SDL_CONTROLLERDEVICEADDED:
+            puts("ADDED");
+            break;
+        case SDL_CONTROLLERDEVICEREMOVED:
+            puts("REMOVED");
+            break;
         case SDL_QUIT:
             return false;
         case SDL_WINDOWEVENT:
@@ -623,7 +628,8 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
     return true;
 }
 
-void draw_player_collision(Player* you, GLDraw2D* ctx)
+template <usize N>
+void draw_player_collision(Player* you, GLDraw2D<N>* ctx)
 {
     const glm::vec3 off(0.5, 0.5, 0.0);
     BoxComponent* bc = &you->bound;
@@ -647,6 +653,22 @@ void draw_player_collision(Player* you, GLDraw2D* ctx)
 
     ctx->line(floor_sensor_rays.first.first, floor_sensor_rays.first.second);
     ctx->line(floor_sensor_rays.second.first, floor_sensor_rays.second.second);
+}
+
+template <usize N>
+void BoxComponent_draw(BoxComponent* bc, GLDraw2D<N>* ctx)
+{
+    const glm::vec3 off(0.5, 0.5, 0.0);
+    glm::vec3 top_left = bc->position() + off;
+    glm::vec3 top_right = top_left + glm::vec3(bc->width, 0.0, 0.0);
+    glm::vec3 bottom_right = top_left + glm::vec3(bc->width, bc->height, 0.0);
+    glm::vec3 bottom_left = top_left + glm::vec3(0.0, bc->height, 0.0);
+
+    ctx->draw_type = GL_LINES;
+    ctx->line(top_left, top_right);
+    ctx->line(top_right, bottom_right);
+    ctx->line(bottom_right, bottom_left);
+    ctx->line(bottom_left, top_left);    
 }
 
 bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
@@ -742,8 +764,6 @@ bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
 
 }
 
-
-
 int main(int argc, char* argv[])
 {
     using namespace input_sys;
@@ -781,7 +801,7 @@ int main(int argc, char* argv[])
     // Collider_print(&collision_map[0]);
 
     // initialize SDL
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC | SDL_INIT_AUDIO) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC) < 0) {
         fprintf(stderr, "%s\n", "SDL could not initialize");
         return EXIT_FAILURE;
     }
@@ -982,7 +1002,25 @@ int main(int argc, char* argv[])
     //glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ONE, GL_ONE);
     //glBlendEquationSeparate(GL_FUNC_ADD, GL_MAX);
 
-    
+    #ifdef SDL_H
+    {
+        SDL_version compiled;
+        SDL_version linked;
+
+        SDL_VERSION(&compiled);
+        SDL_GetVersion(&linked);
+        
+        printf(
+            "COMPILED AGAINST SDL VERSION %d.%d.%d.\n",
+            compiled.major, compiled.minor, compiled.patch
+        );
+        printf(
+            "LINKED AGAINST SDL VERSION %d.%d.%d.\n",
+            linked.major, linked.minor, linked.patch
+        );
+    }
+    #endif
+
     printf("USING GL VERSION: %s\n", glGetString(GL_VERSION));
 
     glm::mat4 mat_ident(1.0f);
@@ -1103,7 +1141,7 @@ int main(int argc, char* argv[])
 
 
     #ifdef GL_DRAW2D
-    GLDraw2D gl_draw2d;
+    GLDraw2D<> gl_draw2d;
     if (!gl_draw2d.init(mat_projection)) {
         return EXIT_FAILURE;
     }
@@ -1127,8 +1165,8 @@ int main(int argc, char* argv[])
     UniformLocation CAM_LOC_GRID = glGetUniformLocation(shader_grid, "u_position_cam");
 
 
-    GLDraw2D existing;
-    GLDraw2D in_prog;
+    GLDraw2D<> existing;
+    GLDraw2D<256> in_prog;
     Toggle drawing = false;
     Toggle deletion = false;
 
@@ -1178,6 +1216,32 @@ int main(int argc, char* argv[])
 
     input_sys::Input input = {};
     input_sys::init(&input);
+
+    memset(controller_handles, 0x0, sizeof(controller_handles));
+
+    if (SDL_GameControllerAddMappingsFromFile("./mapping/gamecontrollerdb.txt") < 0) {
+
+    }
+
+    int max_joysticks = SDL_NumJoysticks();
+    int controller_index = 0;
+
+    for (int joystick_index = 0; joystick_index < max_joysticks; ++joystick_index) {
+        if (!SDL_IsGameController(joystick_index)) {
+            std::cout << "NOT GAME CONTROLLER" << std::endl;
+            continue;
+        }
+        if (controller_index >= MAX_CONTROLLERS) {
+            break;
+        }
+
+        controller_handles[controller_index] = SDL_GameControllerOpen(joystick_index);
+        
+        fprintf(stdout, "CONTROLLER: %s\n", SDL_GameControllerName(controller_handles[controller_index]));
+
+        controller_index += 1;
+
+    }
 
     bool is_running = true;
     SDL_Event event;
@@ -1783,8 +1847,6 @@ int main(int argc, char* argv[])
 
             gl_draw2d.transform_matrix = cam;
 
-            draw_player_collision(&you, &gl_draw2d);
-
             //draw_lines_from_image(&gl_draw2d, "./test_paths/C.bmp", {glm::vec3(1.0f), glm::vec3(0.0f)});
 
 
@@ -1863,6 +1925,9 @@ int main(int argc, char* argv[])
 
             }
 
+            gl_draw2d.color = Color::BLUE;
+            draw_player_collision(&you, &gl_draw2d);
+
             gl_draw2d.end();
 
             glDisable(GL_BLEND);
@@ -1906,6 +1971,14 @@ int main(int argc, char* argv[])
     glDeleteProgram(shader_grid);
     #endif
     glDeleteProgram(shader_2d);
+
+
+    for (int controller_index = 0; controller_index < MAX_CONTROLLERS; ++controller_index) {
+        if (controller_handles[controller_index] != 0) {
+            SDL_GameControllerClose(controller_handles[controller_index]);
+        }
+    }
+    
     SDL_GL_DeleteContext(program_data.context);
     SDL_DestroyWindow(window);
     IMG_Quit();

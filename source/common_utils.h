@@ -104,7 +104,7 @@ void debug_print(const char* const in);
 typedef void* (*Fn_MemoryAllocator)(size_t bytes);
 
 #define PROGRAM_ARGS_COUNT (1)
-extern struct option program_args[PROGRAM_ARGS_COUNT];
+extern struct option program_args[PROGRAM_ARGS_COUNT + 1];
 
 typedef struct {
     // later
@@ -225,20 +225,21 @@ void debug_print(const char* const in)
     #endif
 }
 
-struct option program_args[PROGRAM_ARGS_COUNT] = {
-    {"test_arg", optional_argument, 0, 't'}
+struct option program_args[PROGRAM_ARGS_COUNT + 1] = {
+    {"verbose", no_argument, nullptr, 'v'},
+    {0, 0, 0, 0}
 };
+
 
 bool parse_command_line_args(CommandLineArgs* cmd, const int argc, char* argv[])
 {
     // later
     char c = '\0';
 
-    while ((c = getopt_long(argc, argv, ":t:", program_args, nullptr)) != -1) {
+    while ((c = getopt_long(argc, argv, "v", program_args, nullptr)) != -1) {
         switch (c) {
         // number of additional threads
-        case 't':
-            fprintf(stdout, "%s\n", optarg);
+        case 'v':
             break;
         // missing arg
         case ':':
@@ -247,13 +248,11 @@ bool parse_command_line_args(CommandLineArgs* cmd, const int argc, char* argv[])
             return false;
         // help
         case '?':
-            puts("opt: ");
+
             return false;
         // invalid
         case 0:
-            fprintf(stderr, "%s: option `-%c' is invalid\n",
-                    argv[0], optopt);
-            return false;            
+            break;            
         // invalid
         default:
             fprintf(stderr, "%s: option `-%c' is invalid\n",
