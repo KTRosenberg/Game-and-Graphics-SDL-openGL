@@ -420,6 +420,9 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 
         switch (event->type) {
         case SDL_QUIT:
+            if (controller_handle != nullptr) {
+                SDL_GameControllerClose(controller_handle);
+            }
             return false;
         case SDL_WINDOWEVENT:
             switch (event->window.event) {
@@ -523,7 +526,7 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
         case SDL_CONTROLLERBUTTONDOWN:
             switch (event->cbutton.button) {
             case SDL_CONTROLLER_BUTTON_A:
-                std::cout << "DOWN_BUTTON_A" << std::endl;
+                key_set_down(input, CONTROL::JUMP);
                 break;
             case SDL_CONTROLLER_BUTTON_B:
                 std::cout << "DOWN_BUTTON_B" << std::endl;
@@ -536,9 +539,13 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 break;
             case SDL_CONTROLLER_BUTTON_BACK:
                 std::cout << "DOWN_BUTTON_BACK" << std::endl;
+#ifdef EDITOR
+                key_set_down(input, CONTROL::EDIT_MODE);
+#endif             
                 break;
             case SDL_CONTROLLER_BUTTON_GUIDE:
                 std::cout << "DOWN_BUTTON_GUIDE" << std::endl;
+                key_set_down(input, CONTROL::RESET_POSITION);
                 break;
             case SDL_CONTROLLER_BUTTON_START:
                 std::cout << "DOWN_BUTTON_START" << std::endl;
@@ -557,15 +564,82 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 break;
             case SDL_CONTROLLER_BUTTON_DPAD_UP:
                 std::cout << "DOWN_BUTTON_DPAD_UP" << std::endl;
+                key_set_down(input, CONTROL::UP);
                 break;
             case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
                 std::cout << "DOWN_BUTTON_DPAD_DOWN" << std::endl;
+                key_set_down(input, CONTROL::DOWN);
                 break;
             case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
                 std::cout << "DOWN_BUTTON_DPAD_LEFT" << std::endl;
+                key_set_down(input, CONTROL::LEFT);
                 break;
             case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
                 std::cout << "DOWN_BUTTON_DPAD_RIGHT" << std::endl;
+                key_set_down(input, CONTROL::RIGHT);
+                break;
+            default:
+                //std::cout << "UNKNOWN" << std::endl;
+                break;
+            }
+            break;
+        case SDL_CONTROLLERBUTTONUP:
+            switch (event->cbutton.button) {
+            case SDL_CONTROLLER_BUTTON_A:
+                std::cout << "UP_BUTTON_A" << std::endl;
+                key_set_up(input, CONTROL::JUMP);
+                break;
+            case SDL_CONTROLLER_BUTTON_B:
+                std::cout << "UP_BUTTON_B" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_X:
+                std::cout << "UP_BUTTON_X" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_Y:
+                std::cout << "UP_BUTTON_Y" << std::endl;
+                break;
+
+            case SDL_CONTROLLER_BUTTON_BACK:
+                std::cout << "UP_BUTTON_BACK" << std::endl;
+#ifdef EDITOR
+                key_set_up(input, CONTROL::EDIT_MODE);
+#endif              
+                break;
+
+            case SDL_CONTROLLER_BUTTON_GUIDE:
+                std::cout << "UP_BUTTON_GUIDE" << std::endl;
+                key_set_up(input, CONTROL::RESET_POSITION);
+                break;
+            case SDL_CONTROLLER_BUTTON_START:
+                std::cout << "UP_BUTTON_START" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+                std::cout << "UP_BUTTON_LEFTSTICK" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+                std::cout << "UP_BUTTON_RIGHTSTICK" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+                std::cout << "UP_BUTTON_LEFTSHOULDER" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+                std::cout << "UP_BUTTON_RIGHTSHOULDER" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_UP:
+                std::cout << "UP_BUTTON_DPAD_UP" << std::endl;
+                key_set_up(input, CONTROL::UP);
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+                std::cout << "UP_BUTTON_DPAD_DOWN" << std::endl;
+                key_set_up(input, CONTROL::DOWN);
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+                std::cout << "UP_BUTTON_DPAD_LEFT" << std::endl;
+                key_set_up(input, CONTROL::LEFT);
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+                std::cout << "UP_BUTTON_DPAD_RIGHT" << std::endl;
+                key_set_up(input, CONTROL::RIGHT);
                 break;
             default:
                 //std::cout << "UNKNOWN" << std::endl;
@@ -608,59 +682,6 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 //std::cout << "UNKNOWN" << std::endl;
                 break;
             }
-            break;
-        case SDL_CONTROLLERBUTTONUP:
-            switch (event->cbutton.button) {
-            case SDL_CONTROLLER_BUTTON_A:
-                std::cout << "UP_BUTTON_A" << std::endl;
-                break;
-            case SDL_CONTROLLER_BUTTON_B:
-                std::cout << "UP_BUTTON_B" << std::endl;
-                break;
-            case SDL_CONTROLLER_BUTTON_X:
-                std::cout << "UP_BUTTON_X" << std::endl;
-                break;
-            case SDL_CONTROLLER_BUTTON_Y:
-                std::cout << "UP_BUTTON_Y" << std::endl;
-                break;
-            case SDL_CONTROLLER_BUTTON_BACK:
-                std::cout << "UP_BUTTON_BACK" << std::endl;
-                break;
-            case SDL_CONTROLLER_BUTTON_GUIDE:
-                std::cout << "UP_BUTTON_GUIDE" << std::endl;
-                break;
-            case SDL_CONTROLLER_BUTTON_START:
-                std::cout << "UP_BUTTON_START" << std::endl;
-                break;
-            case SDL_CONTROLLER_BUTTON_LEFTSTICK:
-                std::cout << "UP_BUTTON_LEFTSTICK" << std::endl;
-                break;
-            case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
-                std::cout << "UP_BUTTON_RIGHTSTICK" << std::endl;
-                break;
-            case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
-                std::cout << "UP_BUTTON_LEFTSHOULDER" << std::endl;
-                break;
-            case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
-                std::cout << "UP_BUTTON_RIGHTSHOULDER" << std::endl;
-                break;
-            case SDL_CONTROLLER_BUTTON_DPAD_UP:
-                std::cout << "UP_BUTTON_DPAD_UP" << std::endl;
-                break;
-            case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-                std::cout << "UP_BUTTON_DPAD_DOWN" << std::endl;
-                break;
-            case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-                std::cout << "UP_BUTTON_DPAD_LEFT" << std::endl;
-                break;
-            case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
-                std::cout << "UP_BUTTON_DPAD_RIGHT" << std::endl;
-                break;
-            default:
-                //std::cout << "UNKNOWN" << std::endl;
-                break;
-            }
-            break;
             break;
         case SDL_KEYDOWN:
             switch (event->key.keysym.scancode) {
@@ -2130,10 +2151,6 @@ int main(int argc, char* argv[])
     glDeleteProgram(shader_grid);
     #endif
     glDeleteProgram(shader_2d);
-
-    if (controller_handle != nullptr) {
-        SDL_GameControllerClose(controller_handle);
-    }
 
     SDL_GL_DeleteContext(program_data.context);
     SDL_DestroyWindow(window);
