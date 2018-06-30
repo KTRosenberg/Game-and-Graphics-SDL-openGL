@@ -237,7 +237,7 @@ struct Player {
     f64 initial_jump_velocity;
     f64 initial_jump_velocity_short;
 
-    static constexpr f64 JUMP_VELOCITY_DEFAULT = -6.0;
+    static constexpr f64 JUMP_VELOCITY_DEFAULT = -6.5;
     static constexpr f64 JUMP_VELOCITY_SHORT_DEFAULT = -4.0;
     bool on_ground;
 

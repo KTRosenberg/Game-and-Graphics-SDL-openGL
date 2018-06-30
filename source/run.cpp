@@ -2052,9 +2052,7 @@ int main(int argc, char* argv[])
             //std::cout << (GRAVITY_DEFAULT * t_delta_s * INTERVAL) << std::endl;
             //std::cout << t_delta_s * INTERVAL << std::endl;
             if (!you.on_ground) {
-
-                you.velocity_air += (GRAVITY_DEFAULT * DELTA_TIME_FACTOR(t_delta_s, REFRESH_RATE));
-
+                
                 //std::cout << "MULTIPLIER V1 " << (INTERVAL / t_delta_s) / 1000 << std::endl;
                 //std::cout << "MULTIPLIER V2 " << (1 / (t_delta_s * REFRESH_RATE)) << std::endl;
                 if (!key_is_held(&input, CONTROL::JUMP)) {
@@ -2062,6 +2060,8 @@ int main(int argc, char* argv[])
                         you.velocity_air.y = you.initial_jump_velocity_short;
                     }
                 }
+
+                you.velocity_air += (GRAVITY_DEFAULT * DELTA_TIME_FACTOR(t_delta_s, REFRESH_RATE));
                 you.bound.spatial.y += you.velocity_air.y;
             }
 
