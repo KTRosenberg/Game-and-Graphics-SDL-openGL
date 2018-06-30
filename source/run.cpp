@@ -963,8 +963,8 @@ struct AirPhysicsConfig {
     struct stat stat;
     time_t t_prev_mod;
     f64 gravity;
-    f64 player_initial_speed;
-    f64 player_initial_speed_short;
+    f64 player_initial_velocity;
+    f64 player_initial_velocity_short;
 };
 
 bool load_config(AirPhysicsConfig* conf)
@@ -982,8 +982,8 @@ bool load_config(AirPhysicsConfig* conf)
         if (conf_string.length() == 0 || conf_string.find("DEFAULT") == 0) {
             puts("USING DEFAULT PARAMETERS");
             conf->gravity = physics::GRAVITY_DEFAULT;
-            conf->player_initial_speed = Player::JUMP_VELOCITY_DEFAULT;
-            conf->player_initial_speed_short = Player::JUMP_VELOCITY_SHORT_DEFAULT;
+            conf->player_initial_velocity = Player::JUMP_VELOCITY_DEFAULT;
+            conf->player_initial_velocity_short = Player::JUMP_VELOCITY_SHORT_DEFAULT;
             rewind(conf->fd);
             return true;
         }
@@ -998,13 +998,13 @@ bool load_config(AirPhysicsConfig* conf)
 
         sscanf(token, "%lf", &conf->gravity);
         token = strtok(NULL, seps);
-        sscanf(token, "%lf", &conf->player_initial_speed);
+        sscanf(token, "%lf", &conf->player_initial_velocity);
         token = strtok(NULL, seps);
-        sscanf(token, "%lf", &conf->player_initial_speed_short);
+        sscanf(token, "%lf", &conf->player_initial_velocity_short);
 
         rewind(conf->fd);
 
-        printf("%lf : %lf : %lf\n", conf->gravity, conf->player_initial_speed, conf->player_initial_speed_short);
+        printf("%lf : %lf : %lf\n", conf->gravity, conf->player_initial_velocity, conf->player_initial_velocity_short);
 
         return true;
     }
@@ -1554,15 +1554,15 @@ int main(int argc, char* argv[])
         fprintf(stderr, "ERROR: CANNOT OPEN AIR CONFIG FILE");
     }
     air_physics_conf.gravity                    = physics::gravity;
-    air_physics_conf.player_initial_speed       = Player::JUMP_VELOCITY_DEFAULT;
-    air_physics_conf.player_initial_speed_short = Player::JUMP_VELOCITY_SHORT_DEFAULT;
+    air_physics_conf.player_initial_velocity       = Player::JUMP_VELOCITY_DEFAULT;
+    air_physics_conf.player_initial_velocity_short = Player::JUMP_VELOCITY_SHORT_DEFAULT;
     air_physics_conf.t_prev_mod = -1;
 
     if (cmd.hot_config) {
         if (load_config(&air_physics_conf)) {
             physics::gravity = air_physics_conf.gravity;
-            you.initial_jump_velocity = air_physics_conf.player_initial_speed;
-            you.initial_jump_velocity_short = air_physics_conf.player_initial_speed_short;
+            you.initial_jump_velocity = air_physics_conf.player_initial_velocity;
+            you.initial_jump_velocity_short = air_physics_conf.player_initial_velocity_short;
         }
     }
 
@@ -2141,8 +2141,8 @@ int main(int argc, char* argv[])
             if (cmd.hot_config && air_physics_conf.fd != nullptr && key_is_pressed(&input, CONTROL::LOAD_CONFIG)) {
                 if (load_config(&air_physics_conf)) {
                     physics::gravity = air_physics_conf.gravity;
-                    you.initial_jump_velocity= air_physics_conf.player_initial_speed;
-                    you.initial_jump_velocity_short = air_physics_conf.player_initial_speed_short;
+                    you.initial_jump_velocity= air_physics_conf.player_initial_velocity;
+                    you.initial_jump_velocity_short = air_physics_conf.player_initial_velocity_short;
                 }
                 //fseek(air_physics_conf.fd, 0L, SEEK_SET);
             }
