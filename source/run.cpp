@@ -718,6 +718,9 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
             case SDL_SCANCODE_V:
                 key_set_down(input, CONTROL::EDIT_VERBOSE);
                 break;
+            case SDL_SCANCODE_GRAVE:
+                key_set_down(input, CONTROL::LOAD_CONFIG);
+                break;
 #endif
             case SDL_SCANCODE_UP:
                 key_set_down(input, CONTROL::ZOOM_IN);
@@ -763,6 +766,9 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 break;
             case SDL_SCANCODE_V:
                 key_set_up(input, CONTROL::EDIT_VERBOSE);
+                break;
+            case SDL_SCANCODE_GRAVE:
+                key_set_up(input, CONTROL::LOAD_CONFIG);
                 break;
 #endif
             case SDL_SCANCODE_UP:
@@ -949,6 +955,62 @@ bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
 
     return false;
 
+}
+
+struct AirPhysicsConfig {
+    std::string path;
+    FILE* fd;
+    struct stat stat;
+    time_t t_prev_mod;
+    f64 gravity;
+    f64 player_initial_speed;
+    f64 player_initial_speed_short;
+};
+
+bool load_config(AirPhysicsConfig* conf)
+{
+    #ifdef EDITOR
+    check_file_status(conf->path.c_str(), &conf->stat);
+    if (conf->stat.st_mtime != conf->t_prev_mod) {
+
+        conf->t_prev_mod = conf->stat.st_mtime;
+        
+        char buff[512];
+
+        std::string conf_string = file_io::read_file(conf->fd);
+
+        if (conf_string.length() == 0 || conf_string.find("DEFAULT") == 0) {
+            puts("USING DEFAULT PARAMETERS");
+            conf->gravity = physics::GRAVITY_DEFAULT;
+            conf->player_initial_speed = Player::JUMP_VELOCITY_DEFAULT;
+            conf->player_initial_speed_short = Player::JUMP_VELOCITY_SHORT_DEFAULT;
+            rewind(conf->fd);
+            return true;
+        }
+
+
+        puts("MODIFYING PARAMETERS");
+        printf("%s\n", conf_string.c_str());
+
+        char seps[] = " ,:;\t\n";
+
+        char* token = strtok((char*)conf_string.c_str(), seps);
+
+        sscanf(token, "%lf", &conf->gravity);
+        token = strtok(NULL, seps);
+        sscanf(token, "%lf", &conf->player_initial_speed);
+        token = strtok(NULL, seps);
+        sscanf(token, "%lf", &conf->player_initial_speed_short);
+
+        rewind(conf->fd);
+
+        printf("%lf : %lf : %lf\n", conf->gravity, conf->player_initial_speed, conf->player_initial_speed_short);
+
+        return true;
+    }
+    #endif
+
+    return false;
 }
 
 int main(int argc, char* argv[])
@@ -1481,6 +1543,32 @@ int main(int argc, char* argv[])
     // glm::vec2 a(0, 0);
     // glm::vec2 b(1, 1);
     // std::cout << glm::degrees(atan2pos_64(b.y - a.y, b.x - a.x)) << std::endl;
+
+    #define AIR_CONFIG_PATH "./config/air.txt"
+
+    AirPhysicsConfig air_physics_conf;
+
+    air_physics_conf.path = AIR_CONFIG_PATH;
+    air_physics_conf.fd = fopen(air_physics_conf.path.c_str(), "r");
+    if (air_physics_conf.fd == nullptr) {
+        fprintf(stderr, "ERROR: CANNOT OPEN AIR CONFIG FILE");
+    }
+    air_physics_conf.gravity                    = physics::gravity;
+    air_physics_conf.player_initial_speed       = Player::JUMP_VELOCITY_DEFAULT;
+    air_physics_conf.player_initial_speed_short = Player::JUMP_VELOCITY_SHORT_DEFAULT;
+    air_physics_conf.t_prev_mod = -1;
+
+    if (cmd.hot_config) {
+        if (load_config(&air_physics_conf)) {
+            physics::gravity = air_physics_conf.gravity;
+            you.initial_jump_velocity = air_physics_conf.player_initial_speed;
+            you.initial_jump_velocity_short = air_physics_conf.player_initial_speed_short;
+        }
+    }
+
+
+    //fclose(jump_conf_fd);
+
 
     while (is_running) {
         t_prev = t_now;
@@ -2049,10 +2137,20 @@ int main(int argc, char* argv[])
             gl_draw2d.color = Color::GREEN;
             gl_draw2d.transform_matrix = cam;
 
+
+            if (cmd.hot_config && air_physics_conf.fd != nullptr && key_is_pressed(&input, CONTROL::LOAD_CONFIG)) {
+                if (load_config(&air_physics_conf)) {
+                    physics::gravity = air_physics_conf.gravity;
+                    you.initial_jump_velocity= air_physics_conf.player_initial_speed;
+                    you.initial_jump_velocity_short = air_physics_conf.player_initial_speed_short;
+                }
+                //fseek(air_physics_conf.fd, 0L, SEEK_SET);
+            }
+
             //std::cout << (GRAVITY_DEFAULT * t_delta_s * INTERVAL) << std::endl;
             //std::cout << t_delta_s * INTERVAL << std::endl;
             if (!you.on_ground) {
-                
+
                 //std::cout << "MULTIPLIER V1 " << (INTERVAL / t_delta_s) / 1000 << std::endl;
                 //std::cout << "MULTIPLIER V2 " << (1 / (t_delta_s * REFRESH_RATE)) << std::endl;
                 if (!key_is_held(&input, CONTROL::JUMP)) {
@@ -2061,7 +2159,7 @@ int main(int argc, char* argv[])
                     }
                 }
 
-                you.velocity_air += (GRAVITY_DEFAULT * DELTA_TIME_FACTOR(t_delta_s, REFRESH_RATE));
+                you.velocity_air += (physics::gravity * DELTA_TIME_FACTOR(t_delta_s, REFRESH_RATE));
                 you.bound.spatial.y += you.velocity_air.y;
             }
 
@@ -2163,6 +2261,10 @@ int main(int argc, char* argv[])
         }
         #endif
     //////////////////
+    }
+
+    if (air_physics_conf.fd != nullptr) {
+        fclose(air_physics_conf.fd);
     }
     
     VertexAttributeArray_delete(&vao_2d2);

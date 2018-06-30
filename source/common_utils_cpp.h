@@ -1,6 +1,13 @@
 #ifndef COMMON_UTILS_HPP
 #define COMMON_UTILS_HPP
 
+#include <cstring>
+#include <ctime>
+#include <csignal>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -14,6 +21,7 @@
 #include <iostream>
 
 #define POSITIVE_INFINITY (std::numeric_limits<f64>::infinity())
+#define NEGATIVE_INFINITY (-POSITIVE_INFINITY)
 
 #define declare_pair_type(type__, name__) typedef std::pair<type__, type__> name__##_pair
 declare_pair_type(glm::vec3, vec3);
@@ -25,31 +33,6 @@ inline f64 dist_to_segment(glm::vec3 v, glm::vec3 w, glm::vec3 p);
 
 // http://alienryderflex.com/intersect/
 bool line_segment_intersection(const vec3_pair* s0, const vec3_pair* s1, glm::vec3* out);
-
-#define sort_by_y(v) \
-do { \
-    if (v[0].y > v[1].y) { \
-        auto val = v[0]; \
-        v[0] = v[1]; \
-        v[1] = val; \
-    } \
-} while (0)
-
-#define sort_collision(v, c) \
-do { \
-    if (v[0].y > v[1].y) { \
-        { \
-            auto val = v[0]; \
-            v[0] = v[1]; \
-            v[1] = val; \
-        } \
-        { \
-            auto val = c->a; \
-            c->a = c->b; \
-            c->b = c->a; \
-        } \
-    } \
-} while (0)
 
 template<typename T>
 static std::string to_binary_string(const T& x);
@@ -174,11 +157,18 @@ void print_array(T* array, const usize N, const usize M = 1);
 static inline f32 atan2pos_32(f64 y, f64 x);
 static inline f64 atan2pos_64(f64 y, f64 x);
 
+bool check_file_status(const char* file_path, struct stat* file_stat);
+
 // }
 #endif
 
 
 #ifdef COMMON_UTILS_CPP_IMPLEMENTATION
+
+bool check_file_status(const char* file_path, struct stat* file_stat)
+{
+    return stat(file_path, file_stat) == 0;
+}
 
 
 inline f64 dist2(glm::vec3 v, glm::vec3 w)

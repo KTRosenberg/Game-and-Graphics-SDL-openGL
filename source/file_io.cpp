@@ -15,7 +15,7 @@ std::string read_file(FILE* fp)
 
         if (status == 0) {
             break;
-        } else if (status < 0 || errno != 0) {
+        } else if (status < 0 || errno > 0) {
             return "";
         }
 
@@ -29,12 +29,13 @@ std::string open_and_read_file(const char* path, bool* is_valid)
 {
     FILE* fd = fopen(path, "r");
     if (fd == NULL) {
+        *is_valid = false;
         return "";
     }
 
     std::string out = read_file(fd);
 
-    if (ferror(fd) == 0 || errno != 0) {
+    if (ferror(fd) == 0 || errno > 0) {
         *is_valid = true;
         flush_and_close_file(fd);
     } else {

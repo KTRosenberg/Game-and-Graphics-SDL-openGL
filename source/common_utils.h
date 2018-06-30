@@ -12,6 +12,7 @@ extern "C"
 #include <math.h>
 #include <stdbool.h>
 #include <getopt.h>
+#include <string.h>
 
 // Credit to Handmade Network person for the following macros {
 typedef int8_t   int8;
@@ -103,12 +104,12 @@ void debug_print(const char* const in);
 
 typedef void* (*Fn_MemoryAllocator)(size_t bytes);
 
-#define PROGRAM_ARGS_COUNT (1)
+#define PROGRAM_ARGS_COUNT (2)
 extern struct option program_args[PROGRAM_ARGS_COUNT + 1];
 
 typedef struct {
-    // later
-    char temp_padding;
+    bool verbose;
+    bool hot_config;
 } CommandLineArgs;
 
 bool parse_command_line_args(CommandLineArgs* cmd, const int argc, char* argv[]);
@@ -227,19 +228,25 @@ void debug_print(const char* const in)
 
 struct option program_args[PROGRAM_ARGS_COUNT + 1] = {
     {"verbose", no_argument, nullptr, 'v'},
+    {"hotconfig", no_argument, nullptr, 'c'},
     {0, 0, 0, 0}
 };
 
 
 bool parse_command_line_args(CommandLineArgs* cmd, const int argc, char* argv[])
 {
+    memset(cmd, 0x00, sizeof(CommandLineArgs));
     // later
     char c = '\0';
 
-    while ((c = getopt_long(argc, argv, "v", program_args, nullptr)) != -1) {
+    while ((c = getopt_long(argc, argv, "vc", program_args, nullptr)) != -1) {
         switch (c) {
         // number of additional threads
         case 'v':
+            cmd->verbose = true;
+            break;
+        case 'c':
+            cmd->hot_config = true;
             break;
         // missing arg
         case ':':

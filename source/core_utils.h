@@ -40,6 +40,7 @@ enum struct CONTROL {
     ZOOM_OUT,
     RESET_POSITION,
     PHYSICS,
+    LOAD_CONFIG,
     FREE_CAM,
 
     COUNT
@@ -223,9 +224,12 @@ void BoxComponent_init(f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height);
 #define PLAYER_BASE_SPEED (0.01 * 360.0f)
 #define PLAYER_MAX_SPEED (32.0)
 
-extern f64 GRAVITY_DEFAULT;
-extern const f64 GRAVITY_TERRESTRIAL;
-extern const f64 GRAVITY_OUTER_SPACE;
+namespace physics {
+    extern f64 GRAVITY_DEFAULT;
+    extern const f64 GRAVITY_TERRESTRIAL;
+    extern const f64 GRAVITY_OUTER_SPACE;
+    extern f64 gravity;
+}
 
 struct Player {
     BoxComponent bound;
@@ -539,10 +543,12 @@ void BoxComponent_init(BoxComponent* bc, f64 x, f64 y, f64 z, f64 angle, f64 wid
     bc->height = height;
 }
 
-
-f64 GRAVITY_DEFAULT = 0.21875;
-const f64 GRAVITY_TERRESTRIAL = GRAVITY_DEFAULT;
-const f64 GRAVITY_OUTER_SPACE = GRAVITY_DEFAULT / 2;
+namespace physics {
+    f64 GRAVITY_DEFAULT = 0.21875;
+    const f64 GRAVITY_TERRESTRIAL = GRAVITY_DEFAULT;
+    const f64 GRAVITY_OUTER_SPACE = GRAVITY_DEFAULT / 2;
+    f64 gravity = GRAVITY_DEFAULT;
+}
 
 void Player_init(Player* pl /*, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height*/)
 {
