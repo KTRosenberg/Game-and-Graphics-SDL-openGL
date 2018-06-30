@@ -24,6 +24,8 @@ enum struct MOVEMENT_DIRECTION : unsigned char
     DOWNWARDS
 };
 
+#define DELTA_TIME_FACTOR(t_delta_s, refresh_rate) ((1 / (t_delta_s * refresh_rate)))
+
 namespace input_sys {
 
 enum struct CONTROL {
@@ -221,16 +223,23 @@ void BoxComponent_init(f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height);
 #define PLAYER_BASE_SPEED (0.01 * 360.0f)
 #define PLAYER_MAX_SPEED (32.0)
 
-extern f64 gravity_constant;
+extern f64 GRAVITY_DEFAULT;
+extern const f64 GRAVITY_TERRESTRIAL;
+extern const f64 GRAVITY_OUTER_SPACE;
 
 struct Player {
     BoxComponent bound;
-    bool on_ground;
     f64 state_change_time;
-    glm::vec2 speed_ground;
-    glm::vec2 speed_air;
+    glm::vec2 velocity_ground;
+    glm::vec2 velocity_air;
     f64 acceleration_ground;
     f64 acceleration_air;
+    f64 initial_jump_velocity;
+    f64 initial_jump_velocity_short;
+
+    static constexpr f64 JUMP_VELOCITY_DEFAULT = -6.0;
+    static constexpr f64 JUMP_VELOCITY_SHORT_DEFAULT = -4.0;
+    bool on_ground;
 
     inline std::pair<glm::vec4, glm::vec4> floor_sensors(void)
     {
@@ -411,7 +420,7 @@ static inline TOGGLE_BRANCH key_is_toggled_4_states(struct Input* in, CONTROL ke
 
     state += (*t);
 
-    return (TOGGLE_BRANCH)state; 
+    return (TOGGLE_BRANCH)state;
 }
 
 
@@ -531,15 +540,17 @@ void BoxComponent_init(BoxComponent* bc, f64 x, f64 y, f64 z, f64 angle, f64 wid
 }
 
 
-f64 gravity_constant = 9.81;
+f64 GRAVITY_DEFAULT = 0.21875;
+const f64 GRAVITY_TERRESTRIAL = GRAVITY_DEFAULT;
+const f64 GRAVITY_OUTER_SPACE = GRAVITY_DEFAULT / 2;
 
 void Player_init(Player* pl /*, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height*/)
 {
     // BoxComponent_init(&pl->bound, x, y, z, angle, width, height);
     // pl->on_ground = false;
     // pl->state_change_time = 0.0;
-    // pl->speed_ground = glm::vec3(0.0);
-    // pl->speed_air = glm::vec3(0.0);
+    // pl->velocity_ground = glm::vec3(0.0);
+    // pl->velocity_air = glm::vec3(0.0);
 
     memset(pl, 0x00, sizeof(Player));
 }
@@ -553,8 +564,12 @@ void Player_init(Player* pl, f64 x, f64 y, f64 z, bool position_at_center, f64 a
 
     pl->on_ground = false;
     pl->state_change_time = 0.0;
-    pl->speed_ground = glm::vec2(0.0);
-    pl->speed_air = glm::vec2(0.0);
+    pl->velocity_ground = glm::vec2(0.0);
+    pl->velocity_air = glm::vec2(0.0);
+    pl->acceleration_air = 0.0;
+    pl->acceleration_ground = 0.0;
+    pl->initial_jump_velocity = Player::JUMP_VELOCITY_DEFAULT;
+    pl->initial_jump_velocity_short = Player::JUMP_VELOCITY_SHORT_DEFAULT;
 }
 
 void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_time)

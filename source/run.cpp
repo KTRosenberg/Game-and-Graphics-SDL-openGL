@@ -1380,7 +1380,8 @@ int main(int argc, char* argv[])
 
 
     SDL_GL_SetSwapInterval(1);
-    const double INTERVAL = MS_PER_S / mode.refresh_rate;
+    const f64 INTERVAL = MS_PER_S / mode.refresh_rate;
+    const f64 REFRESH_RATE = mode.refresh_rate;
 
     f64 frequency  = SDL_GetPerformanceFrequency();
 
@@ -2032,11 +2033,12 @@ int main(int argc, char* argv[])
 
             f64 WEE = ((f64)(t_now - you.state_change_time)) / frequency;
 
-            if (/*key_is_toggled(&input, CONTROL::PHYSICS, &physics_toggle) && */!you.on_ground) {
-                you.bound.spatial.y = you.bound.spatial.y + 1 * 9.81 * (WEE * WEE);
-            } else if (key_is_pressed(&input, CONTROL::JUMP)) { // TEMPORARY
-                you.bound.spatial.y -= you.bound.height * 4;
-            }
+            // if (/*key_is_toggled(&input, CONTROL::PHYSICS, &physics_toggle) && */!you.on_ground) {
+            //     you.bound.spatial.y = you.bound.spatial.y + 1 * 9.81 * (WEE * WEE);
+            // } else if (key_is_pressed(&input, CONTROL::JUMP)) { // TEMPORARY
+            //     you.bound.spatial.y -= you.bound.height * 4;
+            // }
+
             
             gl_draw2d.end();
 
@@ -2046,6 +2048,22 @@ int main(int argc, char* argv[])
 
             gl_draw2d.color = Color::GREEN;
             gl_draw2d.transform_matrix = cam;
+
+            //std::cout << (GRAVITY_DEFAULT * t_delta_s * INTERVAL) << std::endl;
+            //std::cout << t_delta_s * INTERVAL << std::endl;
+            if (!you.on_ground) {
+
+                you.velocity_air += (GRAVITY_DEFAULT * DELTA_TIME_FACTOR(t_delta_s, REFRESH_RATE));
+
+                //std::cout << "MULTIPLIER V1 " << (INTERVAL / t_delta_s) / 1000 << std::endl;
+                //std::cout << "MULTIPLIER V2 " << (1 / (t_delta_s * REFRESH_RATE)) << std::endl;
+                if (!key_is_held(&input, CONTROL::JUMP)) {
+                    if (you.velocity_air.y < you.initial_jump_velocity_short) {
+                        you.velocity_air.y = you.initial_jump_velocity_short;
+                    }
+                }
+                you.bound.spatial.y += you.velocity_air.y;
+            }
 
 
             bool collided = false;
@@ -2072,6 +2090,13 @@ int main(int argc, char* argv[])
             if (!collided) {
                 you.on_ground = false;
             } else {
+
+                if (you.on_ground) {
+                    if (key_is_pressed(&input, CONTROL::JUMP)) {
+                        you.velocity_air.y = you.initial_jump_velocity;
+                        you.on_ground = false;
+                    }
+                }
                 //you.bound.spatial.x = out.x - (1 * you.bound.width); <-- ENABLE TO MAKE THE FLOOR A TREADMILL
                 you.bound.spatial.y = status.intersection.y - (1 * you.bound.height);
 
