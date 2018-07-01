@@ -396,13 +396,15 @@ struct GlobalData {
 GlobalData program_data;
 
 #define GL_DRAW2D
-
-#ifdef GL_DRAW2D
-#define GL_DRAW2D_SIZE 2048
 #include "gl_draw2d.h"
-#endif
 
 WindowState window_state;
+
+#define MAX_CONTROLLERS (1)
+//SDL_GameController* controller_handles[MAX_CONTROLLERS];
+//int controller_index = 0;
+SDL_GameController* controller_handle = nullptr;
+char* controller_mapping = nullptr;
 
 bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 {
@@ -418,6 +420,9 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 
         switch (event->type) {
         case SDL_QUIT:
+            if (controller_handle != nullptr) {
+                SDL_GameControllerClose(controller_handle);
+            }
             return false;
         case SDL_WINDOWEVENT:
             switch (event->window.event) {
@@ -491,6 +496,193 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 break;
             }
             break;
+        case SDL_CONTROLLERDEVICEADDED:
+            if (SDL_IsGameController(event->cdevice.which)) {
+                controller_handle = SDL_GameControllerOpen(event->cdevice.which);
+                fprintf(
+                    stdout, 
+                    "ADDING CONTROLLER (%s) TO PORT (%d)\n", 
+                    SDL_GameControllerName(controller_handle), event->cdevice.which
+                );
+
+                controller_mapping = SDL_GameControllerMapping(controller_handle);
+                SDL_Log("CONTROLLER IS MAPPED AS \"%s\".", controller_mapping);
+                SDL_free(controller_mapping);
+            } else {
+                fprintf(stderr, "CONTROLLER INCOMPATIBLE");
+            }
+            break;
+        case SDL_CONTROLLERDEVICEREMOVED:
+            if (controller_handle != nullptr) {
+                fprintf(
+                    stdout, 
+                    "REMOVING CONTROLLER (%s) FROM PORT (%d)\n",
+                    SDL_GameControllerName(controller_handle), event->cdevice.which
+                );
+                SDL_GameControllerClose(controller_handle);
+                input_sys::init(input);
+            }
+            break;
+        case SDL_CONTROLLERBUTTONDOWN:
+            switch (event->cbutton.button) {
+            case SDL_CONTROLLER_BUTTON_A:
+                key_set_down(input, CONTROL::JUMP);
+                break;
+            case SDL_CONTROLLER_BUTTON_B:
+                std::cout << "DOWN_BUTTON_B" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_X:
+                std::cout << "DOWN_BUTTON_X" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_Y:
+                std::cout << "DOWN_BUTTON_Y" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_BACK:
+                std::cout << "DOWN_BUTTON_BACK" << std::endl;
+#ifdef EDITOR
+                key_set_down(input, CONTROL::EDIT_MODE);
+#endif             
+                break;
+            case SDL_CONTROLLER_BUTTON_GUIDE:
+                std::cout << "DOWN_BUTTON_GUIDE" << std::endl;
+                key_set_down(input, CONTROL::RESET_POSITION);
+                break;
+            case SDL_CONTROLLER_BUTTON_START:
+                std::cout << "DOWN_BUTTON_START" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+                std::cout << "DOWN_BUTTON_LEFTSTICK" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+                std::cout << "DOWN_BUTTON_RIGHTSTICK" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+                std::cout << "DOWN_BUTTON_LEFTSHOULDER" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+                std::cout << "DOWN_BUTTON_RIGHTSHOULDER" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_UP:
+                std::cout << "DOWN_BUTTON_DPAD_UP" << std::endl;
+                key_set_down(input, CONTROL::UP);
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+                std::cout << "DOWN_BUTTON_DPAD_DOWN" << std::endl;
+                key_set_down(input, CONTROL::DOWN);
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+                std::cout << "DOWN_BUTTON_DPAD_LEFT" << std::endl;
+                key_set_down(input, CONTROL::LEFT);
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+                std::cout << "DOWN_BUTTON_DPAD_RIGHT" << std::endl;
+                key_set_down(input, CONTROL::RIGHT);
+                break;
+            default:
+                //std::cout << "UNKNOWN" << std::endl;
+                break;
+            }
+            break;
+        case SDL_CONTROLLERBUTTONUP:
+            switch (event->cbutton.button) {
+            case SDL_CONTROLLER_BUTTON_A:
+                std::cout << "UP_BUTTON_A" << std::endl;
+                key_set_up(input, CONTROL::JUMP);
+                break;
+            case SDL_CONTROLLER_BUTTON_B:
+                std::cout << "UP_BUTTON_B" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_X:
+                std::cout << "UP_BUTTON_X" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_Y:
+                std::cout << "UP_BUTTON_Y" << std::endl;
+                break;
+
+            case SDL_CONTROLLER_BUTTON_BACK:
+                std::cout << "UP_BUTTON_BACK" << std::endl;
+#ifdef EDITOR
+                key_set_up(input, CONTROL::EDIT_MODE);
+#endif              
+                break;
+
+            case SDL_CONTROLLER_BUTTON_GUIDE:
+                std::cout << "UP_BUTTON_GUIDE" << std::endl;
+                key_set_up(input, CONTROL::RESET_POSITION);
+                break;
+            case SDL_CONTROLLER_BUTTON_START:
+                std::cout << "UP_BUTTON_START" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+                std::cout << "UP_BUTTON_LEFTSTICK" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+                std::cout << "UP_BUTTON_RIGHTSTICK" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+                std::cout << "UP_BUTTON_LEFTSHOULDER" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+                std::cout << "UP_BUTTON_RIGHTSHOULDER" << std::endl;
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_UP:
+                std::cout << "UP_BUTTON_DPAD_UP" << std::endl;
+                key_set_up(input, CONTROL::UP);
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+                std::cout << "UP_BUTTON_DPAD_DOWN" << std::endl;
+                key_set_up(input, CONTROL::DOWN);
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+                std::cout << "UP_BUTTON_DPAD_LEFT" << std::endl;
+                key_set_up(input, CONTROL::LEFT);
+                break;
+            case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+                std::cout << "UP_BUTTON_DPAD_RIGHT" << std::endl;
+                key_set_up(input, CONTROL::RIGHT);
+                break;
+            default:
+                //std::cout << "UNKNOWN" << std::endl;
+                break;
+            }
+            break;
+        case SDL_CONTROLLERAXISMOTION:
+            #define JOYSTICK_DEADZONE (8000)
+            switch (event->caxis.axis) {
+            case SDL_CONTROLLER_AXIS_MAX:
+                std::cout << "AXIS_MAX " << event->caxis.value << std::endl;
+                break;
+            case SDL_CONTROLLER_AXIS_LEFTY:
+                if (glm::abs(event->caxis.value) > JOYSTICK_DEADZONE) {
+                    std::cout << "AXIS_LEFTY " << event->caxis.value << std::endl;
+                }
+                break;
+            case SDL_CONTROLLER_AXIS_RIGHTY:
+                if (glm::abs(event->caxis.value) > JOYSTICK_DEADZONE) {
+                    std::cout << "AXIS_RIGHTY " << event->caxis.value << std::endl;
+                }
+                break;
+            case SDL_CONTROLLER_AXIS_LEFTX:
+                if (glm::abs(event->caxis.value) > JOYSTICK_DEADZONE) {
+                    std::cout << "AXIS_LEFTX " << event->caxis.value << std::endl;
+                }
+                break;
+            case SDL_CONTROLLER_AXIS_RIGHTX:
+                if (glm::abs(event->caxis.value) > JOYSTICK_DEADZONE) {
+                    std::cout << "AXIS_RIGHTX " << event->caxis.value << std::endl;
+                }
+                break;
+            case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
+                std::cout << "AXIS_TRIGGERLEFT " << event->caxis.value << std::endl;
+                break;
+            case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
+                std::cout << "AXIS_TRIGGERRIGHT " << event->caxis.value << std::endl;
+                break;
+            default:
+                //std::cout << "UNKNOWN" << std::endl;
+                break;
+            }
+            break;
         case SDL_KEYDOWN:
             switch (event->key.keysym.scancode) {
             case SDL_SCANCODE_W:
@@ -505,6 +697,11 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
             case SDL_SCANCODE_D:
                 key_set_down(input, CONTROL::RIGHT);
                 break;
+            case SDL_SCANCODE_J:
+            case SDL_SCANCODE_K:
+            case SDL_SCANCODE_L:
+                key_set_down(input, CONTROL::JUMP);
+                break;            
             case SDL_SCANCODE_0:
                 key_set_down(input, CONTROL::RESET_POSITION);
                 break;
@@ -520,6 +717,9 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 break;
             case SDL_SCANCODE_V:
                 key_set_down(input, CONTROL::EDIT_VERBOSE);
+                break;
+            case SDL_SCANCODE_GRAVE:
+                key_set_down(input, CONTROL::LOAD_CONFIG);
                 break;
 #endif
             case SDL_SCANCODE_UP:
@@ -546,6 +746,11 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
             case SDL_SCANCODE_D:
                 key_set_up(input, CONTROL::RIGHT);
                 break;
+            case SDL_SCANCODE_J:
+            case SDL_SCANCODE_K:
+            case SDL_SCANCODE_L:
+                key_set_up(input, CONTROL::JUMP);
+                break; 
             case SDL_SCANCODE_0:
                 key_set_up(input, CONTROL::RESET_POSITION);
                 break;
@@ -561,6 +766,9 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 break;
             case SDL_SCANCODE_V:
                 key_set_up(input, CONTROL::EDIT_VERBOSE);
+                break;
+            case SDL_SCANCODE_GRAVE:
+                key_set_up(input, CONTROL::LOAD_CONFIG);
                 break;
 #endif
             case SDL_SCANCODE_UP:
@@ -613,7 +821,8 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
     return true;
 }
 
-void draw_player_collision(Player* you, GLDraw2D* ctx)
+template <usize N>
+void draw_player_collision(Player* you, GLDraw2D<N>* ctx)
 {
     const glm::vec3 off(0.5, 0.5, 0.0);
     BoxComponent* bc = &you->bound;
@@ -637,6 +846,22 @@ void draw_player_collision(Player* you, GLDraw2D* ctx)
 
     ctx->line(floor_sensor_rays.first.first, floor_sensor_rays.first.second);
     ctx->line(floor_sensor_rays.second.first, floor_sensor_rays.second.second);
+}
+
+template <usize N>
+void BoxComponent_draw(BoxComponent* bc, GLDraw2D<N>* ctx)
+{
+    const glm::vec3 off(0.5, 0.5, 0.0);
+    glm::vec3 top_left = bc->position() + off;
+    glm::vec3 top_right = top_left + glm::vec3(bc->width, 0.0, 0.0);
+    glm::vec3 bottom_right = top_left + glm::vec3(bc->width, bc->height, 0.0);
+    glm::vec3 bottom_left = top_left + glm::vec3(0.0, bc->height, 0.0);
+
+    ctx->draw_type = GL_LINES;
+    ctx->line(top_left, top_right);
+    ctx->line(top_right, bottom_right);
+    ctx->line(bottom_right, bottom_left);
+    ctx->line(bottom_left, top_left);    
 }
 
 bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
@@ -732,7 +957,61 @@ bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
 
 }
 
+struct AirPhysicsConfig {
+    std::string path;
+    FILE* fd;
+    struct stat stat;
+    time_t t_prev_mod;
+    f64 gravity;
+    f64 player_initial_velocity;
+    f64 player_initial_velocity_short;
+};
 
+bool load_config(AirPhysicsConfig* conf)
+{
+    #ifdef EDITOR
+    check_file_status(conf->path.c_str(), &conf->stat);
+    if (conf->stat.st_mtime != conf->t_prev_mod) {
+
+        conf->t_prev_mod = conf->stat.st_mtime;
+        
+        char buff[512];
+
+        std::string conf_string = file_io::read_file(conf->fd);
+
+        if (conf_string.length() == 0 || conf_string.find("DEFAULT") == 0) {
+            puts("USING DEFAULT PARAMETERS");
+            conf->gravity = physics::GRAVITY_DEFAULT;
+            conf->player_initial_velocity = Player::JUMP_VELOCITY_DEFAULT;
+            conf->player_initial_velocity_short = Player::JUMP_VELOCITY_SHORT_DEFAULT;
+            rewind(conf->fd);
+            return true;
+        }
+
+
+        puts("MODIFYING PARAMETERS");
+        printf("%s\n", conf_string.c_str());
+
+        char seps[] = " ,:;\t\n";
+
+        char* token = strtok((char*)conf_string.c_str(), seps);
+
+        sscanf(token, "%lf", &conf->gravity);
+        token = strtok(NULL, seps);
+        sscanf(token, "%lf", &conf->player_initial_velocity);
+        token = strtok(NULL, seps);
+        sscanf(token, "%lf", &conf->player_initial_velocity_short);
+
+        rewind(conf->fd);
+
+        printf("%lf : %lf : %lf\n", conf->gravity, conf->player_initial_velocity, conf->player_initial_velocity_short);
+
+        return true;
+    }
+    #endif
+
+    return false;
+}
 
 int main(int argc, char* argv[])
 {
@@ -743,35 +1022,8 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    //std::cout << dist_to_segment(glm::vec3(0.0, 0.0, 0.0), glm::vec3(1280.0, 0.0, 0.0), glm::vec3(0.0, 720.0, 0.0)) << std::endl;
-    //return 0;
-    // FILE* fp = fopen("worlds/lines_test_a.txt", "r");
-    // if (fp) {
-    //     fseek(fp, 0, SEEK_END);
-    //     i64 file_size = ftell(fp);
-    //     ftell(fp);
-    //     rewind(fp);
-    //     printf("%lld\n", file_size);
-
-    //     fclose(fp);
-
-    //     //return EXIT_SUCCESS;
-    // }
-    // printf("%llu\n", collision_map.element_length());
-
-    // collision_map[0].a.x = 1.0f;
-    // collision_map[0].a.y = 2.0f;
-    // collision_map[0].a.z = 3.0f;
-    // collision_map[0].b.x = 4.0f;
-    // collision_map[0].b.y = 5.0f;
-    // collision_map[0].b.z = 6.0f;
-
-    // collision_map.elements_used += 1;
-
-    // Collider_print(&collision_map[0]);
-
     // initialize SDL
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC | SDL_INIT_AUDIO) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC) < 0) {
         fprintf(stderr, "%s\n", "SDL could not initialize");
         return EXIT_FAILURE;
     }
@@ -791,11 +1043,11 @@ int main(int argc, char* argv[])
     //     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, atoi(argv[1]));
     //     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, atoi(argv[2]));
     // } else {
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);        
+        // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);        
     // }
-   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     // SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
     // SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
@@ -826,9 +1078,9 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
     
-   program_data.context = SDL_GL_CreateContext(window);
+    program_data.context = SDL_GL_CreateContext(window);
 
-   glewExperimental = GL_TRUE;
+    glewExperimental = GL_TRUE;
     glewInit();
 
 
@@ -907,7 +1159,7 @@ int main(int argc, char* argv[])
     };
 
 
-    print_array(T, 4, 6);
+    //print_array(T, 4, 6);
 
 // TOTAL ALLOCATION
     // const size_t BATCH_COUNT = 1024;
@@ -972,7 +1224,25 @@ int main(int argc, char* argv[])
     //glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ONE, GL_ONE);
     //glBlendEquationSeparate(GL_FUNC_ADD, GL_MAX);
 
-    
+    #ifdef SDL_H
+    {
+        SDL_version compiled;
+        SDL_version linked;
+
+        SDL_VERSION(&compiled);
+        SDL_GetVersion(&linked);
+        
+        printf(
+            "COMPILED AGAINST SDL VERSION %d.%d.%d.\n",
+            compiled.major, compiled.minor, compiled.patch
+        );
+        printf(
+            "LINKED AGAINST SDL VERSION %d.%d.%d.\n",
+            linked.major, linked.minor, linked.patch
+        );
+    }
+    #endif
+
     printf("USING GL VERSION: %s\n", glGetString(GL_VERSION));
 
     glm::mat4 mat_ident(1.0f);
@@ -1093,7 +1363,7 @@ int main(int argc, char* argv[])
 
 
     #ifdef GL_DRAW2D
-    GLDraw2D gl_draw2d;
+    GLDraw2D<> gl_draw2d;
     if (!gl_draw2d.init(mat_projection)) {
         return EXIT_FAILURE;
     }
@@ -1117,8 +1387,8 @@ int main(int argc, char* argv[])
     UniformLocation CAM_LOC_GRID = glGetUniformLocation(shader_grid, "u_position_cam");
 
 
-    GLDraw2D existing;
-    GLDraw2D in_prog;
+    GLDraw2D<> existing;
+    GLDraw2D<256> in_prog;
     Toggle drawing = false;
     Toggle deletion = false;
 
@@ -1145,7 +1415,8 @@ int main(int argc, char* argv[])
 
 
     SDL_GL_SetSwapInterval(1);
-    const double INTERVAL = MS_PER_S / mode.refresh_rate;
+    const f64 INTERVAL = MS_PER_S / mode.refresh_rate;
+    const f64 REFRESH_RATE = mode.refresh_rate;
 
     f64 frequency  = SDL_GetPerformanceFrequency();
 
@@ -1169,13 +1440,32 @@ int main(int argc, char* argv[])
     input_sys::Input input = {};
     input_sys::init(&input);
 
+    #define CONTROLLER_MAPPING_FILE "./mapping/gamecontrollerdb.txt"
+    if (SDL_GameControllerAddMappingsFromFile(CONTROLLER_MAPPING_FILE) < 0) {
+        fprintf(stderr, "FAILED TO LOAD CONTROLLER MAPPINGS FROM %s\n", CONTROLLER_MAPPING_FILE);
+    }
+
+    // for (int joystick_index = 0; joystick_index < max_joysticks; ++joystick_index) {
+    //     if (!SDL_IsGameController(joystick_index)) {
+    //         std::cout << "NOT GAME CONTROLLER" << std::endl;
+    //         continue;
+    //     }
+    //     if (controller_index >= MAX_CONTROLLERS) {
+    //         break;
+    //     }
+
+    //     controller_handles[controller_index] = SDL_GameControllerOpen(joystick_index);
+        
+    //     fprintf(stdout, "CONTROLLER: %s\n", SDL_GameControllerName(controller_handles[controller_index]));
+    // }
+
     bool is_running = true;
     SDL_Event event;
 
 #ifdef EDITOR
     Toggle grid_toggle = false;
     Toggle physics_toggle = false;
-    Toggle normals = false;
+    Toggle verbose_view_toggle = false;
     glm::vec3 in_progress_line[2];
     in_progress_line[0] = glm::vec3(0.0f);
     in_progress_line[1] = glm::vec3(0.0f);
@@ -1226,6 +1516,32 @@ int main(int argc, char* argv[])
     // glm::vec2 a(0, 0);
     // glm::vec2 b(1, 1);
     // std::cout << glm::degrees(atan2pos_64(b.y - a.y, b.x - a.x)) << std::endl;
+
+    #define AIR_CONFIG_PATH "./config/air.txt"
+
+    AirPhysicsConfig air_physics_conf;
+
+    air_physics_conf.path = AIR_CONFIG_PATH;
+    air_physics_conf.fd = fopen(air_physics_conf.path.c_str(), "r");
+    if (air_physics_conf.fd == nullptr) {
+        fprintf(stderr, "ERROR: CANNOT OPEN AIR CONFIG FILE");
+    }
+    air_physics_conf.gravity                    = physics::gravity;
+    air_physics_conf.player_initial_velocity       = Player::JUMP_VELOCITY_DEFAULT;
+    air_physics_conf.player_initial_velocity_short = Player::JUMP_VELOCITY_SHORT_DEFAULT;
+    air_physics_conf.t_prev_mod = -1;
+
+    if (cmd.hot_config) {
+        if (load_config(&air_physics_conf)) {
+            physics::gravity = air_physics_conf.gravity;
+            you.initial_jump_velocity = air_physics_conf.player_initial_velocity;
+            you.initial_jump_velocity_short = air_physics_conf.player_initial_velocity_short;
+        }
+    }
+
+
+    //fclose(jump_conf_fd);
+
 
     while (is_running) {
         t_prev = t_now;
@@ -1381,6 +1697,7 @@ int main(int argc, char* argv[])
 
                 Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0.0, true, 0, 20, 40);
                 you.state_change_time = t_now;
+                you.on_ground = false;
             }
 
             if (!free_cam_is_on && 
@@ -1772,16 +2089,17 @@ int main(int argc, char* argv[])
 
             gl_draw2d.transform_matrix = cam;
 
-            draw_player_collision(&you, &gl_draw2d);
-
             //draw_lines_from_image(&gl_draw2d, "./test_paths/C.bmp", {glm::vec3(1.0f), glm::vec3(0.0f)});
 
 
             f64 WEE = ((f64)(t_now - you.state_change_time)) / frequency;
 
-            if (/*key_is_toggled(&input, CONTROL::PHYSICS, &physics_toggle) && */!you.on_ground) {
-                you.bound.spatial.y = you.bound.spatial.y + 1 * 9.81 * (WEE * WEE);
-            }
+            // if (/*key_is_toggled(&input, CONTROL::PHYSICS, &physics_toggle) && */!you.on_ground) {
+            //     you.bound.spatial.y = you.bound.spatial.y + 1 * 9.81 * (WEE * WEE);
+            // } else if (key_is_pressed(&input, CONTROL::JUMP)) { // TEMPORARY
+            //     you.bound.spatial.y -= you.bound.height * 4;
+            // }
+
             
             gl_draw2d.end();
 
@@ -1791,6 +2109,32 @@ int main(int argc, char* argv[])
 
             gl_draw2d.color = Color::GREEN;
             gl_draw2d.transform_matrix = cam;
+
+
+            if (cmd.hot_config && air_physics_conf.fd != nullptr && key_is_pressed(&input, CONTROL::LOAD_CONFIG)) {
+                if (load_config(&air_physics_conf)) {
+                    physics::gravity = air_physics_conf.gravity;
+                    you.initial_jump_velocity= air_physics_conf.player_initial_velocity;
+                    you.initial_jump_velocity_short = air_physics_conf.player_initial_velocity_short;
+                }
+                //fseek(air_physics_conf.fd, 0L, SEEK_SET);
+            }
+
+            //std::cout << (GRAVITY_DEFAULT * t_delta_s * INTERVAL) << std::endl;
+            //std::cout << t_delta_s * INTERVAL << std::endl;
+            if (!you.on_ground) {
+
+                //std::cout << "MULTIPLIER V1 " << (INTERVAL / t_delta_s) / 1000 << std::endl;
+                //std::cout << "MULTIPLIER V2 " << (1 / (t_delta_s * REFRESH_RATE)) << std::endl;
+                if (!key_is_held(&input, CONTROL::JUMP)) {
+                    if (you.velocity_air.y < you.initial_jump_velocity_short) {
+                        you.velocity_air.y = you.initial_jump_velocity_short;
+                    }
+                }
+
+                you.velocity_air += (physics::gravity * DELTA_TIME_FACTOR(t_delta_s, REFRESH_RATE));
+                you.bound.spatial.y += you.velocity_air.y;
+            }
 
 
             bool collided = false;
@@ -1817,12 +2161,23 @@ int main(int argc, char* argv[])
             if (!collided) {
                 you.on_ground = false;
             } else {
+
+                if (you.on_ground) {
+                    if (key_is_pressed(&input, CONTROL::JUMP)) {
+                        you.velocity_air.y = you.initial_jump_velocity;
+                        you.on_ground = false;
+                    }
+                }
                 //you.bound.spatial.x = out.x - (1 * you.bound.width); <-- ENABLE TO MAKE THE FLOOR A TREADMILL
                 you.bound.spatial.y = status.intersection.y - (1 * you.bound.height);
 
+                Collider* col = status.collider;
+                glm::vec3* a = &col->a;
+                glm::vec3* b = &col->b;
+                you.bound.spatial.w = glm::mod(atan2pos_64(b->y - a->y, b->x - a->x), glm::pi<f64>());
+
                 // draw surface and normals
-                if (key_is_toggled(&input, CONTROL::EDIT_VERBOSE, &normals)) {
-                    Collider* col = status.collider;
+                if (key_is_toggled(&input, CONTROL::EDIT_VERBOSE, &verbose_view_toggle)) {
                     f64 dy = col->b.y - col->a.y;
                     f64 dx = col->b.x - col->a.x;
 
@@ -1840,9 +2195,14 @@ int main(int argc, char* argv[])
                     
                     //existing.color = Color::BLACK;
                     //vec3_pair_print(&na, &nb);
-                } 
+
+                    //std::cout << glm::degrees(you.bound.spatial.w) << std::endl;
+                }
 
             }
+
+            gl_draw2d.color = Color::BLUE;
+            draw_player_collision(&you, &gl_draw2d);
 
             gl_draw2d.end();
 
@@ -1875,6 +2235,10 @@ int main(int argc, char* argv[])
         #endif
     //////////////////
     }
+
+    if (air_physics_conf.fd != nullptr) {
+        fclose(air_physics_conf.fd);
+    }
     
     VertexAttributeArray_delete(&vao_2d2);
     VertexBufferData_delete_inplace(&tri_data);
@@ -1887,6 +2251,7 @@ int main(int argc, char* argv[])
     glDeleteProgram(shader_grid);
     #endif
     glDeleteProgram(shader_2d);
+
     SDL_GL_DeleteContext(program_data.context);
     SDL_DestroyWindow(window);
     IMG_Quit();

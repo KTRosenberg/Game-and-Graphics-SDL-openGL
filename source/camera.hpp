@@ -154,7 +154,13 @@ glm::mat4 FreeCamera_calc_view_matrix(FreeCamera* view);
 glm::mat4 FreeCamera_calc_view_matrix_reverse(FreeCamera* view);
 
 void FreeCamera_target_set(FreeCamera* view, glm::vec2 target);
+void FreeCamera_target_x_set(FreeCamera* view, f64 target);
+void FreeCamera_target_y_set(FreeCamera* view, f64 target);
+
 void FreeCamera_target_follow(FreeCamera* view, f64 t_delta_s);
+void FreeCamera_target_follow_x(FreeCamera* view, f64 t_delta_s);
+void FreeCamera_target_follow_y(FreeCamera* view, f64 t_delta_s);
+
 
 
 

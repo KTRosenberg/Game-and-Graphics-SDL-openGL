@@ -19,6 +19,7 @@ namespace Color {
 
 }
 
+template <usize GL_DRAW2D_SIZE = 2048>
 struct GLDraw2D {
 
     static constexpr GLuint ATTRIBUTE_STRIDE = 7;
