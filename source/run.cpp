@@ -1022,33 +1022,6 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    //std::cout << dist_to_segment(glm::vec3(0.0, 0.0, 0.0), glm::vec3(1280.0, 0.0, 0.0), glm::vec3(0.0, 720.0, 0.0)) << std::endl;
-    //return 0;
-    // FILE* fp = fopen("worlds/lines_test_a.txt", "r");
-    // if (fp) {
-    //     fseek(fp, 0, SEEK_END);
-    //     i64 file_size = ftell(fp);
-    //     ftell(fp);
-    //     rewind(fp);
-    //     printf("%lld\n", file_size);
-
-    //     fclose(fp);
-
-    //     //return EXIT_SUCCESS;
-    // }
-    // printf("%llu\n", collision_map.element_length());
-
-    // collision_map[0].a.x = 1.0f;
-    // collision_map[0].a.y = 2.0f;
-    // collision_map[0].a.z = 3.0f;
-    // collision_map[0].b.x = 4.0f;
-    // collision_map[0].b.y = 5.0f;
-    // collision_map[0].b.z = 6.0f;
-
-    // collision_map.elements_used += 1;
-
-    // Collider_print(&collision_map[0]);
-
     // initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC) < 0) {
         fprintf(stderr, "%s\n", "SDL could not initialize");
@@ -1070,11 +1043,11 @@ int main(int argc, char* argv[])
     //     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, atoi(argv[1]));
     //     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, atoi(argv[2]));
     // } else {
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);        
+        // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);        
     // }
-   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     // SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
     // SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
@@ -1105,9 +1078,9 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
     
-   program_data.context = SDL_GL_CreateContext(window);
+    program_data.context = SDL_GL_CreateContext(window);
 
-   glewExperimental = GL_TRUE;
+    glewExperimental = GL_TRUE;
     glewInit();
 
 

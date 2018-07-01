@@ -159,16 +159,14 @@ static inline f64 atan2pos_64(f64 y, f64 x);
 
 bool check_file_status(const char* file_path, struct stat* file_stat);
 
+template <typename T>
+inline void zero_mem(T* ptr);
+
 // }
 #endif
 
 
 #ifdef COMMON_UTILS_CPP_IMPLEMENTATION
-
-bool check_file_status(const char* file_path, struct stat* file_stat)
-{
-    return stat(file_path, file_stat) == 0;
-}
 
 
 inline f64 dist2(glm::vec3 v, glm::vec3 w)
@@ -328,6 +326,17 @@ static inline f64 atan2pos_64(f64 y, f64 x)
     f64 val = glm::atan2<f64, glm::highp>(-y, x);
 
     return (val < 0) ? val + 2 * glm::pi<f64>() : val;
+}
+
+bool check_file_status(const char* file_path, struct stat* file_stat)
+{
+    return stat(file_path, file_stat) == 0;
+}
+
+template <typename T>
+inline void zero_mem(T* ptr)
+{
+    memset(ptr, 0, sizeof(T));
 }
 
 
