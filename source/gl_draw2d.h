@@ -2,7 +2,7 @@
 #define GL_DRAW2D_H
 
 #include "common_utils.h"
-#include "common_utils_cpp.h"
+#include "common_utils_cpp.hpp"
 
 #include "opengl.hpp"
 #include "shader.hpp"

@@ -5,10 +5,14 @@
 #define MS_PER_S (1000.0)
 #define FRAMES_PER_SECOND (60.0)
 
+
 #define EDITOR
 
 //#define DEBUG_PRINT
-//#define FPS_COUNT
+#define FPS_COUNT
+
+#define RELEASE_MODE (0)
+
 
 
 #include "test.h"
@@ -17,9 +21,11 @@
 #define COMMON_UTILS_IMPLEMENTATION
 #include "common_utils.h"
 #define COMMON_UTILS_CPP_IMPLEMENTATION
-#include "common_utils_cpp.h"
+#include "common_utils_cpp.hpp"
 #define CORE_UTILS_IMPLEMENTATION
 #include "core_utils.h"
+
+
 
 #define COLLISION_IMPLEMENTATION
 #include "collision.h"
@@ -526,6 +532,7 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
         case SDL_CONTROLLERBUTTONDOWN:
             switch (event->cbutton.button) {
             case SDL_CONTROLLER_BUTTON_A:
+                std::cout << "DOWN_BUTTON_A" << std::endl;
                 key_set_down(input, CONTROL::JUMP);
                 break;
             case SDL_CONTROLLER_BUTTON_B:
@@ -579,7 +586,7 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 key_set_down(input, CONTROL::RIGHT);
                 break;
             default:
-                //std::cout << "UNKNOWN" << std::endl;
+                std::cout << "UNKNOWN" << std::endl;
                 break;
             }
             break;
@@ -642,7 +649,7 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 key_set_up(input, CONTROL::RIGHT);
                 break;
             default:
-                //std::cout << "UNKNOWN" << std::endl;
+                std::cout << "UNKNOWN" << std::endl;
                 break;
             }
             break;
@@ -1013,9 +1020,32 @@ bool load_config(AirPhysicsConfig* conf)
     return false;
 }
 
+
+
 int main(int argc, char* argv[])
 {
     using namespace input_sys;
+
+    std::cout << StaticArrayCount(config_state) << std::endl;
+    // modify
+    for (usize k = 0; k < 2; ++k) {
+        for (usize i = 0; i < StaticArrayCount(config_state); ++i) {
+            using pt = PROPERTY_TYPE;
+            switch (config_state[i].type) {
+            case pt::PROP_f64:
+                std::cout << *cast(f64*, config_state[i].ptr) << std::endl;
+                *cast(f64*, config_state[i].ptr) *= 2.0;
+            }
+        }
+    }
+    // reset to defaults
+    for (usize i = 0; i < StaticArrayCount(config_state); ++i) {
+        using pt = PROPERTY_TYPE;
+        switch (config_state[i].type) {
+        case pt::PROP_f64:
+            *cast(f64*, config_state[i].ptr) = config_state[i].f_f64;
+        }
+    }
 
     CommandLineArgs cmd;
     if (!parse_command_line_args(&cmd, argc, argv)) {
@@ -1023,7 +1053,7 @@ int main(int argc, char* argv[])
     }
 
     // initialize SDL
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) < 0) {
         fprintf(stderr, "%s\n", "SDL could not initialize");
         return EXIT_FAILURE;
     }

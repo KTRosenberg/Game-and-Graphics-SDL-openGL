@@ -10,7 +10,7 @@
 
 #include "sdl.h"
 #include "common_utils.h"
-#include "common_utils_cpp.h"
+#include "common_utils_cpp.hpp"
 #include "opengl.hpp"
 //#include "gl_draw2d.h"
 
@@ -224,13 +224,6 @@ void BoxComponent_init(f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height);
 #define PLAYER_BASE_SPEED (0.01 * 360.0f)
 #define PLAYER_MAX_SPEED (32.0)
 
-namespace physics {
-    extern f64 GRAVITY_DEFAULT;
-    extern const f64 GRAVITY_TERRESTRIAL;
-    extern const f64 GRAVITY_OUTER_SPACE;
-    extern f64 gravity;
-}
-
 struct Player {
     BoxComponent bound;
     f64 state_change_time;
@@ -337,6 +330,7 @@ void Player_init(Player* pl, f64 x, f64 y, f64 z, bool position_at_center, f64 a
 
 void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_time);
 
+#include "config/config_state.cpp"
 // #ifdef __cplusplus
 // }
 // #endif
@@ -344,6 +338,9 @@ void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_t
 
 
 #ifdef CORE_UTILS_IMPLEMENTATION
+
+#define WORLD_STATE_CONFIG_IMPLEMENTATION
+#include "config/config_state.cpp"
 
 // #ifdef __cplusplus
 // extern "C" 
@@ -541,13 +538,6 @@ void BoxComponent_init(BoxComponent* bc, f64 x, f64 y, f64 z, f64 angle, f64 wid
     bc->spatial.w = angle;
     bc->width = width;
     bc->height = height;
-}
-
-namespace physics {
-    f64 GRAVITY_DEFAULT = 0.21875;
-    const f64 GRAVITY_TERRESTRIAL = GRAVITY_DEFAULT;
-    const f64 GRAVITY_OUTER_SPACE = GRAVITY_DEFAULT / 2;
-    f64 gravity = GRAVITY_DEFAULT;
 }
 
 void Player_init(Player* pl /*, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height*/)

@@ -92,7 +92,8 @@ void ArenaAllocator_delete(ArenaAllocator* arena);
 #define PointerArraySize(ptr, count) (sizeof((*ptr)) * count)
 
 #define cast(type_, v_) ((type_)v_)
-#define dref(ptr) (*ptr)
+#define deref(ptr_) (*ptr_)
+//#define dref_as(ptr_, type_) *((type_*)ptr_)
 
 void debug_print(const char* const in);
 

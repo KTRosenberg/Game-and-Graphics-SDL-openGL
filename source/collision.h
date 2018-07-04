@@ -2,7 +2,7 @@
 #define COLLISION_H
 
 #include "common_utils.h"
-#include "common_utils_cpp.h"
+#include "common_utils_cpp.hpp"
 #include "core_utils.h"
 #include "opengl.hpp"
 
