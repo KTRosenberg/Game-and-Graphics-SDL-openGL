@@ -40,6 +40,7 @@ glm::vec3 temp_test_collision(Player* you, Collider* c);
 #endif
 
 #ifdef COLLISION_IMPLEMENTATION
+#undef COLLISION_IMPLEMENTATION
 
 void CollisionStatus_init(CollisionStatus* out)
 {
@@ -56,5 +57,4 @@ void Collider_print(Collider* c)
 }
 
 
-#undef COLLISION_IMPLEMENTATION
 #endif

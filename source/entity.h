@@ -4,24 +4,10 @@
     #include "common_utils.h"
     #include "common_utils_cpp.hpp"
 
-// #define PROPERTY_KINDS \
-//     KIND(PROP_, f_, i64, i64) \
-//     KIND(PROP_, f_, u64, u64) \
-//     KIND(PROP_, f_, usize, usize) \
-//     KIND(PROP_, f_, f64, f64) \
-//     KIND(PROP_, f_, i32, i32) \
-//     KIND(PROP_, f_, u32, i32) \
-//     KIND(PROP_, f_, f32, i32) \
-//     KIND(PROP_, f_, i16, i16) \
-//     KIND(PROP_, f_, u16, u16) \
-//     KIND(PROP_, f_, i8, i8) \
-//     KIND(PROP_, f_, u8, u8) \
-//     KIND(PROP_, f_, bool, bool) \
-//     KIND(PROP_, f_, char, char) \
-//     KIND(PROP_, f_, byteptr, char*) \
+    #include "types.h"
 
 //  enums
-    #define entity_begin() ENTITY, 
+    #define entity_begin() PASTE(f_, ENTITY_NAME), 
     #define entity_field(type__, name__)
     #define entity_field_pointer()
     #define entity_field_array()
@@ -29,7 +15,7 @@
     #define entity_end(max_count)
 
     enum struct FIELD_TYPE {
-        #define KIND(a, b, c, d) b##c ,
+        #define KIND(a, b) PASTE(f_, a),
         PROPERTY_KINDS
         #undef KIND
         #include "./entities/entity_includes.hpp"
@@ -46,17 +32,17 @@
     #undef entity_end
 
 //  struct
-    #define entity_begin() struct ENTITY_NAME { 
+    #define entity_begin() struct PASTE(ENTITY_NAME,) { 
     #define entity_field(type__, name__) type__ name__;
     #define entity_field_pointer()
     #define entity_field_array()
     #define entity_function(name__, body__) \
         void name__(void* args) { body__ }
     #define entity_end(max_count) }; \
-        ENTITY_NAME ENTITY_NAME_array[ \
-            (((max_count) > 0 && max_count <= 0xFFFFFFFF) ? (max_count) : 1) \
+        PASTE(ENTITY_NAME,) PASTE(ENTITY_NAME, _array)[ \
+            (((max_count +0) > 0 && (max_count +0) <= 0xFFFFFFFF) ? (max_count + 0) : 1) \
         ];\
-        constexpr unsigned int ENTITY_NAME##_array_count = (((max_count) > 0 && max_count <= 0xFFFFFFFF) ? (max_count) : 1);
+        constexpr unsigned int PASTE(ENTITY_NAME, _array_count) = (((max_count +0) > 0 && (max_count +0) <= 0xFFFFFFFF) ? (max_count +0) : 1);
 
     #include "./entities/entity_includes.hpp"
 
@@ -76,8 +62,8 @@
         bool        is_array;
     };
 
-    #define entity_begin() FieldMetaData ENTITY_NAME##_meta_data[] = { 
-    #define entity_field(type__, name__) { #name__, offsetof(ENTITY_NAME, name__), FIELD_TYPE::f_##type__, false, false},
+    #define entity_begin() FieldMetaData PASTE(ENTITY_NAME, _meta_data)[] = { 
+    #define entity_field(type__, name__) { #name__, offsetof(PASTE(ENTITY_NAME,), name__), FIELD_TYPE::f_##type__, false, false},
     #define entity_field_pointer()
     #define entity_field_array()
     #define entity_function(name__, body__)
@@ -100,14 +86,14 @@
         void*       meta_array;
     };
 
-    #define entity_begin() { "ENTITY_NAME##_array", ENTITY_NAME##_array, sizeof(ENTITY_NAME), ENTITY_NAME##_meta_data
-    #define entity_end(max_count) },
+    #define entity_begin() { STRING(PASTE(ENTITY_NAME, _array)), PASTE(ENTITY_NAME, _array), sizeof(PASTE(ENTITY_NAME,)), PASTE(ENTITY_NAME, _meta_data)
     #define entity_field(type__, name__)
     #define entity_field_pointer()
     #define entity_field_array()
     #define entity_function(name__, body__)
+    #define entity_end(max_count) },
 
-    ArrayMetaData arrays[] = {
+    ArrayMetaData meta_arrays[] = {
         #include "./entities/entity_includes.hpp"
     };
 

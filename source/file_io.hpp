@@ -17,4 +17,9 @@ void flush_and_close_file(FILE* fp);
 
 }
 
+#ifdef FILE_IO_IMPLEMENTATION
+#undef FILE_IO_IMPLEMENTATION
+#include "file_io.cpp"
+#endif
+
 #endif

@@ -5,32 +5,29 @@
 #define MS_PER_S (1000.0)
 #define FRAMES_PER_SECOND (60.0)
 
-
 #define EDITOR
 
 //#define DEBUG_PRINT
-#define FPS_COUNT
+//#define FPS_COUNT
 
 #define RELEASE_MODE (0)
 
+#include "types.h"
+#include "config/config_state.cpp"
 
+#define FILE_IO_IMPLEMENTATION
+#include "file_io.hpp"
 
-#include "test.h"
-
-
-#define COMMON_UTILS_IMPLEMENTATION
-#include "common_utils.h"
 #define COMMON_UTILS_CPP_IMPLEMENTATION
 #include "common_utils_cpp.hpp"
 #define CORE_UTILS_IMPLEMENTATION
 #include "core_utils.h"
 
-
+#define ENTITY_IMPLEMENTATION
+#include "entity.h"
 
 #define COLLISION_IMPLEMENTATION
 #include "collision.h"
-
-
 
 #include "opengl.hpp"
 
@@ -39,16 +36,16 @@
 #include <iostream>
 #include <string>
 //#include <array>
-#include <vector>
+//#include <vector>
 
+#define SHADER_IMPLEMENTATION
 #include "shader.hpp"
+
+#define TEXTURE_IMPLEMENTATION
 #include "texture.hpp"
+
+#define CAMERA_IMPLEMENTATION
 #include "camera.hpp"
-
-#include "collision.h"
-
-#include "file_io.hpp"
-
 
 int ignore_mouse_movement(void* unused, SDL_Event* event)
 {
@@ -1026,6 +1023,16 @@ int main(int argc, char* argv[])
 {
     using namespace input_sys;
 
+    Thing_array[0].speed = 1.0f;
+    
+    // TEST change Thing[4].speed to 2.0f
+    char* ptr = (char*)&Thing_array[0];
+    ptr += (4 * meta_arrays[0].element_size); 
+    ptr += Thing_meta_data[1].offset;
+    *((f32*)ptr) = 2.0f;
+
+    std::cout << Thing_array[4].speed << std::endl;
+
     std::cout << StaticArrayCount(config_state) << std::endl;
     // modify
     for (usize k = 0; k < 2; ++k) {
@@ -1113,6 +1120,8 @@ int main(int argc, char* argv[])
     glewExperimental = GL_TRUE;
     glewInit();
 
+
+    ConfigState_load_runtime();
 
     bool status = false;
     std::string glsl_perlin_noise = Shader_retrieve_src_from_file("shaders/perlin_noise.glsl", &status);
@@ -1735,8 +1744,8 @@ int main(int argc, char* argv[])
 
                 FreeCamera_target_set(&main_cam, you.bound.calc_position_center());
                 FreeCamera_target_follow(&main_cam, t_delta_s);
-                up_acc        = 1.0;
-                down_acc      = 1.0;
+                //up_acc        = 1.0;
+                //down_acc      = 1.0;
             }
         }
 

@@ -8,7 +8,7 @@
 
 #include <ostream>
 
-#include "sdl.h"
+#include "sdl.hpp"
 #include "common_utils.h"
 #include "common_utils_cpp.hpp"
 #include "opengl.hpp"

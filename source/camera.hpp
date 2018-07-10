@@ -1,7 +1,7 @@
 #ifndef CAMERA_HPP
 #define CAMERA_HPP
 
-#include <GL/glew.h>
+#include "opengl.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -162,11 +162,9 @@ void FreeCamera_target_follow_x(FreeCamera* view, f64 t_delta_s);
 void FreeCamera_target_follow_y(FreeCamera* view, f64 t_delta_s);
 
 
-
-
-
-
-
-
+#ifdef CAMERA_IMPLEMENTATION
+#undef CAMERA_IMPLEMENTATION
+#include "camera.cpp"
+#endif
 
 #endif // CAMERA_HPP

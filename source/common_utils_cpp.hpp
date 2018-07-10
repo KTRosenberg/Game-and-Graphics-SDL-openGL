@@ -1,6 +1,7 @@
 #ifndef COMMON_UTILS_HPP
 #define COMMON_UTILS_HPP
 
+#include "common_utils.h"
 #include <cstring>
 #include <ctime>
 #include <csignal>
@@ -19,43 +20,6 @@
 #include <limits>
 #include <string>
 #include <iostream>
-
-#define PRE_A PROP_
-#define PRE_B f_
-
-#define PROPERTY_KINDS \
-    KIND(PROP_, f_, i64, i64) \
-    KIND(PROP_, f_, u64, u64) \
-    KIND(PROP_, f_, usize, usize) \
-    KIND(PROP_, f_, f64, f64) \
-    KIND(PROP_, f_, i32, i32) \
-    KIND(PROP_, f_, u32, i32) \
-    KIND(PROP_, f_, f32, i32) \
-    KIND(PROP_, f_, i16, i16) \
-    KIND(PROP_, f_, u16, u16) \
-    KIND(PROP_, f_, i8, i8) \
-    KIND(PROP_, f_, u8, u8) \
-    KIND(PROP_, f_, bool, bool) \
-    KIND(PROP_, f_, char, char) \
-    KIND(PROP_, f_, byteptr, char*) \
-    KIND(PROP_, f_, vec2, glm::vec2) \
-    KIND(PROP_, f_, vec3, glm::vec3) \
-    KIND(PROP_, f_, vec4, glm::vec4) \
-
-enum struct PROPERTY_TYPE {
-    #define SEP , 
-    #define KIND(a, b, c, d) a##c SEP
-    PROPERTY_KINDS
-    COUNT_PROPERTY_TYPE
-    #undef PREFIX
-    #undef SEP
-    #undef KIND
-};
-
-#define SEP ; 
-#define KIND(a, b, c, d) d b##c SEP
-
-#include "config/config_state.cpp"
 
 template <typename T>
 inline T dref_as(void* ptr);
