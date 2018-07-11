@@ -1026,7 +1026,7 @@ int main(int argc, char* argv[])
     Thing_array[0].speed = 1.0f;
     
     // TEST change Thing[4].speed to 2.0f
-    char* ptr = (char*)&Thing_array[0];
+    ucharptr ptr = (ucharptr)&Thing_array[0];
     ptr += (4 * meta_arrays[0].element_size); 
     ptr += Thing_meta_data[1].offset;
     *((f32*)ptr) = 2.0f;

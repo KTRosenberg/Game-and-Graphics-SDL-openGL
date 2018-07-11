@@ -18,7 +18,7 @@ EXECNAME  = run
 all: $(EXECNAME)
 
 $(EXECNAME): $(OBJECTS_C) $(OBJECTS_CPP)  
-	$(CXX) $^ $(SDLLIBFLAGS) $(LDFLAGS) -o $@
+	$(CXX) $^ $(SDLLIBFLAGS) -lm $(LDFLAGS) -o $@
 
 $(OBJECTS_CPP): %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $(SDLCFLAGS) $< -o $@
