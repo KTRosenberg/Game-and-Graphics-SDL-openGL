@@ -22,7 +22,6 @@
         COUNT_FIELD_TYPE
     };
 
-    FIELD_TYPE x = FIELD_TYPE::f_u16;
 
     #undef entity_begin
     #undef entity_field
@@ -30,6 +29,8 @@
     #undef entity_field_array
     #undef entity_function
     #undef entity_end
+
+#ifndef METATESTING
 
 //  struct
     #define entity_begin() struct PASTE(ENTITY_NAME,) { 
@@ -118,7 +119,7 @@ ArrayMetaData Arrays[] =
     #undef ENTITY_IMPLEMENTATION
 
 #endif
-
+#endif
     /*
 
     enum FieldType

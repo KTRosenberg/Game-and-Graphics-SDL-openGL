@@ -9,10 +9,11 @@ extern "C"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <stdbool.h>
+#include <stdarg.h>
 #include <ctype.h>
 #include <assert.h>
 #include <math.h>
-#include <stdbool.h>
 #include <getopt.h>
 #include <string.h>
 
@@ -30,12 +31,15 @@ typedef uint64_t uint64;
 typedef float    float32; 
 typedef double   float64;
 
-typedef unsigned char* ucharptr;
-
 typedef int8     i8;
 typedef int16    i16;
 typedef int32    i32;
 typedef int64    i64;
+
+typedef i8       s8;
+typedef i16      s16;
+typedef i32      s32;
+typedef i64      s64;
 
 typedef uint8    u8;
 typedef uint16   u16;
@@ -46,6 +50,7 @@ typedef float32  f32;
 typedef float64  f64;
 
 typedef u64 usize;
+typedef unsigned char* ucharptr;
 
 
 #define bytes(n) (n * 1ull)
@@ -237,6 +242,56 @@ void* xrealloc(void* ptr, size_t num_bytes)
     }
 
     return ptr;
+}
+
+void* memdup(void *src, size_t size) {
+    void *dest = xmalloc(size);
+    memcpy(dest, src, size);
+    return dest;
+}
+
+char* strf(const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    size_t n = 1 + vsnprintf(NULL, 0, fmt, args);
+    va_end(args);
+    char* str = xmalloc(n);
+    va_start(args, fmt);
+    vsnprintf(str, n, fmt, args);
+    va_end(args);
+    return str;
+}
+
+char* read_file(const char* path) {
+    FILE* file = fopen(path, "rb");
+    if (!file) {
+        return NULL;
+    }
+
+    fseek(file, 0, SEEK_END);
+    long len = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    char *buf = xmalloc(len + 1);
+    if (len && fread(buf, len, 1, file) != 1) {
+        fclose(file);
+        free(buf);
+        return NULL;
+    }
+
+    fclose(file);   
+    buf[len] = 0;
+    return buf;
+}
+
+bool write_file(const char* path, const char* buf, size_t len) {
+    FILE* file = fopen(path, "w");
+    if (!file) {
+        return false;
+    }
+
+    size_t n = fwrite(buf, len, 1, file);
+    fclose(file);
+    return n == 1;
 }
 
 void ArenaAllocator_init(ArenaAllocator* arena)

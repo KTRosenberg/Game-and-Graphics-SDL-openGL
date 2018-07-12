@@ -12,6 +12,8 @@
 
 #define RELEASE_MODE (0)
 
+#define METATESTING
+
 #include "types.h"
 #include "config/config_state.cpp"
 
@@ -1017,21 +1019,28 @@ bool load_config(AirPhysicsConfig* conf)
     return false;
 }
 
-
+#ifdef METATESTING
+#include "metatesting.cpp"
+#endif
 
 int main(int argc, char* argv[])
 {
+    #ifdef METATESTING
+    puts("metatesting, main program disabled");
+    metatesting();
+    return EXIT_SUCCESS;
+    #endif
     using namespace input_sys;
 
-    Thing_array[0].speed = 1.0f;
+    // Thing_array[0].speed = 1.0f;
     
     // TEST change Thing[4].speed to 2.0f
-    ucharptr ptr = (ucharptr)&Thing_array[0];
-    ptr += (4 * meta_arrays[0].element_size); 
-    ptr += Thing_meta_data[1].offset;
-    *((f32*)ptr) = 2.0f;
+    // ucharptr ptr = (ucharptr)&Thing_array[0];
+    // ptr += (4 * meta_arrays[0].element_size); 
+    // ptr += Thing_meta_data[1].offset;
+    // *((f32*)ptr) = 2.0f;
 
-    std::cout << Thing_array[4].speed << std::endl;
+    // std::cout << Thing_array[4].speed << std::endl;
 
     std::cout << StaticArrayCount(config_state) << std::endl;
     // modify
