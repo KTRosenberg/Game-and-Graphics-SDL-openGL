@@ -541,11 +541,14 @@ const char* str_intern_range(const char* start, const char* end) {
             return it->str;
         }
     }
+
     Intern* new_intern = ArenaAllocator_allocate(&intern_arena, offsetof(Intern, str) + len + 1);
     new_intern->len = len;
     new_intern->next = intern;
     memcpy(new_intern->str, start, len);
     new_intern->str[len] = 0;
+        puts("HUH");
+        printf("len: %zu %s\n", len, new_intern->str);
     map_put_from_uint64(&interns, key, new_intern);
     return new_intern->str;
 }

@@ -122,7 +122,8 @@ bool is_delimiter(char c)
         c == ']' ||
         c == '{' ||
         c == '}' ||
-        c == ','
+        c == ',' ||
+        c == ';'
     );
 }
 
@@ -153,8 +154,7 @@ bool is_operator(char c)
         c == '*' ||
         c == '/' ||
         c == '<' ||
-        c == '>' ||
-        c == ';'
+        c == '>'
     );
 }
 
@@ -219,13 +219,14 @@ enum struct TOKEN_KIND {
     DEF_ASSOC(COMP_LE,  STRING(<=)) \
     DEF_ASSOC(COMP_G,   STRING(>)) \
     DEF_ASSOC(COMP_GE,  STRING(>=)) \
-    DEF_ASSOC(STATEMENT_END, STRING(end)) \
-    DEF_ASSOC(STATEMENT_END_SYMBOL, STRING(;)) \
     DEF_ASSOC(POWER,    STRING(pow)) \
     DEF_ASSOC(NOT,      STRING(not)) \
+    DEF_ASSOC(NOT_SYMBOL, STRING(!)) \
     DEF_ASSOC(COMP_EQ,  STRING(sameas)) \
     DEF_ASSOC(MOD,      STRING(mod)) \
-    DEF_ASSOC(COMP_EQ_SYMBOL, STRING(==))
+    DEF_ASSOC(COMP_EQ_SYMBOL, STRING(==)) \
+    DEF_ASSOC(CREATE, STRING(CREATE)) \
+    DEF_ASSOC(COMP_EQ_ALT, STRING(is))
 
     enum struct TOKEN_OPERATOR {
         #define DEF_ASSOC(a, b) a,
@@ -249,7 +250,9 @@ enum struct TOKEN_KIND {
     DEF_ASSOC(CLOSE_EXPRESSION, ")") \
     DEF_ASSOC(OPEN_SCOPE,       "{") \
     DEF_ASSOC(CLOSE_SCOPE,      "}") \
-    DEF_ASSOC(COMMA,            ",")
+    DEF_ASSOC(COMMA,            ",") \
+    DEF_ASSOC(STATEMENT_END,    STRING(end)) \
+    DEF_ASSOC(STATEMENT_END_SYMBOL, STRING(;))
 
     enum struct TOKEN_DELIMITER {
         #define DEF_ASSOC(a, b) a,
@@ -399,7 +402,6 @@ std::vector<Token> tokenize_script(char* code)
 
                             tokens.push_back(found_token);
 
-                            printf("FOUND MATCH: %s\n", TOKEN_KEYWORD_strings[j]);
                             break;
                         }
                     }
@@ -420,6 +422,22 @@ std::vector<Token> tokenize_script(char* code)
                             break;
                         }
                     }
+                }
+
+                if (!is_matched) {
+                    char saved = code[i];
+                    code[i] = '\0';  
+                    if (0 == strcmp(code + read_marker,
+                                     TOKEN_DELIMITER_strings[(usize)TOKEN_DELIMITER::STATEMENT_END])) {
+                        is_matched = true;
+
+                        Token found_token = {};
+                        found_token.type = TOKEN_KIND::DELIMITER;
+                        found_token.delimiter.type = TOKEN_DELIMITER::STATEMENT_END;
+
+                        tokens.push_back(found_token);
+                    }
+                    code[i] = saved;
                 }
 
                 if (!is_matched) { // identifier
@@ -537,6 +555,9 @@ std::vector<Token> tokenize_script(char* code)
     return tokens;
 }
 
+void parse_tokens(std::vector<Token>* tokens)
+{
+    
 }
 
 
@@ -556,6 +577,8 @@ const Wee* init()
     Wee::used += 1;
 
     return self;
+}
+
 }
 
 void metatesting(void)

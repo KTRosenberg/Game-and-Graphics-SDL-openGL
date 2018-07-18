@@ -12,7 +12,7 @@
 
 #define RELEASE_MODE (0)
 
-#define METATESTING
+//#define METATESTING
 
 #include "types.h"
 #include "config/config_state.cpp"
