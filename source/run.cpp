@@ -17,6 +17,12 @@
 #include "types.h"
 #include "config/config_state.cpp"
 
+// audio
+#include "external_libraries/mini_al/extras/dr_flac.h"  // Enables FLAC decoding.
+#include "external_libraries/mini_al/extras/dr_mp3.h"   // Enables MP3 decoding.
+#include "external_libraries/mini_al/extras/dr_wav.h" // Enables WAV decoding.
+#include "external_libraries/mini_al/mini_al.h"
+
 #define FILE_IO_IMPLEMENTATION
 #include "file_io.hpp"
 
@@ -1023,8 +1029,72 @@ bool load_config(AirPhysicsConfig* conf)
 #include "metatesting.cpp"
 #endif
 
+
+// audio
+typedef mal_uint32 mal_u32;
+
+typedef struct AudioArgs {
+    mal_decoder decoders[1];
+    u8 audio_source_count;
+} AudioArgs;
+
+
+mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void* p_samples)
+{
+    AudioArgs* args = (AudioArgs*)p_device->pUserData;
+    if (args == NULL) {
+        return 0;
+    } 
+
+    mal_decoder* decoders = args->decoders;
+
+    mal_u32 frames_read = (mal_u32)mal_decoder_read(&decoders[0], frame_count, p_samples);
+
+        #define SAMPLE_RATE (44100)
+        #define BPM (170)
+        #define MEASURE_COUNT (26)
+        #define QUARTER_NOTES_PER_MEASURE (4)
+
+        #define SAMPLES_PER_QUARTER_NOTE(sample_rate__, bpm__) ((60.0 / bpm__) * sample_rate__)
+
+        #define LOOP_FRAME(measure_count__, quarter_notes_per_measure__, sample_rate__, bpm__) \
+            measure_count__ * quarter_notes_per_measure__ * SAMPLES_PER_QUARTER_NOTE(sample_rate__, bpm__) 
+
+    // detect if audio finished playing
+    if (frames_read == 0) {
+
+        // loop bgm
+        // (44100 = 1 second into the clip, given a sample rate of 44.1 KHz)
+
+        // for the current iteration of "Time Rush" (July 18th, 2018), which plays at 170 bpm,
+        // the loop-point is 26 measures in at 4/4 (26 * 4 quarter notes) plus 1 quater note
+        // samples per quarter note = (60 / BPM) * SAMPLE_RATE
+        // e.g. (60.0 / 170) * 44100 * 26 * 4
+
+        #define SAMPLE_RATE (44100)
+        #define BPM (170)
+        #define MEASURE_COUNT (26)
+        #define QUARTER_NOTES_PER_MEASURE (4)
+
+        #define SAMPLES_PER_QUARTER_NOTE(sample_rate__, bpm__) ((60.0 / bpm__) * sample_rate__)
+
+        #define LOOP_FRAME(measure_count__, quarter_notes_per_measure__, sample_rate__, bpm__) \
+            measure_count__ * quarter_notes_per_measure__ * SAMPLES_PER_QUARTER_NOTE(sample_rate__, bpm__) 
+
+        mal_decoder_seek_to_frame(&decoders[0], (mal_uint64)roundf(
+           LOOP_FRAME(MEASURE_COUNT, QUARTER_NOTES_PER_MEASURE, SAMPLE_RATE, BPM) + SAMPLES_PER_QUARTER_NOTE(SAMPLE_RATE, BPM)
+        ));
+
+        // read samples from loop point
+        frames_read = (mal_u32)mal_decoder_read(&decoders[0], frame_count, p_samples);
+    }
+
+    return frames_read;
+}
+
 int main(int argc, char* argv[])
 {
+    std::cout << mal_format_f32 << std::endl;
     #ifdef METATESTING
     puts("metatesting, main program disabled");
     metatesting();
@@ -1589,6 +1659,63 @@ int main(int argc, char* argv[])
 
 
     //fclose(jump_conf_fd);
+
+    // audio
+
+    AudioArgs audio_args;
+    audio_args.audio_source_count = 1;
+
+    mal_decoder_config decoder_conf;
+    decoder_conf.format = mal_format_f32;
+    decoder_conf.channels = 2;
+    decoder_conf.sampleRate = 44100;
+
+    mal_result result = mal_decoder_init_file(
+        "audio/time_rush_v_2_0_1_export_16_bit.wav", 
+        &decoder_conf, 
+        &audio_args.decoders[0]
+    );
+
+    if (result != MAL_SUCCESS) {
+        fprintf(stderr, "ERROR: FAILED TO DECODE AUDIO\n");
+        return -2;
+    }
+
+    mal_device_config config = mal_device_config_init_playback(
+        audio_args.decoders[0].outputFormat,
+        audio_args.decoders[0].outputChannels,
+        audio_args.decoders[0].outputSampleRate,
+        on_send_frames_to_device
+    );
+
+    mal_device device;
+    if (mal_device_init(
+            NULL,
+            mal_device_type_playback,
+            NULL,
+            &config,
+            &audio_args.decoders[0],
+            &device
+        ) != MAL_SUCCESS) {
+        fprintf(stderr, "ERROR: FAILED TO OPEN PLAYBACK DEVICE\n");
+        mal_decoder_uninit(&audio_args.decoders[0]);
+        return -3;     
+    }
+
+    if (mal_device_start(&device) != MAL_SUCCESS) {
+        fprintf(stderr, "ERROR: FAILED TO START PLAYBACK DEVICE\n");
+        mal_device_uninit(&device);
+        mal_decoder_uninit(&audio_args.decoders[0]);
+        return -4; 
+    }
+
+    // printf("press enter to quit...");
+    // getchar();
+
+    // mal_device_uninit(&device);
+    // mal_decoder_uninit(&audio_args.decoders[0]);
+
+    // return EXIT_SUCCESS;
 
 
     while (is_running) {
@@ -2283,6 +2410,9 @@ int main(int argc, char* argv[])
         #endif
     //////////////////
     }
+
+    mal_device_uninit(&device);
+    mal_decoder_uninit(&audio_args.decoders[0]);
 
     if (air_physics_conf.fd != nullptr) {
         fclose(air_physics_conf.fd);

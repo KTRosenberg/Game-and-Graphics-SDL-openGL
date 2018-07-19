@@ -4,7 +4,7 @@ CXXDISABLEDFLAGS = -Wno-unused-function -Wno-unused-parameter
 CDISABLEDFLAGS = -Wno-unused-function -Wno-unused-parameter
 CXXFLAGS    = -O3 -g -Wall -Wextra $(CXXDISABLEDFLAGS) -std=c++1y
 CFLAGS      = -O3 -g -Wall -Wextra $(CDISABLEDFLAGS) -std=c11
-LDFLAGS     = -framework OpenGL -lGLEW -lSDL2 -lSDL2_image  
+LDFLAGS     = -framework OpenGL -framework CoreFoundation -framework CoreAudio -framework AudioToolbox -lGLEW -lSDL2 -lSDL2_image -lm -lpthread  
 SDLCFLAGS   = $(shell sdl2-config --cflags)
 SDLLIBFLAGS = $(shell sdl2-config --libs)
 
@@ -18,7 +18,7 @@ EXECNAME  = run
 all: $(EXECNAME)
 
 $(EXECNAME): $(OBJECTS_C) $(OBJECTS_CPP)  
-	$(CXX) $^ $(SDLLIBFLAGS) -lm $(LDFLAGS) -o $@
+	$(CXX) $^ $(SDLLIBFLAGS) $(LDFLAGS) -o $@
 
 $(OBJECTS_CPP): %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $(SDLCFLAGS) $< -o $@
