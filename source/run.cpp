@@ -1050,15 +1050,6 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
 
     mal_u32 frames_read = (mal_u32)mal_decoder_read(&decoders[0], frame_count, p_samples);
 
-        #define SAMPLE_RATE (44100)
-        #define BPM (170)
-        #define MEASURE_COUNT (26)
-        #define QUARTER_NOTES_PER_MEASURE (4)
-
-        #define SAMPLES_PER_QUARTER_NOTE(sample_rate__, bpm__) ((60.0 / bpm__) * sample_rate__)
-
-        #define LOOP_FRAME(measure_count__, quarter_notes_per_measure__, sample_rate__, bpm__) \
-            measure_count__ * quarter_notes_per_measure__ * SAMPLES_PER_QUARTER_NOTE(sample_rate__, bpm__) 
 
     // detect if audio finished playing
     if (frames_read == 0) {
@@ -1087,6 +1078,12 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
 
         // read samples from loop point
         frames_read = (mal_u32)mal_decoder_read(&decoders[0], frame_count, p_samples);
+    }
+
+    float x = 1.0f;
+
+    for (size_t i = 0; i < frames_read * 2; ++i) {
+        ((float*)p_samples)[i] *= x;
     }
 
     return frames_read;
