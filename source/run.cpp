@@ -1080,10 +1080,12 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
         frames_read = (mal_u32)mal_decoder_read(&decoders[0], frame_count, p_samples);
     }
 
-    float x = 1.0f;
+    f32 x = 1.0f;
 
-    for (size_t i = 0; i < frames_read * 2; ++i) {
-        ((float*)p_samples)[i] *= x;
+    for (usize frame = 0; frame < frames_read; ++frame) {
+        for (usize channel = 0; channel < 2; ++channel) {
+            ((float*)p_samples)[(frame * 2) + channel] *= x;
+        }
     }
 
     return frames_read;
