@@ -14,14 +14,6 @@
 
 //#define METATESTING
 
-#include <ck_ring.h>
-
-#define CONCURRENT_FIFO_MAX_SIZE (256)
-struct ConcurrentFIFO_SingleProducerMultiConsumer {
-    ck_ring_t ring;
-    ck_ring_buffer_t buffer[CONCURRENT_FIFO_MAX_SIZE];
-};
-
 #include "types.h"
 #include "config/config_state.cpp"
 

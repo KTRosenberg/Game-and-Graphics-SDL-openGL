@@ -166,6 +166,14 @@ bool check_file_status(const char* file_path, struct stat* file_stat);
 template <typename T>
 inline void zero_mem(T* ptr);
 
+#include <ck_ring.h>
+
+#define CONCURRENT_FIFO_MAX_SIZE (256)
+struct ConcurrentFIFO_SingleProducerSingleConsumer {
+    ck_ring_t ring;
+    ck_ring_buffer_t buffer[CONCURRENT_FIFO_MAX_SIZE];
+};
+
 // }
 #endif
 

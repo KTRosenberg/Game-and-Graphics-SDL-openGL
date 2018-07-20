@@ -1,6 +1,8 @@
 #ifndef AUDIO_SYS_HPP
 #define AUDIO_SYS_HPP
 
+#include "common_utils_cpp.hpp"
+
 #include <ck_ring.h>
 #include <ck_pr.h>
 #include "sdl.hpp"
@@ -46,7 +48,7 @@ struct AudioArgs {
     u8 audio_source_count;
 
 
-    ConcurrentFIFO_SingleProducerMultiConsumer fifo;
+    ConcurrentFIFO_SingleProducerSingleConsumer fifo;
     AudioCommand command_buffer__[CONCURRENT_FIFO_MAX_SIZE];
     usize command_buffer_count__;
     usize command_buffer_idx__;
