@@ -14,14 +14,20 @@
 
 //#define METATESTING
 
+#include <ck_ring.h>
+
+#define CONCURRENT_FIFO_MAX_SIZE (256)
+struct ConcurrentFIFO_SingleProducerMultiConsumer {
+    ck_ring_t ring;
+    ck_ring_buffer_t buffer[CONCURRENT_FIFO_MAX_SIZE];
+};
+
 #include "types.h"
 #include "config/config_state.cpp"
 
 // audio
-#include "external_libraries/mini_al/extras/dr_flac.h"  // Enables FLAC decoding.
-#include "external_libraries/mini_al/extras/dr_mp3.h"   // Enables MP3 decoding.
-#include "external_libraries/mini_al/extras/dr_wav.h" // Enables WAV decoding.
-#include "external_libraries/mini_al/mini_al.h"
+#define AUDIO_SYS_IMPLEMENTATION
+#include "audio_sys.hpp"
 
 #define FILE_IO_IMPLEMENTATION
 #include "file_io.hpp"
@@ -1030,86 +1036,7 @@ bool load_config(AirPhysicsConfig* conf)
 #endif
 
 
-// audio
-typedef mal_uint32 mal_u32;
 
-typedef struct AudioArgs {
-    mal_decoder decoders[1];
-    u8 audio_source_count;
-} AudioArgs;
-
-
-mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void* p_samples)
-{
-    AudioArgs* args = (AudioArgs*)p_device->pUserData;
-    if (args == NULL) {
-        return 0;
-    } 
-
-    mal_decoder* decoders = args->decoders;
-
-    mal_u32 frames_read = (mal_u32)mal_decoder_read(&decoders[0], frame_count, p_samples);
-
-
-    // detect if audio finished playing
-    if (frames_read == 0) {
-
-        // loop bgm
-        // (44100 = 1 second into the clip, given a sample rate of 44.1 KHz)
-
-        // for the current iteration of "Time Rush" (July 18th, 2018), which plays at 170 bpm,
-        // the loop-point is 26 measures in at 4/4 (26 * 4 quarter notes) plus 1 quater note
-        // samples per quarter note = (60 / BPM) * SAMPLE_RATE
-        // e.g. (60.0 / 170) * 44100 * 26 * 4
-
-        #define SAMPLE_RATE (44100)
-        #define BPM (170)
-        #define MEASURE_COUNT (26)
-        #define QUARTER_NOTES_PER_MEASURE (4)
-
-        #define SAMPLES_PER_QUARTER_NOTE(sample_rate__, bpm__) ((60.0 / bpm__) * sample_rate__)
-
-        #define LOOP_FRAME(measure_count__, quarter_notes_per_measure__, sample_rate__, bpm__) \
-            measure_count__ * quarter_notes_per_measure__ * SAMPLES_PER_QUARTER_NOTE(sample_rate__, bpm__) 
-
-        mal_decoder_seek_to_frame(&decoders[0], (mal_uint64)roundf(
-           LOOP_FRAME(MEASURE_COUNT, QUARTER_NOTES_PER_MEASURE, SAMPLE_RATE, BPM) + SAMPLES_PER_QUARTER_NOTE(SAMPLE_RATE, BPM)
-        ));
-
-        // read samples from loop point
-        frames_read = (mal_u32)mal_decoder_read(&decoders[0], frame_count, p_samples);
-    }
-
-    f32 x = 1.0f;
-
-    for (usize frame = 0; frame < frames_read; ++frame) {
-        for (usize channel = 0; channel < 2; ++channel) {
-            ((float*)p_samples)[(frame * 2) + channel] *= x;
-        }
-    }
-
-    // (60 / 170) * 1000
-    static const f64 delayMilliseconds = 352.94117647 * 1; // milliseconds per beat
-    static const f64 delaySamples = (delayMilliseconds * 44.1f);
-
-    static float32 reverb_buffer[(usize)(delaySamples * 2)] = {0}; // slot per channel
-    static usize reverb_position = 0;
-    f32 decay = 0.4f;
-    
-
-
-
-    for (usize frame = 0; frame < frames_read; ++frame) {
-        for (usize channel = 0; channel < 2; ++channel) {
-            f32 val = ((float*)p_samples)[(frame * 2) + channel] + reverb_buffer[reverb_position] * decay * (1 + (channel * 0.05));
-            ((float*)p_samples)[(frame * 2) + channel] = val;
-            reverb_buffer[reverb_position] = val;
-            reverb_position = (reverb_position + 1) % ((usize)(delaySamples * 2));
-        }
-    }
-
-    return frames_read;
-}
 
 int main(int argc, char* argv[])
 {
@@ -1682,7 +1609,7 @@ int main(int argc, char* argv[])
     // audio
 
     AudioArgs audio_args;
-    audio_args.audio_source_count = 1;
+    AudioArgs_init(&audio_args, 1);
 
     mal_decoder_config decoder_conf;
     decoder_conf.format = mal_format_f32;
@@ -2360,6 +2287,13 @@ int main(int argc, char* argv[])
                     if (key_is_pressed(&input, CONTROL::JUMP)) {
                         you.velocity_air.y = you.initial_jump_velocity;
                         you.on_ground = false;
+
+                        // temp move this
+                        // send data args as pointer to pre-allocated buffer
+                        int x = 10;
+                        if (ck_ring_enqueue_spsc(&audio_args.fifo.ring, audio_args.fifo.buffer, (void*)x) == false) {
+                            fprintf(stderr, "ERROR: OUT OF AUDIO QUEUE SPACE\n");
+                        }
                     }
                 }
                 //you.bound.spatial.x = out.x - (1 * you.bound.width); <-- ENABLE TO MAKE THE FLOOR A TREADMILL
