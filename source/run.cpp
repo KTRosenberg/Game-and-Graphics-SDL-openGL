@@ -1088,6 +1088,26 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
         }
     }
 
+    // (60 / 170) * 1000
+    static const f64 delayMilliseconds = 352.94117647 * 1; // milliseconds per beat
+    static const f64 delaySamples = (delayMilliseconds * 44.1f);
+
+    static float32 reverb_buffer[(usize)(delaySamples * 2)] = {0}; // slot per channel
+    static usize reverb_position = 0;
+    f32 decay = 0.4f;
+    
+
+
+
+    for (usize frame = 0; frame < frames_read; ++frame) {
+        for (usize channel = 0; channel < 2; ++channel) {
+            f32 val = ((float*)p_samples)[(frame * 2) + channel] + reverb_buffer[reverb_position] * decay * (1 + (channel * 0.05));
+            ((float*)p_samples)[(frame * 2) + channel] = val;
+            reverb_buffer[reverb_position] = val;
+            reverb_position = (reverb_position + 1) % ((usize)(delaySamples * 2));
+        }
+    }
+
     return frames_read;
 }
 
