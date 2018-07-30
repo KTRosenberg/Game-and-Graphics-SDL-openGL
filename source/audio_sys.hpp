@@ -23,8 +23,20 @@ typedef mal_uint32 mal_u32;
 
 enum struct AUDIO_COMMAND_TYPE : u8 {
     ADJUST_MASTER_VOLUME,
-    TOGGLE_DELAY,
+    DELAY,
     ENUM_COUNT
+};
+
+
+typedef void (*Fn_AudioCallback)(void* args);
+struct AudioCallbackObject {
+    void* args;
+    Fn_AudioCallback callback;
+
+    inline void operator()(void)
+    {
+        this->callback(this->args);
+    }
 };
 
 struct AudioCommand {
@@ -32,24 +44,94 @@ struct AudioCommand {
 
     union {
         struct {
-            float32 percentage;
+            float32* value;
+            float32  duration;
+            float32  from;
+            float32  to;
+            float32  t_delta;
+            float32  t_prev;
         } adjust_master_volume;
         struct {
             float32 decay;
             float32 channel_a_offset_percent;
             float32 channel_b_offset_percent;
-        } toggle_delay;
+            bool on;
+        } delay;
     };
+
+    Fn_AudioCallback callback;
+    void* audio_callback_args;
 };
 
-#define MAX_AUDIO_SOURCE_COUNT (4)
+/*
+
+// just for the lerping example (temp, need to rewrite for each command)
+// this will be called by the audio thread after dequeuing
+void add_interp_command(float64* value, float64 target_value, float64 duration)
+{
+    foreach(i, 10) {// 10 should instead be the number of active commands
+        if ()
+    }
+}
+
+#define MAX_ANIMATIONS 128
+
+animation animations[MAX_ANIMATIONS];
+int active_animations;
+
+void update()
+{
+    for (int i = 0; i < active_animations; i++)
+    {
+        *animations[i].target += animations[i].delta;
+
+        if ((animations[i].delta <= 0.0f && *animations[i].target <= animations[i].target_value) || (animations[i].delta > 0.0f && *animations[i].target >= animations[i].target_value))
+        {
+            *animations[i].target = animations[i].target_value;
+
+            if (i < active_animations - 1)
+            {
+                animations[i] = animations[active_animations - 1];
+                i--;
+            }
+
+            active_animations--;
+        }
+    }
+}
+
+void add_animation(float* target, float target_value, float delta)
+{
+    for (int i = 0; i < active_animations; i++)
+    {
+        if (animations[i].target == target)
+        {
+            animations[i].target_value = target_value;
+            animations[i].delta = delta;
+
+            return;
+        }
+    }
+
+    animations[active_animations].target = target;
+    animations[active_animations].target_value = target_value;
+    animations[active_animations].delta = delta;
+
+    active_animations++;
+}
+*/
+
+
+
+#define MAX_AUDIO_SOURCE_COUNT (16)
 struct AudioArgs {
-    mal_decoder decoders[1];
+    mal_decoder decoders[MAX_AUDIO_SOURCE_COUNT];
     u8 audio_source_count;
 
 
-    ConcurrentFIFO_SingleProducerSingleConsumer fifo;
-    AudioCommand command_buffer__[CONCURRENT_FIFO_MAX_SIZE];
+    ConcurrentFIFO_SingleProducerSingleConsumer<128> fifo;
+
+    AudioCommand command_buffer__[128 + 2];
     usize command_buffer_count__;
     usize command_buffer_idx__;
     usize total_frames_read;
@@ -57,9 +139,6 @@ struct AudioArgs {
 
 void AudioArgs_init(AudioArgs* audio_sys, usize audio_source_count); 
 
-struct AudioSystem {
-    mal_device device;
-};
 
 
 
@@ -73,13 +152,28 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
 #ifdef AUDIO_SYS_IMPLEMENTATION
 #undef AUDIO_SYS_IMPLEMENTATION
 
+// TODO renaming
 void AudioArgs_init(AudioArgs* audio_sys, usize audio_source_count) 
 {
     audio_sys->audio_source_count = audio_source_count;
-    ck_ring_init(&audio_sys->fifo.ring, CONCURRENT_FIFO_MAX_SIZE);
-    audio_sys->command_buffer_count__ = CONCURRENT_FIFO_MAX_SIZE;
+    ck_ring_init(&audio_sys->fifo.ring, audio_sys->fifo.capacity);
+    audio_sys->command_buffer_count__ = audio_sys->fifo.capacity;
     audio_sys->command_buffer_idx__ = 0;
     audio_sys->total_frames_read = 0;
+}
+
+struct AudioSystem {
+    mal_device device;
+    float32 master_volume_percentage;
+    RingBuffer<AudioCommand, 64> command_queue;
+} audio_system;
+
+void AudioSystem_init(void)
+{
+    RingBuffer_init(&audio_system.command_queue);
+
+
+    audio_system.master_volume_percentage = 1.0;
 }
 
 
@@ -90,28 +184,9 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
         return 0;
     }
 
-    void* result;
-
-    static bool delay_is_on = false;
-
-    // (60 / 170) * 1000
-    static const f64 delayMilliseconds = 352.94117647 * 1; // milliseconds per beat
-    static const f64 delaySamples = (delayMilliseconds * 44.1f);
-
-    static f64 reverb_buffer[(usize)(delaySamples * 2)] = {0}; // slot per channel
-    static usize reverb_position = 0;
-
-    while (ck_ring_dequeue_spsc(&args->fifo.ring, args->fifo.buffer, &result)) {
-        //std::cout << (i64)result << std::endl;
-        if ((delay_is_on = !delay_is_on) == false) {
-            memset(reverb_buffer, 0, sizeof(reverb_buffer));
-        }
-    }
-
     mal_decoder* decoders = args->decoders;
 
     mal_u32 frames_read = (mal_u32)mal_decoder_read(&decoders[0], frame_count, p_samples);
-
 
     // detect if audio finished playing
     if (frames_read == 0) {
@@ -137,11 +212,87 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
         frames_read = (mal_u32)mal_decoder_read(&decoders[0], frame_count, p_samples);
     }
 
-    f32 x = 1.0f;
+    void* result;
 
-    for (usize frame = 0; frame < frames_read; ++frame) {
-        for (usize channel = 0; channel < 2; ++channel) {
-            ((float*)p_samples)[(frame * 2) + channel] *= x;
+    static bool delay_is_on = false;
+
+    // (60 / 170) * 1000
+    static const f64 delayMilliseconds = 352.94117647 * 1; // milliseconds per beat
+    static const f64 delaySamples = (delayMilliseconds * 44.1f);
+
+    static f64 reverb_buffer[(usize)(delaySamples * 2)] = {0}; // slot per channel
+    static usize reverb_position = 0;
+
+    static f64 master_volume_percentage = 1.0f;
+
+    while (ck_ring_dequeue_spsc(&args->fifo.ring, args->fifo.buffer, &result)) {
+        //std::cout << (i64)result << std::endl;
+        
+        AudioCommand* cmd = (AudioCommand*)result;
+
+        RingBuffer_enqueue(&audio_system.command_queue, *cmd);
+
+        free(cmd); // temporary, will have a static buffer to avoid allocations and frees at runtime
+
+    }
+
+
+
+
+    f64 t_now_s = (f64)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency();
+
+    for (usize i = 0, size = audio_system.command_queue.size; i < size; ++i) {
+        AudioCommand* cmd = RingBuffer_dequeue_pointer(&audio_system.command_queue);
+
+        switch (cmd->type) {
+        case AUDIO_COMMAND_TYPE::ADJUST_MASTER_VOLUME: {
+            if (cmd->adjust_master_volume.t_prev == 0.0f) {
+                cmd->adjust_master_volume.t_prev = t_now_s;
+                master_volume_percentage = cmd->adjust_master_volume.from; // TODO back and forth switches, need to adjust duration based on how close actual value is to expected value
+                //cmd->adjust_master_volume.from = master_volume_percentage;
+                if (cmd->adjust_master_volume.from != cmd->adjust_master_volume.to) {
+                    RingBuffer_enqueue(&audio_system.command_queue, *cmd);   
+                }
+
+                //printf("%f\n", master_volume_percentage);
+
+                break;
+            }
+
+
+            const f32 elapsed = cmd->adjust_master_volume.t_delta + (t_now_s - cmd->adjust_master_volume.t_prev);
+            const f32 t = elapsed / cmd->adjust_master_volume.duration;
+            const f32 val = lerp(
+                cmd->adjust_master_volume.from,
+                cmd->adjust_master_volume.to,
+                t
+            );
+
+            cmd->adjust_master_volume.t_delta = elapsed;
+            cmd->adjust_master_volume.t_prev = t_now_s;
+
+            master_volume_percentage = val;
+
+            if (std::abs(val - cmd->adjust_master_volume.to) > 0.01) {
+                RingBuffer_enqueue(&audio_system.command_queue, *cmd);                
+            } else {
+                master_volume_percentage = cmd->adjust_master_volume.to;
+            }
+            
+            //printf("%f\n", master_volume_percentage);
+
+            
+            break;
+        }
+        case AUDIO_COMMAND_TYPE::DELAY: {
+            if ((delay_is_on = !delay_is_on) == false) {
+                memset(reverb_buffer, 0, sizeof(reverb_buffer));
+            }
+            break;
+        }
+        default: { 
+            break; 
+        } 
         }
     }
 
@@ -156,6 +307,14 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
                 ((float*)p_samples)[(frame * 2) + channel] = val;
                 reverb_buffer[reverb_position] = val;
                 reverb_position = (reverb_position + 1) % ((usize)(delaySamples * 2));
+            }
+        }
+    }
+
+    if (master_volume_percentage != 1.0) {
+        for (usize frame = 0; frame < frames_read; ++frame) {
+            for (usize channel = 0; channel < 2; ++channel) {
+                ((float*)p_samples)[(frame * 2) + channel] *= master_volume_percentage;
             }
         }
     }

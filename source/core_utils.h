@@ -42,6 +42,10 @@ enum struct CONTROL {
     PHYSICS,
     LOAD_CONFIG,
     FREE_CAM,
+    ROTATE_CLOCKWISE,
+    ROTATE_ANTICLOCKWISE,
+    
+    TEMP,
 
     COUNT
 };

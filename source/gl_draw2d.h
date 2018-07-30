@@ -128,6 +128,7 @@ struct GLDraw2D {
     static constexpr const char* const SHADER_VERTEX_PATH = "shaders/default_2d/default_2d.vrts";
     static constexpr const char* const SHADER_FRAGMENT_PATH = "shaders/default_2d/default_2d.frgs";
 
+
     bool init(glm::mat4 projection_matrix)
     {
         this->projection_matrix = projection_matrix;
@@ -211,6 +212,30 @@ struct GLDraw2D {
         VertexBufferData_delete_inplace(&triangle_buffer);
         VertexBufferData_delete_inplace(&line_buffer);
         glDeleteProgram(shader);
+    }
+
+    void remove_line(usize idx)
+    {
+
+        if ((idx * (2 * ATTRIBUTE_STRIDE) > (GL_DRAW2D_SIZE * ATTRIBUTE_STRIDE)) || (idx * 2 > GL_DRAW2D_SIZE * 2)) {
+            fprintf(stderr, "%s\n", "ERROR: remove_line INDEX OUT-OF-BOUNDS");
+            return;            
+        }
+
+        // reduce counts
+        line_buffer.v_count -= (2 * ATTRIBUTE_STRIDE);
+        line_buffer.i_count -= 2;
+
+        // overwrite the element-to-delete with the last element
+        memcpy(&vertices_lines[(2 * ATTRIBUTE_STRIDE) * idx], &vertices_lines[line_buffer.v_count], sizeof(GLfloat) * 2 * ATTRIBUTE_STRIDE);
+
+        // move the line index back by 2 (for each point in the segment)
+        index_lines -= 2;
+    }
+
+    void remove_triangle()
+    {
+
     }
 
     void line(glm::vec3 a, glm::vec3 b)

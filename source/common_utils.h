@@ -62,6 +62,7 @@ typedef unsigned char* ucharptr;
 #define foreach(i, lim) for (u64 (i) = 0; (i) < ((u64)lim); ++(i))
 #define forrange(i, l, h) for (i64 (i) = (l); (i) < (h); ++(i))
 
+
 #define PASTE2(x, y) x##y
 #define PASTE(x, y) PASTE2(x, y)
 #define STR(str) #str

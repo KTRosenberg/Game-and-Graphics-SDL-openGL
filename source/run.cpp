@@ -731,6 +731,15 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
             case SDL_SCANCODE_GRAVE:
                 key_set_down(input, CONTROL::LOAD_CONFIG);
                 break;
+            case SDL_SCANCODE_T:
+                key_set_down(input, CONTROL::TEMP);
+                break;
+            case SDL_SCANCODE_N:
+                key_set_down(input, CONTROL::ROTATE_ANTICLOCKWISE);
+                break;
+            case SDL_SCANCODE_M:
+                key_set_down(input, CONTROL::ROTATE_CLOCKWISE);
+                break;
 #endif
             case SDL_SCANCODE_UP:
                 key_set_down(input, CONTROL::ZOOM_IN);
@@ -779,6 +788,15 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 break;
             case SDL_SCANCODE_GRAVE:
                 key_set_up(input, CONTROL::LOAD_CONFIG);
+                break;
+            case SDL_SCANCODE_T:
+                key_set_up(input, CONTROL::TEMP);
+                break;
+            case SDL_SCANCODE_N:
+                key_set_up(input, CONTROL::ROTATE_ANTICLOCKWISE);
+                break;
+            case SDL_SCANCODE_M:
+                key_set_up(input, CONTROL::ROTATE_CLOCKWISE);
                 break;
 #endif
             case SDL_SCANCODE_UP:
@@ -1032,13 +1050,14 @@ bool load_config(AirPhysicsConfig* conf)
 
 int main(int argc, char* argv[])
 {
-    std::cout << mal_format_f32 << std::endl;
     #ifdef METATESTING
     puts("metatesting, main program disabled");
     metatesting();
     return EXIT_SUCCESS;
     #endif
     using namespace input_sys;
+
+    //RingBuffer_init(&buff);
 
     // Thing_array[0].speed = 1.0f;
     
@@ -1547,6 +1566,9 @@ int main(int argc, char* argv[])
         existing.line(collision_map[i].a, collision_map[i].b);        
     }
     existing.end_no_reset();
+
+
+    Toggle temp = false;
 ////
 #endif
 
@@ -1600,6 +1622,8 @@ int main(int argc, char* argv[])
 
     // audio
 
+    AudioSystem_init();
+
     AudioArgs audio_args;
     AudioArgs_init(&audio_args, 1);
 
@@ -1608,7 +1632,7 @@ int main(int argc, char* argv[])
     decoder_conf.channels = 2;
     decoder_conf.sampleRate = 44100;
 
-    mal_result result = mal_decoder_init_file(
+    mal_result result = mal_decoder_init_file_wav(
         "audio/time_rush_v_2_0_1_export_16_bit.wav", 
         &decoder_conf, 
         &audio_args.decoders[0]
@@ -1626,23 +1650,23 @@ int main(int argc, char* argv[])
         on_send_frames_to_device
     );
 
-    mal_device device;
+    
     if (mal_device_init(
             NULL,
             mal_device_type_playback,
             NULL,
             &config,
             &audio_args.decoders[0],
-            &device
+            &audio_system.device
         ) != MAL_SUCCESS) {
         fprintf(stderr, "ERROR: FAILED TO OPEN PLAYBACK DEVICE\n");
         mal_decoder_uninit(&audio_args.decoders[0]);
         return -3;     
     }
 
-    if (mal_device_start(&device) != MAL_SUCCESS) {
+    if (mal_device_start(&audio_system.device) != MAL_SUCCESS) {
         fprintf(stderr, "ERROR: FAILED TO START PLAYBACK DEVICE\n");
-        mal_device_uninit(&device);
+        mal_device_uninit(&audio_system.device);
         mal_decoder_uninit(&audio_args.decoders[0]);
         return -4; 
     }
@@ -1822,6 +1846,52 @@ int main(int argc, char* argv[])
                 //down_acc      = 1.0;
             }
         }
+
+
+
+        // AUDIO TEST
+
+            switch (key_is_toggled_4_states(&input, CONTROL::TEMP, &temp)) {
+            case TOGGLE_BRANCH::PRESSED_ON: {
+                AudioCommand* cmd = (AudioCommand*)xmalloc(sizeof(*cmd));
+                cmd->type = AUDIO_COMMAND_TYPE::ADJUST_MASTER_VOLUME;
+                
+                cmd->adjust_master_volume.duration = 5.0f;
+                cmd->adjust_master_volume.from     = 1.0f;
+                cmd->adjust_master_volume.to       = 0.0f;
+                cmd->adjust_master_volume.t_delta  = 0.0f;
+                cmd->adjust_master_volume.t_prev   = 0.0f; 
+
+                if (ck_ring_enqueue_spsc(&audio_args.fifo.ring, audio_args.fifo.buffer, (void*)cmd) == false) {
+                    fprintf(stderr, "ERROR: OUT OF AUDIO QUEUE SPACE\n");
+                }
+                break;
+            }
+            case TOGGLE_BRANCH::ON: {
+                break;
+            }
+            case TOGGLE_BRANCH::PRESSED_OFF: {
+                AudioCommand* cmd = (AudioCommand*)xmalloc(sizeof(*cmd));
+                cmd->type = AUDIO_COMMAND_TYPE::ADJUST_MASTER_VOLUME;
+                
+                cmd->adjust_master_volume.duration  = 5.0f;
+                cmd->adjust_master_volume.from      = 0.0f;
+                cmd->adjust_master_volume.to        = 1.0f;
+                cmd->adjust_master_volume.t_delta   = 0.0f;
+                cmd->adjust_master_volume.t_prev    = 0.0f;
+
+                if (ck_ring_enqueue_spsc(&audio_args.fifo.ring, audio_args.fifo.buffer, (void*)cmd) == false) {
+                    fprintf(stderr, "ERROR: OUT OF AUDIO QUEUE SPACE\n");
+                }
+                break;
+            }
+            case TOGGLE_BRANCH::OFF: {
+                break;
+            }
+            default: {
+                break;
+            }
+            }
 
 
 
@@ -2014,6 +2084,15 @@ int main(int argc, char* argv[])
 
             if (mouse_is_toggled(&input, MOUSE_BUTTON::RIGHT, &deletion)) {
                 drawing = false;
+
+                existing.update_projection_matrix = true;
+                existing.projection_matrix = mat_projection * cam;
+                existing.begin();
+                existing.draw_type = GL_LINES;
+                //existing.transform_matrix = cam;
+                existing.end_no_reset();
+                glClear(GL_DEPTH_BUFFER_BIT);
+
                 if (mouse_is_pressed(&input, MOUSE_BUTTON::LEFT)) {
                     in_prog.begin();
 
@@ -2032,6 +2111,42 @@ int main(int argc, char* argv[])
                     }
 
                     in_prog.end();
+
+
+
+                    // glm::vec3 M = glm::vec3(mouse);
+                    // vec3_print(&M);
+                    // std::cout << std::endl;
+
+
+                    auto it = collision_map.begin();
+                    f64 min_dist = dist_to_segment_squared(it->a, it->b, mouse);
+                    Collider* nearest_seg = it;
+                    usize selection = 0;
+                    ++it;
+                    usize idx = 1;
+                    for (; it != collision_map.first_free(); ++it) {
+                        f64 d2 = dist_to_segment_squared(it->a, it->b, mouse);
+                        if (d2 < min_dist) {
+                            min_dist = d2;
+                            nearest_seg = it;
+                            selection = idx;
+                        }
+                        ++idx;
+                    }
+                    if (min_dist <= 81) {
+                        in_prog.begin();
+                        in_prog.draw_type = GL_LINES;
+                        in_prog.transform_matrix = cam;
+                        in_prog.color = Color::RED;
+                        in_prog.line(nearest_seg->a, nearest_seg->b);
+                        in_prog.end();
+
+                        collision_map[selection] = collision_map[collision_map.elements_used - 1];
+                        --collision_map.elements_used;
+
+                        existing.remove_line(selection);
+                    }
                 } else {
                     in_prog.begin();
 
@@ -2051,14 +2166,6 @@ int main(int argc, char* argv[])
 
                     in_prog.end();                    
                 }
-
-
-                existing.update_projection_matrix = true;
-                existing.projection_matrix = mat_projection * cam;
-                existing.begin();
-                existing.draw_type = GL_LINES;
-                //existing.transform_matrix = cam;
-                existing.end_no_reset();
 
             } else {
                 switch (mouse_is_toggled_4_states(&input, MOUSE_BUTTON::LEFT, &drawing)) {
@@ -2205,7 +2312,7 @@ int main(int argc, char* argv[])
             //draw_lines_from_image(&gl_draw2d, "./test_paths/C.bmp", {glm::vec3(1.0f), glm::vec3(0.0f)});
 
 
-            f64 WEE = ((f64)(t_now - you.state_change_time)) / frequency;
+            // f64 WEE = ((f64)(t_now - you.state_change_time)) / frequency;
 
             // if (/*key_is_toggled(&input, CONTROL::PHYSICS, &physics_toggle) && */!you.on_ground) {
             //     you.bound.spatial.y = you.bound.spatial.y + 1 * 9.81 * (WEE * WEE);
@@ -2262,7 +2369,7 @@ int main(int argc, char* argv[])
                     //printf("COLLISION\n");
                     gl_draw2d.line(glm::vec3(0.0), status.intersection);
                     you.on_ground = true;
-                    you.state_change_time = t_now;
+                    // you.state_change_time = t_now;
                     collided = true;
 
                     //puts("COLLIDED");
@@ -2274,7 +2381,6 @@ int main(int argc, char* argv[])
             if (!collided) {
                 you.on_ground = false;
             } else {
-
                 if (you.on_ground) {
                     if (key_is_pressed(&input, CONTROL::JUMP)) {
                         you.velocity_air.y = you.initial_jump_velocity;
@@ -2282,8 +2388,14 @@ int main(int argc, char* argv[])
 
                         // temp move this
                         // send data args as pointer to pre-allocated buffer
-                        int x = 10;
-                        if (ck_ring_enqueue_spsc(&audio_args.fifo.ring, audio_args.fifo.buffer, (void*)x) == false) {
+                        AudioCommand* cmd = (AudioCommand*)xmalloc(sizeof(*cmd));
+                        cmd->type = AUDIO_COMMAND_TYPE::DELAY;
+
+                        cmd->delay.decay = 0.4;
+                        cmd->delay.channel_a_offset_percent = 0.0;
+                        cmd->delay.channel_b_offset_percent = 0.05;
+
+                        if (ck_ring_enqueue_spsc(&audio_args.fifo.ring, audio_args.fifo.buffer, (void*)cmd) == false) {
                             fprintf(stderr, "ERROR: OUT OF AUDIO QUEUE SPACE\n");
                         }
                     }
@@ -2356,7 +2468,7 @@ int main(int argc, char* argv[])
     //////////////////
     }
 
-    mal_device_uninit(&device);
+    mal_device_uninit(&audio_system.device);
     mal_decoder_uninit(&audio_args.decoders[0]);
 
     if (air_physics_conf.fd != nullptr) {

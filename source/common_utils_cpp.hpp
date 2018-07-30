@@ -38,8 +38,16 @@ inline f64 dist_to_segment(glm::vec3 v, glm::vec3 w, glm::vec3 p);
 // http://alienryderflex.com/intersect/
 bool line_segment_intersection(const vec3_pair* s0, const vec3_pair* s1, glm::vec3* out);
 
+inline f32 lerp(f32 a, f32 b, f32 t);
+inline f64 lerp(f64 a, f64 b, f64 t);
+
 template<typename T>
 static std::string to_binary_string(const T& x);
+
+constexpr bool is_powerof2(usize N) 
+{
+    return N && ((N & (N - 1)) == 0);
+}
 
 template <typename T, usize N>
 struct Buffer {
@@ -140,6 +148,51 @@ struct DynamicBuffer {
     iterator end() { return &this->array[this->cap]; }
 };
 
+
+
+constexpr bool is_pow_2_greater_equal_4(usize N)
+{
+    return N >= 4 && is_powerof2(N);
+}
+
+#define REQUIRED_POW_2_CAPACITY_ERROR_MESSAGE "ERROR: MUST HAVE A POWER-OF-2 CAPACITY GREATER THAN OR EQUAL TO 4"
+
+template <typename T, usize N>
+struct RingBuffer {
+    static_assert(is_pow_2_greater_equal_4(N), REQUIRED_POW_2_CAPACITY_ERROR_MESSAGE);
+
+    T buffer[N];
+    const usize cap = N;
+    usize head;
+    usize tail;
+    usize size;
+
+    typedef T* iterator;
+    typedef const T* const_iterator;
+    iterator begin() { return &this->buffer[0]; }
+    iterator end() { return &this->buffer[this->cap]; }
+};
+
+template <typename T, usize N>
+void RingBuffer_init(RingBuffer<T, N>* buffer);
+
+
+template <typename T, usize N>
+inline bool RingBuffer_is_full(RingBuffer<T, N>* buffer);
+
+template <typename T, usize N>
+inline bool RingBuffer_is_empty(RingBuffer<T, N>* buffer);
+
+template <typename T, usize N>
+void RingBuffer_enqueue(RingBuffer<T, N>* buffer, T in);
+
+template <typename T, usize N>
+T RingBuffer_dequeue(RingBuffer<T, N>* buffer);
+
+template <typename T, usize N>
+T* RingBuffer_dequeue_pointer(RingBuffer<T, N>* buffer);
+
+
 void vec2_print(glm::vec2* v);
 
 void vec2_pair_print(glm::vec2* a, glm::vec2* b);
@@ -168,10 +221,13 @@ inline void zero_mem(T* ptr);
 
 #include <ck_ring.h>
 
-#define CONCURRENT_FIFO_MAX_SIZE (256)
+template <usize N>
 struct ConcurrentFIFO_SingleProducerSingleConsumer {
+    static_assert(is_pow_2_greater_equal_4(N), REQUIRED_POW_2_CAPACITY_ERROR_MESSAGE);
+    
     ck_ring_t ring;
-    ck_ring_buffer_t buffer[CONCURRENT_FIFO_MAX_SIZE];
+    ck_ring_buffer_t buffer[N];
+    const usize capacity = N;
 };
 
 // }
@@ -279,11 +335,80 @@ bool line_segment_intersection(const vec3_pair* s0, const vec3_pair* s1, glm::ve
     return true; 
 }
 
+inline f32 lerp(f32 a, f32 b, f32 t)
+{
+    return (1 - t) * a + t * b;
+}
+
+inline f64 lerp(f64 a, f64 b, f64 t)
+{
+    return (1 - t) * a + t * b;
+}
+
 template<typename T>
 static std::string to_binary_string(const T& x)
 {
     return std::bitset<sizeof(T) * 8>(x).to_string();
 }
+
+
+template <typename T, usize N>
+void RingBuffer_init(RingBuffer<T, N>* buffer)
+{
+    buffer->head = 0;
+    buffer->tail = 0;
+    buffer->size = 0;
+}
+
+template <typename T, usize N>
+inline bool RingBuffer_is_full(RingBuffer<T, N>* buffer)
+{    
+    return (buffer->head == ((buffer->tail + 1) & (N - 1)));
+}
+
+template <typename T, usize N>
+inline bool RingBuffer_is_empty(RingBuffer<T, N>* buffer)
+{
+    return (buffer->head == buffer->tail);
+}
+
+// check whether full using separate is_full() call
+template <typename T, usize N>
+void RingBuffer_enqueue(RingBuffer<T, N>* buffer, T in)
+{
+    buffer->buffer[buffer->tail] = in;
+    buffer->tail = ((buffer->tail + 1) & (N - 1));
+
+    buffer->size += 1;
+}
+
+// check whether empty using separate is_full() call
+template <typename T, usize N>
+T RingBuffer_dequeue(RingBuffer<T, N>* buffer)
+{
+    T* out = &buffer->buffer[buffer->head];
+    buffer->head = ((buffer->head + 1) & (N - 1));
+
+    buffer->size -= 1;
+
+    return *out;
+}
+
+// check whether empty using separate is_full() call
+template <typename T, usize N>
+T* RingBuffer_dequeue_pointer(RingBuffer<T, N>* buffer)
+{
+    T* out = &buffer->buffer[buffer->head];
+    buffer->head = ((buffer->head + 1) & (N - 1));
+
+    buffer->size -= 1;
+
+    return out;
+}
+
+
+
+
 
 void vec2_print(glm::vec2* v)
 {
