@@ -6,6 +6,8 @@
 #include "core_utils.h"
 #include "opengl.hpp"
 
+#define COLLIDER_MAX_SELECTION_DISTANCE (81)
+
 //typedef CollisionStatus (*Fn_CollisionHandler)(glm::vec3 incoming);
 
 struct Collider {

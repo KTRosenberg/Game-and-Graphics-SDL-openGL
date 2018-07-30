@@ -2134,7 +2134,7 @@ int main(int argc, char* argv[])
                         }
                         ++idx;
                     }
-                    if (min_dist <= 81) {
+                    if (min_dist <= COLLIDER_MAX_SELECTION_DISTANCE) {
                         in_prog.begin();
                         in_prog.draw_type = GL_LINES;
                         in_prog.transform_matrix = cam;
