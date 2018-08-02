@@ -2398,6 +2398,8 @@ int main(int argc, char* argv[])
                         if (ck_ring_enqueue_spsc(&audio_args.fifo.ring, audio_args.fifo.buffer, (void*)cmd) == false) {
                             fprintf(stderr, "ERROR: OUT OF AUDIO QUEUE SPACE\n");
                         }
+                    } else {
+                        you.velocity_air = glm::vec3(0.0);
                     }
                 }
                 //you.bound.spatial.x = out.x - (1 * you.bound.width); <-- ENABLE TO MAKE THE FLOOR A TREADMILL
