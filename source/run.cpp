@@ -859,21 +859,38 @@ void draw_player_collision(Player* you, GLDraw2D<N>* ctx)
     glm::vec3 bottom_right = top_left + glm::vec3(bc->width, bc->height, 0.0);
     glm::vec3 bottom_left = top_left + glm::vec3(0.0, bc->height, 0.0);
 
-    ctx->draw_type = GL_LINES;
-    ctx->line(top_left, top_right);
-    ctx->line(top_right, bottom_right);
-    ctx->line(bottom_right, bottom_left);
-    ctx->line(bottom_left, top_left);
+    { // bound
+        ctx->draw_type = GL_LINES;
+        ctx->line(top_left, top_right);
+        ctx->line(top_right, bottom_right);
+        ctx->line(bottom_right, bottom_left);
+        ctx->line(bottom_left, top_left);
+    }
 
-    ctx->color = Color::RED;
-    auto floor_sensor_rays = you->floor_sensor_rays();
-    floor_sensor_rays.first.first += off;
-    floor_sensor_rays.first.second += off;
-    floor_sensor_rays.second.first += off;
-    floor_sensor_rays.second.second += off;
+    { // floor sensors
+        ctx->color = Color::RED;
+        auto floor_sensor_rays = you->floor_sensor_rays();
+        floor_sensor_rays.first.first   += off;
+        floor_sensor_rays.first.second  += off;
+        floor_sensor_rays.second.first  += off;
+        floor_sensor_rays.second.second += off;
 
-    ctx->line(floor_sensor_rays.first.first, floor_sensor_rays.first.second);
-    ctx->line(floor_sensor_rays.second.first, floor_sensor_rays.second.second);
+        ctx->line(floor_sensor_rays.first.first, floor_sensor_rays.first.second);
+        ctx->line(floor_sensor_rays.second.first, floor_sensor_rays.second.second);
+    }
+
+    { // side sensors
+        auto side_sensor_rays = you->side_sensor_rays();
+        side_sensor_rays.first.first   += off;
+        side_sensor_rays.first.second  += off;
+        side_sensor_rays.second.first  += off;
+        side_sensor_rays.second.second += off;
+
+        ctx->color = glm::vec4(1.0, 165.0 / 255, 0.0, 1.0);
+        ctx->line(side_sensor_rays.first.first, side_sensor_rays.first.second);
+        ctx->color = glm::vec4(148.0 / 255, 0.0, 211.0 / 255, 1.0);
+        ctx->line(side_sensor_rays.second.first, side_sensor_rays.second.second);
+    }
 }
 
 template <usize N>
@@ -1491,7 +1508,7 @@ int main(int argc, char* argv[])
 
     SDL_GL_SetSwapInterval(1);
     const f64 INTERVAL = MS_PER_S / mode.refresh_rate;
-    const f64 REFRESH_RATE = mode.refresh_rate;
+    const f64 REFRESH_RATE = mode.refresh_rate * (60.0 / mode.refresh_rate);
 
     f64 frequency  = SDL_GetPerformanceFrequency();
 
@@ -1742,12 +1759,16 @@ int main(int argc, char* argv[])
                 }
             }
 
+            bool left_held = false;
+            bool right_held = false;
+
             if (key_is_held(&input, CONTROL::LEFT)) {
                 if (free_cam_is_on) {
                     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
                 } else {
                 // TEMP
-                    Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
+                    left_held = true;
+                    //Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
                 }
 
                 left_acc *= POS_ACC;
@@ -1759,7 +1780,7 @@ int main(int argc, char* argv[])
                         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
                     } else {
                     // TEMP
-                        Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
+                        //Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
                     }
                 }
                 left_acc = glm::max(1.0, left_acc * NEG_ACC);
@@ -1771,7 +1792,8 @@ int main(int argc, char* argv[])
                     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
                 } else {
                     // TEMP
-                    Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
+                    right_held = true;
+                    //Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
                 }
 
                 right_acc *= POS_ACC;
@@ -1783,11 +1805,62 @@ int main(int argc, char* argv[])
                         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
                     } else {
                         // TEMP
-                        Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
+                        //Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
                     }
                 }
                 right_acc = glm::max(1.0, right_acc * NEG_ACC);
             }
+
+            const f64 dt_factor = DELTA_TIME_FACTOR(t_delta_s, REFRESH_RATE);
+            const f64 friction = Player::GROUND_ACCELERATION_DEFAULT;
+
+            if (you.on_ground) {
+                if (left_held) {
+                    if (glm::sign(you.velocity_ground.x) > 0.0) {
+                        you.velocity_ground.x -= Player::GROUND_NEGATIVE_ACCELERATIION_DEFAULT * dt_factor;
+                    } else {
+                        you.velocity_ground.x -= you.acceleration_ground * dt_factor;
+                    }
+                } else if (right_held) {
+                    if (glm::sign(you.velocity_ground.x) < 0.0) {
+                        you.velocity_ground.x += Player::GROUND_NEGATIVE_ACCELERATIION_DEFAULT * dt_factor;    
+                    } else {
+                        you.velocity_ground.x += you.acceleration_ground * dt_factor;
+                    }
+                } else if (you.velocity_ground.x != 0.0) {
+                    // TODO improve friction
+                    if (glm::abs(you.velocity_ground.x) < friction * dt_factor) {
+                        you.velocity_ground.x = 0.0;
+                    } else {
+                        you.velocity_ground.x -= friction * glm::sign(you.velocity_ground.x) * dt_factor;
+                    } 
+                }
+            } else {
+                // TODO switch between velocity_ground and velocity_air or just use one velocity for both
+                if (left_held) {
+                    you.velocity_ground.x -= you.acceleration_air * dt_factor;
+                } else if (right_held) {
+                    you.velocity_ground.x += you.acceleration_air * dt_factor;
+                }
+
+                if (you.velocity_air.y < 0 && you.velocity_air.y > -4.0) {
+                    if (glm::abs(you.velocity_ground.x) >= 4.0) {
+                        you.velocity_ground.x *= 0.97;
+                    }
+                }
+            }
+
+            if (you.velocity_ground.x < -you.max_speed) {
+                you.velocity_ground.x = -you.max_speed;
+            } else if (you.velocity_ground.x > you.max_speed) {
+                you.velocity_ground.x = you.max_speed;
+            }
+
+            you.bound.spatial.x += you.velocity_ground.x;
+
+            //printf("%f %f\n", you.velocity_ground.x, you.velocity_air.y);
+
+
 
             // if (*forwards) {
             //     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::FORWARDS, t_delta_s * forwards_acc);
@@ -2353,6 +2426,9 @@ int main(int argc, char* argv[])
                 }
 
                 you.velocity_air += (physics::gravity * DELTA_TIME_FACTOR(t_delta_s, REFRESH_RATE));
+                if (you.velocity_air.y > 16) {
+                    you.velocity_air.y = 16;
+                }
                 you.bound.spatial.y += you.velocity_air.y;
             }
 

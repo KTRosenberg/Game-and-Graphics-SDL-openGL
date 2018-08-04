@@ -237,26 +237,29 @@ struct Player {
     f64 acceleration_air;
     f64 initial_jump_velocity;
     f64 initial_jump_velocity_short;
+    f64 max_speed;
 
     static constexpr f64 JUMP_VELOCITY_DEFAULT = -6.5;
     static constexpr f64 JUMP_VELOCITY_SHORT_DEFAULT = -4.0;
+    static constexpr f64 GROUND_ACCELERATION_DEFAULT = 0.046875 * 4;
+    static constexpr f64 GROUND_NEGATIVE_ACCELERATIION_DEFAULT = 2.5;
+    static constexpr f64 AIR_ACCELERATION_DEFAULT = 0.09375 * 4;
     bool on_ground;
 
-    inline std::pair<glm::vec4, glm::vec4> floor_sensors(void)
+    // floor sensors
+
+    inline std::pair<glm::vec3, glm::vec3> floor_sensors(void)
     {
         return {
-            // TODO each might have angle for w component
-            glm::vec4(
+            glm::vec3(
                 this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
                 this->bound.spatial.y + (this->bound.height / 2),
-                this->bound.spatial.z, 
-                0.0f
+                this->bound.spatial.z
             ), 
-            glm::vec4(
+            glm::vec3(
                 this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
                 this->bound.spatial.y + (this->bound.height / 2),
-                this->bound.spatial.z, 
-                0.0f
+                this->bound.spatial.z
             )
         };
     }
@@ -290,6 +293,59 @@ struct Player {
                     (this->bound.spatial.x + (this->bound.width / 2)) + 9.0, 
                     this->bound.spatial.y + this->bound.height + (this->bound.height * 0.4),
                     this->bound.spatial.z 
+                )
+            }            
+        };
+    }
+
+    // side sensors
+
+
+    inline std::pair<glm::vec3, glm::vec3> side_sensors(void)
+    {
+        return {
+            glm::vec3(
+                this->bound.spatial.x,
+                this->bound.spatial.y + (this->bound.height / 2),
+                this->bound.spatial.z            
+            ),
+            glm::vec3(
+                this->bound.spatial.x + this->bound.width,
+                this->bound.spatial.y + (this->bound.height / 2),
+                this->bound.spatial.z
+            )
+        };
+    }
+
+    inline std::pair<
+        std::pair<glm::vec3, glm::vec3>, 
+        std::pair<glm::vec3, glm::vec3>
+    >
+    side_sensor_rays(void)
+    {
+        return {
+            {
+                glm::vec3(
+                    this->bound.spatial.x + (this->bound.width / 2), 
+                    this->bound.spatial.y + (this->bound.height / 2),
+                    this->bound.spatial.z 
+                ),
+                glm::vec3(
+                    this->bound.spatial.x,
+                    this->bound.spatial.y + (this->bound.height / 2),
+                    this->bound.spatial.z            
+                )
+            },
+            {
+                glm::vec3(
+                    this->bound.spatial.x + (this->bound.width / 2),
+                    this->bound.spatial.y + (this->bound.height / 2),
+                    this->bound.spatial.z 
+                ),
+                glm::vec3(
+                    this->bound.spatial.x + this->bound.width,
+                    this->bound.spatial.y + (this->bound.height / 2),
+                    this->bound.spatial.z
                 )
             }            
         };
@@ -566,10 +622,11 @@ void Player_init(Player* pl, f64 x, f64 y, f64 z, bool position_at_center, f64 a
     pl->state_change_time = 0.0;
     pl->velocity_ground = glm::vec2(0.0);
     pl->velocity_air = glm::vec2(0.0);
-    pl->acceleration_air = 0.0;
-    pl->acceleration_ground = 0.0;
+    pl->acceleration_air = Player::AIR_ACCELERATION_DEFAULT;
+    pl->acceleration_ground = Player::GROUND_ACCELERATION_DEFAULT;
     pl->initial_jump_velocity = Player::JUMP_VELOCITY_DEFAULT;
     pl->initial_jump_velocity_short = Player::JUMP_VELOCITY_SHORT_DEFAULT;
+    pl->max_speed = 32.0;
 }
 
 void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_time)
