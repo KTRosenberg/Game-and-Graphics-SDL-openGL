@@ -1934,13 +1934,15 @@ int main(int argc, char* argv[])
                 // this will be off by one movement, need to reorganize so camera updated after play is updated,
                 // also cannot draw bg yet... will need to sequence things differently
 
-
+                gl_draw2d.begin();
+                gl_draw2d.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
                 for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
                 {
                     //Collider_print(it);
                     
                     switch (temp_test_collision_sides(&you, it, &status_l, &status_r)) {
                     case 'l': { // left
+                        gl_draw2d.line(glm::vec3(0.0), status_l.intersection);
                         collided_l = true;
                         break;
                     }
@@ -1959,6 +1961,7 @@ int main(int argc, char* argv[])
 
                     }
                 }
+                gl_draw2d.end_no_reset();
 
                 // TODO slopes
                 if (collided_l) {
@@ -2224,12 +2227,12 @@ int main(int argc, char* argv[])
 
             if (key_is_pressed(&input, CONTROL::ZOOM_IN)) {
                 grid_square_pixel_size *= 2;
-                grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 64.0f);
+                grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 128.0f);
 
                 glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
             } else if (key_is_pressed(&input, CONTROL::ZOOM_OUT)) {
                 grid_square_pixel_size /= 2;
-                grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 64.0f);
+                grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 128.0f);
 
                 glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
             }

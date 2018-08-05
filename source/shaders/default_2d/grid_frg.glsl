@@ -11,7 +11,7 @@ uniform float u_grid_square_pix;
 
 out vec4 color;
 
-#define THRESH (5.0)
+#define THRESH (2.0)
 
 
 void main(void)
