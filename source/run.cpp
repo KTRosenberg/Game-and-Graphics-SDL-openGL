@@ -1002,6 +1002,67 @@ bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
 
 }
 
+char temp_test_collision_sides(Player* you, Collider* c, CollisionStatus* l, CollisionStatus* r)
+{
+    auto sensors = you->side_sensor_rays();
+
+    std::pair<glm::vec3, glm::vec3>* ray0 = &sensors.first;
+    std::pair<glm::vec3, glm::vec3>* ray1 = &sensors.second;
+    std::pair<glm::vec3, glm::vec3> collider = {
+        c->a,
+        c->b
+    };
+
+    glm::vec3 vl(NEGATIVE_INFINITY);
+    glm::vec3 vr(POSITIVE_INFINITY);
+    
+    bool collision_l = false;
+    bool collision_r = false;
+
+    if (line_segment_intersection(ray0, &collider, &vl)) {
+        collision_l = true;
+    }
+    if (line_segment_intersection(ray1, &collider, &vr)) {
+        collision_r = true;
+    }
+
+    if (!(collision_l || collision_r)) {
+        return 0;
+    }
+
+    glm::vec3* out_l = &l->intersection;
+    glm::vec3* out_r = &r->intersection;
+
+    if (collision_l && collision_r) {
+        if (vl.x > out_l->x) {
+            out_l->x = vl.x;
+            out_l->y = vl.y;
+            out_l->z = 0.0;
+        }
+        if (vr.x < out_r->x) {
+            out_r->x = vr.x;
+            out_r->y = vr.y;
+            out_r->z = 0.0;
+        }
+
+        return 'b';
+    } else if (collision_l) {
+        if (vl.x > out_l->x) {
+            out_l->x = vl.x;
+            out_l->y = vl.y;
+            out_l->z = 0.0;
+        }
+        return 'l';
+    } else { // if (collision_r)
+        if (vr.x < out_r->x) {
+            out_r->x = vr.x;
+            out_r->y = vr.y;
+            out_r->z = 0.0;
+        }
+        return 'r';
+    }
+}
+
 struct AirPhysicsConfig {
     std::string path;
     FILE* fd;
@@ -1731,6 +1792,8 @@ int main(int argc, char* argv[])
             main_cam.is_catching_up = true;
         }
 
+        bool left_held = false;
+        bool right_held = false;
 
         {
 
@@ -1759,8 +1822,7 @@ int main(int argc, char* argv[])
                 }
             }
 
-            bool left_held = false;
-            bool right_held = false;
+
 
             if (key_is_held(&input, CONTROL::LEFT)) {
                 if (free_cam_is_on) {
@@ -1844,8 +1906,8 @@ int main(int argc, char* argv[])
                 }
 
                 if (you.velocity_air.y < 0 && you.velocity_air.y > -4.0) {
-                    if (glm::abs(you.velocity_ground.x) >= 4.0) {
-                        you.velocity_ground.x *= 0.97;
+                    if (glm::abs(you.velocity_ground.x) >= 16.0) {
+                        you.velocity_ground.x *= 0.90;
                     }
                 }
             }
@@ -1859,6 +1921,58 @@ int main(int argc, char* argv[])
             you.bound.spatial.x += you.velocity_ground.x;
 
             //printf("%f %f\n", you.velocity_ground.x, you.velocity_air.y);
+
+            {
+                bool collided_l = false;
+                bool collided_r = false;
+
+                CollisionStatus status_l;
+                CollisionStatus_init(&status_l, glm::vec3(NEGATIVE_INFINITY, NEGATIVE_INFINITY, 0.0));
+                CollisionStatus status_r;
+                CollisionStatus_init(&status_r);
+
+                // this will be off by one movement, need to reorganize so camera updated after play is updated,
+                // also cannot draw bg yet... will need to sequence things differently
+
+
+                for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
+                {
+                    //Collider_print(it);
+                    
+                    switch (temp_test_collision_sides(&you, it, &status_l, &status_r)) {
+                    case 'l': { // left
+                        collided_l = true;
+                        break;
+                    }
+                    case 'r': { // right
+                        collided_r = true;
+                        break;
+                    }
+                    case 'b': { // both
+                        collided_l = true;
+                        collided_r = true;
+                        break;
+                    }
+                    default: { // none
+                        break;
+                    }
+
+                    }
+                }
+
+                // TODO slopes
+                if (collided_l) {
+                    //std::cout << "COLLIDED L" << std::endl;
+                    you.bound.spatial.x = status_l.intersection.x;
+                    you.velocity_ground.x = 0.0;
+                }
+                if (collided_r) {
+                    //std::cout << "COLLIDED R" << std::endl;
+                    you.bound.spatial.x = status_r.intersection.x - you.bound.width;
+                    you.velocity_ground.x = 0.0;
+                }
+            }
+
 
 
 

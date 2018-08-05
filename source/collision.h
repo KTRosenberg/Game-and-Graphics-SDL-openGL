@@ -30,7 +30,7 @@ struct CollisionStatus {
     }
 };
 
-void CollisionStatus_init(CollisionStatus* out);
+void CollisionStatus_init(CollisionStatus* out, glm::vec3 init_val = glm::vec3(POSITIVE_INFINITY, POSITIVE_INFINITY, 0.0));
 
 #define MAX_COLLIDERS (2048)
 extern Buffer<Collider, MAX_COLLIDERS> collision_map; 
@@ -44,10 +44,10 @@ glm::vec3 temp_test_collision(Player* you, Collider* c);
 #ifdef COLLISION_IMPLEMENTATION
 #undef COLLISION_IMPLEMENTATION
 
-void CollisionStatus_init(CollisionStatus* out)
+void CollisionStatus_init(CollisionStatus* out, glm::vec3 init_val)
 {
     out->collider = nullptr;
-    out->intersection = glm::vec3(POSITIVE_INFINITY);
+    out->intersection = init_val;
 }
 
 Buffer<Collider, MAX_COLLIDERS> collision_map;

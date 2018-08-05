@@ -7,6 +7,8 @@
 #include <ck_pr.h>
 #include "sdl.hpp"
 
+#include "external_libraries/freeverb/freeverb.c"
+
 #include "external_libraries/mini_al/extras/dr_flac.h"  // Enables FLAC decoding.
 #include "external_libraries/mini_al/extras/dr_mp3.h"   // Enables MP3 decoding.
 #include "external_libraries/mini_al/extras/dr_wav.h" // Enables WAV decoding.
@@ -168,12 +170,42 @@ struct AudioSystem {
     RingBuffer<AudioCommand, 64> command_queue;
 } audio_system;
 
+struct Reverb {
+    fv_Context ctx;
+} fx_reverb;
+
+#define MAX_DELAY_BUFFER_COUNT (32000)
+struct Delay {
+    float64 ms;
+    float64 sample_count;
+    float64 decay;
+    float64 buffer[MAX_DELAY_BUFFER_COUNT];
+    usize buffer_position;
+};
+
+void Delay_init(Delay* d, float64 ms, float64 decay, float64 sample_rate = 44.1);
+void Delay_init(Delay* d, float64 ms, float64 decay, float64 sample_rate)
+{
+    d->ms = ms;
+    d->sample_count = d->ms * sample_rate * 2;
+    d->decay = decay;
+
+    memset(d->buffer, 0, sizeof(d->buffer));
+
+    d->buffer_position = 0;
+}
+
 void AudioSystem_init(void)
 {
     RingBuffer_init(&audio_system.command_queue);
 
-
     audio_system.master_volume_percentage = 1.0;
+
+    fv_init(&fx_reverb.ctx);
+    fv_set_dry(&fx_reverb.ctx, .8);
+    fv_set_wet(&fx_reverb.ctx, .2);
+    fv_set_roomsize(&fx_reverb.ctx, 0.5);
+    fv_set_damp(&fx_reverb.ctx, 0.2);
 }
 
 
@@ -218,7 +250,7 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
 
     // (60 / 170) * 1000
     static const f64 delayMilliseconds = 352.94117647 * 1; // milliseconds per beat
-    static const f64 delaySamples = (delayMilliseconds * 44.1f);
+    static const f64 delaySamples = (delayMilliseconds * 44.1);
 
     static f64 reverb_buffer[(usize)(delaySamples * 2)] = {0}; // slot per channel
     static usize reverb_position = 0;
@@ -299,16 +331,18 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
     // handle delay
     if (delay_is_on) {
 
-        f32 decay = 0.4f;
+        f32 decay = 0.2f;
         
         for (usize frame = 0; frame < frames_read; ++frame) {
             for (usize channel = 0; channel < 2; ++channel) {
+
                 f32 val = ((float*)p_samples)[(frame * 2) + channel] + reverb_buffer[reverb_position] * decay * (1 + (channel * 0.05));
                 ((float*)p_samples)[(frame * 2) + channel] = val;
                 reverb_buffer[reverb_position] = val;
                 reverb_position = (reverb_position + 1) % ((usize)(delaySamples * 2));
             }
         }
+        //fv_process(&fx_reverb.ctx, (float*)p_samples, frames_read * 2);
     }
 
     if (master_volume_percentage != 1.0) {
