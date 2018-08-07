@@ -1038,11 +1038,15 @@ char temp_test_collision_sides(Player* you, Collider* c, CollisionStatus* l, Col
             out_l->x = vl.x;
             out_l->y = vl.y;
             out_l->z = 0.0;
+
+            l->collider = c;
         }
         if (vr.x < out_r->x) {
             out_r->x = vr.x;
             out_r->y = vr.y;
             out_r->z = 0.0;
+
+            r->collider = c;
         }
 
         return 'b';
@@ -1051,6 +1055,8 @@ char temp_test_collision_sides(Player* you, Collider* c, CollisionStatus* l, Col
             out_l->x = vl.x;
             out_l->y = vl.y;
             out_l->z = 0.0;
+
+            l->collider = c;
         }
         return 'l';
     } else { // if (collision_r)
@@ -1058,6 +1064,8 @@ char temp_test_collision_sides(Player* you, Collider* c, CollisionStatus* l, Col
             out_r->x = vr.x;
             out_r->y = vr.y;
             out_r->z = 0.0;
+
+            r->collider = c;
         }
         return 'r';
     }
@@ -1876,7 +1884,14 @@ int main(int argc, char* argv[])
             const f64 dt_factor = DELTA_TIME_FACTOR(t_delta_s, REFRESH_RATE);
             const f64 friction = Player::GROUND_ACCELERATION_DEFAULT;
 
+            // TODO ground to air, air to ground angles, probably keep a single variable to share between ground and air instead (rewrite)
+            
+            std::cout << you.bound.spatial.w << std::endl;
+
+            float64 angle = you.bound.spatial.w;
+
             if (you.on_ground) {
+
                 if (left_held) {
                     if (glm::sign(you.velocity_ground.x) > 0.0) {
                         you.velocity_ground.x -= Player::GROUND_NEGATIVE_ACCELERATIION_DEFAULT * dt_factor;
@@ -1885,7 +1900,7 @@ int main(int argc, char* argv[])
                     }
                 } else if (right_held) {
                     if (glm::sign(you.velocity_ground.x) < 0.0) {
-                        you.velocity_ground.x += Player::GROUND_NEGATIVE_ACCELERATIION_DEFAULT * dt_factor;    
+                        you.velocity_ground.x += Player::GROUND_NEGATIVE_ACCELERATIION_DEFAULT * dt_factor;
                     } else {
                         you.velocity_ground.x += you.acceleration_ground * dt_factor;
                     }
@@ -1894,7 +1909,7 @@ int main(int argc, char* argv[])
                     if (glm::abs(you.velocity_ground.x) < friction * dt_factor) {
                         you.velocity_ground.x = 0.0;
                     } else {
-                        you.velocity_ground.x -= friction * glm::sign(you.velocity_ground.x) * dt_factor;
+                        you.velocity_ground.x -= friction * glm::sign(you.velocity_ground.x) * dt_factor;   
                     } 
                 }
             } else {
@@ -1912,13 +1927,31 @@ int main(int argc, char* argv[])
                 }
             }
 
+            gl_draw2d.begin();
+            gl_draw2d.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+
             if (you.velocity_ground.x < -you.max_speed) {
                 you.velocity_ground.x = -you.max_speed;
             } else if (you.velocity_ground.x > you.max_speed) {
                 you.velocity_ground.x = you.max_speed;
             }
 
-            you.bound.spatial.x += you.velocity_ground.x;
+                float64 y_comp = -glm::sin(angle);
+                float64 x_comp = glm::cos(angle);
+
+            if (you.on_ground) {
+
+
+                you.bound.spatial.x += you.velocity_ground.x * x_comp;
+                you.bound.spatial.y += you.velocity_ground.x * y_comp;
+
+                draw_player_collision(&you, &gl_draw2d);
+
+            } else {
+                you.bound.spatial.x += you.velocity_ground.x;
+            }
+
+
 
             //printf("%f %f\n", you.velocity_ground.x, you.velocity_air.y);
 
@@ -1934,8 +1967,7 @@ int main(int argc, char* argv[])
                 // this will be off by one movement, need to reorganize so camera updated after play is updated,
                 // also cannot draw bg yet... will need to sequence things differently
 
-                gl_draw2d.begin();
-                gl_draw2d.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+
                 for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
                 {
                     //Collider_print(it);
@@ -1947,6 +1979,7 @@ int main(int argc, char* argv[])
                         break;
                     }
                     case 'r': { // right
+                        gl_draw2d.line(glm::vec3(0.0), status_r.intersection);
                         collided_r = true;
                         break;
                     }
@@ -1964,15 +1997,26 @@ int main(int argc, char* argv[])
                 gl_draw2d.end_no_reset();
 
                 // TODO slopes
+
                 if (collided_l) {
-                    //std::cout << "COLLIDED L" << std::endl;
-                    you.bound.spatial.x = status_l.intersection.x;
-                    you.velocity_ground.x = 0.0;
+                    f64 angle = atan2_64(status_l.collider->b.y - status_l.collider->a.y, status_l.collider->b.x - status_l.collider->a.x);
+                    angle = glm::abs(angle);
+
+                    if (angle > ((glm::pi<f64>() / 8) * 3)) {
+                        //std::cout << "COLLIDED L" << std::endl;
+                        you.bound.spatial.x = status_l.intersection.x;
+                        you.velocity_ground.x = 0.0;
+                    }
                 }
                 if (collided_r) {
+                    f64 angle = atan2_64(status_r.collider->b.y - status_r.collider->a.y, status_r.collider->b.x - status_r.collider->a.x);
+                    angle = glm::abs(angle);
+
                     //std::cout << "COLLIDED R" << std::endl;
-                    you.bound.spatial.x = status_r.intersection.x - you.bound.width;
-                    you.velocity_ground.x = 0.0;
+                    if (angle > ((glm::pi<f64>() / 8) * 3)) {
+                        you.bound.spatial.x = status_r.intersection.x - you.bound.width;
+                        you.velocity_ground.x = 0.0;
+                    }
                 }
             }
 
@@ -2536,6 +2580,8 @@ int main(int argc, char* argv[])
 
                 //std::cout << "MULTIPLIER V1 " << (INTERVAL / t_delta_s) / 1000 << std::endl;
                 //std::cout << "MULTIPLIER V2 " << (1 / (t_delta_s * REFRESH_RATE)) << std::endl;
+
+                // TODO JUMP needs to take angles into consideration when dealing with the impulse
                 if (!key_is_held(&input, CONTROL::JUMP)) {
                     if (you.velocity_air.y < you.initial_jump_velocity_short) {
                         you.velocity_air.y = you.initial_jump_velocity_short;
@@ -2601,7 +2647,7 @@ int main(int argc, char* argv[])
                 Collider* col = status.collider;
                 glm::vec3* a = &col->a;
                 glm::vec3* b = &col->b;
-                you.bound.spatial.w = glm::mod(atan2pos_64(b->y - a->y, b->x - a->x), glm::pi<f64>());
+                you.bound.spatial.w = atan2_64(b->y - a->y, b->x - a->x);
 
                 // draw surface and normals
                 if (key_is_toggled(&input, CONTROL::EDIT_VERBOSE, &verbose_view_toggle)) {
@@ -2617,7 +2663,7 @@ int main(int argc, char* argv[])
                     gl_draw2d.color = Color::GREEN;
                     gl_draw2d.line(status.collider->a, status.collider->b);
                     gl_draw2d.color = Color::BLUE;
-                    gl_draw2d.line(na + col->a, nb + col->a);
+                    gl_draw2d.line(/* na + */col->a, nb + col->a);
 
                     
                     //existing.color = Color::BLACK;

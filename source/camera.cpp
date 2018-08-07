@@ -252,7 +252,7 @@ void FreeCamera_target_follow_y(FreeCamera* view, f64 t_delta_s)
 
 void FreeCamera_process_directional_movement(FreeCamera* view, MOVEMENT_DIRECTION direction, GLfloat delta_time)
 {
-    const GLfloat velocity = glm::min(PLAYER_BASE_SPEED * delta_time, PLAYER_MAX_SPEED);
+    const GLfloat velocity = glm::min(PLAYER_BASE_SPEED * delta_time, 36.0);
     glm::vec3* p = &view->position;
 
     //#define DB

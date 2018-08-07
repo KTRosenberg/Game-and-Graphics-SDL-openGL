@@ -626,7 +626,7 @@ void Player_init(Player* pl, f64 x, f64 y, f64 z, bool position_at_center, f64 a
     pl->acceleration_ground = Player::GROUND_ACCELERATION_DEFAULT;
     pl->initial_jump_velocity = Player::JUMP_VELOCITY_DEFAULT;
     pl->initial_jump_velocity_short = Player::JUMP_VELOCITY_SHORT_DEFAULT;
-    pl->max_speed = 32.0;
+    pl->max_speed = 16.0;
 }
 
 void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_time)
