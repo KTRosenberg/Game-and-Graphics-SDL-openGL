@@ -24,7 +24,8 @@ enum struct MOVEMENT_DIRECTION : unsigned char
     DOWNWARDS
 };
 
-#define DELTA_TIME_FACTOR(t_delta_s, refresh_rate) ((1 / (t_delta_s * refresh_rate)))
+//#define DELTA_TIME_FACTOR(t_delta_s, refresh_rate) ((1 / (t_delta_s * refresh_rate)))
+#define DELTA_TIME_FACTOR(t_delta_s, refresh_rate) (1.0)
 
 namespace input_sys {
 
@@ -38,6 +39,7 @@ enum struct CONTROL {
     EDIT_VERBOSE,
     ZOOM_IN,
     ZOOM_OUT,
+    SHIFT,
     RESET_POSITION,
     PHYSICS,
     LOAD_CONFIG,
@@ -157,6 +159,7 @@ struct WindowState {
 
 
 inline i32 snap_to_grid(i32 val_x, i32 len);
+inline f64 snap_to_grid_f(f64 val_x, f64 len);
 
 
 struct BoxComponent {
@@ -589,6 +592,10 @@ inline i32 snap_to_grid(i32 val_x, i32 len)
     return glm::round((f64)val_x / (f64)len) * len;
 }
 
+inline f64 snap_to_grid_f(f64 val_x, f64 len)
+{
+    return glm::round(val_x / len) * len;
+}
 
 void BoxComponent_init(BoxComponent* bc, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height)
 {

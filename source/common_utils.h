@@ -68,6 +68,9 @@ typedef unsigned char* ucharptr;
 #define STR(str) #str
 #define STRING(str) STR(str)
 
+#define LOG_PARAMS const char *const file_name, const int line_number
+#define LOG_ARGS __FILE__, __LINE__
+
 // }
 
 // taken Pervognsen bitwise utilities // https://github.com/pervognsen/bitwise

@@ -18,7 +18,7 @@ void main(void)
     t0 = texture(tex0, t0c);
     t1 = texture(tex1, t1c);
     t2 = texture(tex2, t2c);
-    t3 = texture(tex3, t3c);
+    t3 = texture(tex3, t3c);    
     t4 = texture(tex4, t4c);
 
     color = t0;

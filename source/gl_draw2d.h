@@ -9,6 +9,8 @@
 #include "sdl.hpp"
 //#include <queue>
 
+#define GL_DRAW2D_DEBUG_LOG_ON
+
 namespace Color {
     static const glm::vec4 RED = {1.0, 0.0, 0.0, 1.0};
     static const glm::vec4 GREEN = {0.0, 1.0, 0.0, 1.0};
@@ -16,12 +18,21 @@ namespace Color {
     static const glm::vec4 MAGENTA = {1.0, 0.0, 1.0, 1.0};
     static const glm::vec4 BLACK = {0.0, 0.0, 0.0, 1.0};
     static const glm::vec4 WHITE = {1.0, 1.0, 1.0, 1.0};
+}
 
+
+inline void GLDraw2D_Log(FILE * stream, const char * format, ...)
+{
+#ifdef GL_DRAW2D_DEBUG_LOG_ON
+    va_list argptr;
+    va_start(argptr, format);
+        vfprintf(stream, format, argptr);
+    va_end(argptr);    
+#endif
 }
 
 template <usize GL_DRAW2D_SIZE = 2048>
 struct GLDraw2D {
-
     static constexpr GLuint ATTRIBUTE_STRIDE = 7;
 
     GLfloat vertices_triangles[GL_DRAW2D_SIZE * ATTRIBUTE_STRIDE]; 
@@ -55,23 +66,51 @@ struct GLDraw2D {
 
     void begin(void) 
     {
+        //return;
         assert(begun == false);
         
         transform_matrix = glm::mat4(1.0f);
 
-        glUseProgram(shader);
 
-        if (update_projection_matrix) {
-            update_projection_matrix = false;
-            glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(projection_matrix));
-        }
 
         begun = true;
     }
 
+    //template<usize GL_DRAW2D_SIZE>
+    void render(GLDraw2D<GL_DRAW2D_SIZE>* ctx)
+    {
+        glUseProgram(ctx->shader);
+
+        glUniformMatrix4fv(ctx->MAT_LOC, 1, GL_FALSE, glm::value_ptr(ctx->projection_matrix * ctx->transform_matrix));
+
+        glBindVertexArray(ctx->vao_triangles);
+        gl_bind_buffers_and_upload_sub_data(&ctx->triangle_buffer);
+        if (ctx->triangle_buffer.i_count > 0) { 
+            glDrawElements(GL_TRIANGLES, ctx->triangle_buffer.i_count, GL_UNSIGNED_INT, 0);
+        }
+
+        glBindVertexArray(ctx->vao_lines);
+        gl_bind_buffers_and_upload_sub_data(&ctx->line_buffer);
+        if (ctx->line_buffer.i_count > 0) { 
+            glDrawElements(GL_LINES, ctx->line_buffer.i_count, GL_UNSIGNED_INT, 0);
+        }
+        
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+        glUseProgram(0);
+    }
+
     void end(void) 
     {
+        //return;
         assert(begun == true);
+
+        glUseProgram(shader);
+
+        if (update_projection_matrix || true) {
+            update_projection_matrix = false;
+            glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(projection_matrix * transform_matrix));
+        }
 
         glBindVertexArray(vao_triangles);
         gl_bind_buffers_and_upload_sub_data(&triangle_buffer);
@@ -104,7 +143,16 @@ struct GLDraw2D {
 
     void end_no_reset(void) 
     {
+        //return;
         assert(begun == true);
+
+
+        glUseProgram(shader);
+
+        if (update_projection_matrix || true) {
+            update_projection_matrix = false;
+            glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(projection_matrix * transform_matrix));
+        }
 
         glBindVertexArray(vao_triangles);
         gl_bind_buffers_and_upload_sub_data(&triangle_buffer);
@@ -123,6 +171,18 @@ struct GLDraw2D {
         glUseProgram(0);
 
         begun = false;        
+    }
+
+    void reset(GLDraw2D<GL_DRAW2D_SIZE>* ctx)
+    {
+        ctx->triangle_buffer.v_count = 0;
+        ctx->triangle_buffer.i_count = 0;
+
+        ctx->line_buffer.v_count = 0;
+        ctx->line_buffer.i_count = 0;
+
+        ctx->index_triangles = 0;
+        ctx->index_lines = 0;        
     }
 
     static constexpr const char* const SHADER_VERTEX_PATH = "shaders/default_2d/default_2d.vrts";
@@ -147,7 +207,7 @@ struct GLDraw2D {
             SHADER_VERTEX_PATH,
             SHADER_FRAGMENT_PATH
         )) {
-            fprintf(stderr, "ERROR: immediate mode failed\n");
+            fprintf(stderr, "ERROR: GLDraw2D initialization failed\n");
             return false;
         }
 
@@ -238,20 +298,25 @@ struct GLDraw2D {
 
     }
 
-    void line(glm::vec3 a, glm::vec3 b)
+    inline void line(Vec3 a, Vec3 b) 
     {
-        const size_t v_count = line_buffer.v_count;
-        const size_t i_count = line_buffer.i_count;
+        line(a, b, "", -1);
+    }
 
-        if (v_count + (2 * ATTRIBUTE_STRIDE) > GL_DRAW2D_SIZE * ATTRIBUTE_STRIDE || i_count + 2 > GL_DRAW2D_SIZE * 2) {
-            fprintf(stderr, "%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
+    void line(Vec3 a, Vec3 b, LOG_PARAMS)
+    {
+        const usize v_count = line_buffer.v_count;
+        const usize i_count = line_buffer.i_count;
+
+        if (v_count + (2 * ATTRIBUTE_STRIDE) > (GL_DRAW2D_SIZE * ATTRIBUTE_STRIDE) || (i_count + 2 > GL_DRAW2D_SIZE * 2)) {
+            GLDraw2D_Log(stderr, "%s : %s %d\n", "ERROR: add_line_segment MAX LINES EXCEEDED", LOG_ARGS);
             return;
         }
 
-        a = glm::vec3(transform_matrix * glm::vec4(a, 1.0f));
-        b = glm::vec3(transform_matrix * glm::vec4(b, 1.0f));
+        //a = Vec3(transform_matrix * Vec4(a, 1.0f));
+        //b = Vec3(transform_matrix * Vec4(b, 1.0f));
 
-        const size_t v_idx = v_count;
+        const usize v_idx = v_count;
 
         memcpy(&vertices_lines[v_idx], &a[0], sizeof(a[0]) * 3);
         memcpy(&vertices_lines[v_idx + 3], &color[0], sizeof(color[0]) * 4);
@@ -282,18 +347,23 @@ struct GLDraw2D {
         // std::cout << "END" << std::endl;
     }
 
-    void line(glm::vec2 a, glm::vec2 b)
+    inline void line(Vec2 a, Vec2 b) 
     {
-        const size_t v_count = line_buffer.v_count;
-        const size_t i_count = line_buffer.i_count;
+        line(a, b, "", -1);
+    }
+
+    void line(Vec2 a, Vec2 b, LOG_PARAMS)
+    {
+        const usize v_count = line_buffer.v_count;
+        const usize i_count = line_buffer.i_count;
 
         if (v_count + (2 * ATTRIBUTE_STRIDE) > GL_DRAW2D_SIZE * ATTRIBUTE_STRIDE || i_count + 2 > GL_DRAW2D_SIZE * 2) {
-            fprintf(stderr, "%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
+            GLDraw2D_Log(stderr, "%s : %s %d\n", "ERROR: add_line_segment MAX LINES EXCEEDED", LOG_ARGS);
             return;
         }
 
-        a = glm::vec2(transform_matrix * glm::vec4(a, 0.0f, 1.0f));
-        b = glm::vec2(transform_matrix * glm::vec4(b, 0.0f, 1.0f));
+        //a = glm::vec2(transform_matrix * glm::vec4(a, 0.0f, 1.0f));
+        //b = glm::vec2(transform_matrix * glm::vec4(b, 0.0f, 1.0f));
 
         const size_t v_idx = v_count;
 
@@ -345,7 +415,7 @@ struct GLDraw2D {
 
 
             for (size_t p = 0, off = 0; p < count_sides; ++p, off += inc) {
-                glm::vec3 point = glm::vec3(transform_matrix * 
+                glm::vec3 point = glm::vec3(Mat4(1.0f) * 
                     glm::vec4(
                         (radius * glm::cos(p * angle_turn)) + center.x,
                         (radius * glm::sin(p * angle_turn)) + center.y,
@@ -385,7 +455,7 @@ struct GLDraw2D {
             line_buffer.i_count += (2 * count_sides);
 
             for (size_t p = 0, off = 0; p < count_sides; ++p, off += inc) {
-                glm::vec3 point = glm::vec3(transform_matrix * 
+                glm::vec3 point = glm::vec3(Mat4(1.0f) * 
                     glm::vec4(
                         (radius * glm::cos(p * angle_turn)) + center.x,
                         (radius * glm::sin(p * angle_turn)) + center.y,
@@ -408,12 +478,12 @@ struct GLDraw2D {
         }
     }
 
-    void circle(GLfloat radius, glm::vec3 center)
+    void circle(GLfloat radius, Vec3 center, usize detail = 37)
     {
-        polygon_convex_regular(radius, center, 37);
+        polygon_convex_regular(radius, center, detail);
     }
 
-    void vertex(glm::vec3 v)
+    void vertex(Vec3 v)
     {
         size_t v_count = 0;
         size_t i_count = 0;
@@ -430,7 +500,7 @@ struct GLDraw2D {
                 return;
             }
 
-            v = glm::vec3(transform_matrix * glm::vec4(v, 1.0f));
+            //v = glm::vec3(transform_matrix * glm::vec4(v, 1.0f));
 
 
             memcpy(&vertices_triangles[v_idx], &v[0], sizeof(v[0]) * 3);
@@ -467,7 +537,7 @@ struct GLDraw2D {
                 return;
             }
 
-            v = glm::vec3(transform_matrix * glm::vec4(v, 1.0f));
+            //v = glm::vec3(transform_matrix * glm::vec4(v, 1.0f));
 
 
             memcpy(&vertices_lines[v_idx], &v[0], sizeof(v[0]) * 3);
@@ -566,5 +636,21 @@ struct GLDraw2D {
 //     return true;
 
 // }
+
+// template<usize GL_DRAW2D_SIZE>
+// inline void GLDraw2D_ERR_LOG_PRINT__(GLDraw2D<GL_DRAW2D_SIZE>* ctx, const char *const name, const char *const file, int line)
+// {
+//     if (ctx->status == false) {
+//         fprintf(stderr, "%s, %s, %d\n", name, file, line);
+//         ctx->status = true;
+//     }
+// }
+// #ifdef GL_DRAW2D_DEBUG_LOG_ON
+//     #define GLDraw2D_ERR_LOG(ctx__, file__, line__) GLDraw2D_ERR_LOG_PRINT__(& ctx__, STRING(ctx__), file__, line__)
+//     #define GLDraw2D_PTR_ERR_LOG(ctxptr__, file__, line__) GLDraw2D_ERR_LOG_PRINT__(ctxptr__, STRING(ctxptr__), file__, line__)
+// #else
+//     #define GLDraw2D_ERR_LOG(ctx__, file__, line__)
+//     #define GLDraw2D_PTR_ERR_LOG(ctxptr__, file__, line__)
+// #endif
 
 #endif // GL_DRAW_H

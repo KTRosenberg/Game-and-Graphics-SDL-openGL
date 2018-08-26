@@ -21,6 +21,26 @@
 #include <string>
 #include <iostream>
 
+typedef glm::vec2  Vector2;
+typedef glm::vec3  Vector3;
+typedef glm::vec4  Vector4;
+typedef glm::ivec2 IntVector2;
+typedef glm::ivec3 IntVector3;
+typedef glm::ivec4 IntVector4;
+typedef glm::mat3  Matrix3;
+typedef glm::mat4  Matrix4;
+typedef glm::quat  Quaternion;
+
+typedef Vector2    Vec2;
+typedef Vector3    Vec3;
+typedef Vector4    Vec4;
+typedef IntVector2 iVec2;
+typedef IntVector3 iVec3;
+typedef IntVector4 iVec4;
+typedef Matrix3    Mat3;
+typedef Matrix4    Mat4;
+typedef Quaternion Quat;
+
 template <typename T>
 inline T dref_as(void* ptr);
 
@@ -41,6 +61,9 @@ bool line_segment_intersection(const vec3_pair* s0, const vec3_pair* s1, glm::ve
 inline f32 lerp(f32 a, f32 b, f32 t);
 inline f64 lerp(f64 a, f64 b, f64 t);
 
+inline float64 sin01(float64 val);
+inline float32 sin01(float32 val);
+
 template<typename T>
 static std::string to_binary_string(const T& x);
 
@@ -48,6 +71,16 @@ constexpr bool is_powerof2(usize N)
 {
     return N && ((N & (N - 1)) == 0);
 }
+
+
+#define PI32 (glm::pi<f32>())
+#define TAU32 (2 * glm::pi<f32>())
+
+#define PI64 (glm::pi<f64>())
+#define TAU64 (2 * glm::pi<f64>())
+
+#define PI (PI64)
+#define TAU (2 * PI)
 
 template <typename T, usize N>
 struct Buffer {
@@ -194,16 +227,23 @@ T* RingBuffer_dequeue_pointer(RingBuffer<T, N>* buffer);
 
 
 void vec2_print(glm::vec2* v);
-
+void vec2_print(glm::vec2 v);
 void vec2_pair_print(glm::vec2* a, glm::vec2* b);
+void vec2_pair_print(glm::vec2 a, glm::vec2 b);
+void vec2_println(glm::vec2* v);
+void vec2_println(glm::vec2 v);
+void vec2_pair_println(glm::vec2* a, glm::vec2* b);
+void vec2_pair_println(glm::vec2 a, glm::vec2 b);
 
 void vec3_print(glm::vec3* v);
-
-void vec3_pair_print(glm::vec3* a, glm::vec3*b);
+void vec3_print(glm::vec3 v);
+void vec3_pair_print(glm::vec3* a, glm::vec3* b);
+void vec3_pair_print(glm::vec3 a, glm::vec3 b);
 
 void vec4_print(glm::vec4* v);
-
+void vec4_print(glm::vec4 v);
 void vec4_pair_print(glm::vec4* a, glm::vec4* b);
+void vec4_pair_print(glm::vec4 a, glm::vec4 b);
 
 template<typename T>
 void print_array(T* array, const usize N, const usize M = 1);
@@ -213,6 +253,9 @@ void print_array(T* array, const usize N, const usize M = 1);
 
 static inline f32 atan2pos_32(f64 y, f64 x);
 static inline f64 atan2pos_64(f64 y, f64 x);
+
+inline float64 angular_velocity(float64 radians, float64 time_delta);
+inline glm::vec2 angular_impulse(float64 angular_velocity, glm::vec2 center, glm::vec2 point);
 
 bool check_file_status(const char* file_path, struct stat* file_stat);
 
@@ -345,6 +388,18 @@ inline f64 lerp(f64 a, f64 b, f64 t)
     return (1 - t) * a + t * b;
 }
 
+#define SIN01_RETURN_VAL ((glm::sin(val) + 1.0) / 2.0)
+inline float64 sin01(float64 val)
+{
+    return SIN01_RETURN_VAL;
+}
+
+inline float32 sin01(float32 val)
+{
+    return SIN01_RETURN_VAL;
+}
+#undef SIN01_RETURN_VAL
+
 template<typename T>
 static std::string to_binary_string(const T& x)
 {
@@ -407,37 +462,71 @@ T* RingBuffer_dequeue_pointer(RingBuffer<T, N>* buffer)
 }
 
 
-
-
-
 void vec2_print(glm::vec2* v)
 {
     printf("[%f, %f]", v->x, v->y);      
 }
-
-void vec3_pair_print(glm::vec2* a, glm::vec2* b)
+void vec2_print(glm::vec2 v)
+{
+    printf("[%f, %f]", v.x, v.y);      
+}
+void vec2_pair_print(glm::vec2* a, glm::vec2* b)
 {
     printf("[[%f, %f][%f, %f]]", a->x, a->y, b->x, b->y);  
+}
+void vec2_pair_print(glm::vec2 a, glm::vec2 b)
+{
+    printf("[[%f, %f][%f, %f]]", a.x, a.y, b.x, b.y);  
+}
+void vec2_println(glm::vec2* v)
+{
+    printf("[%f, %f]\n", v->x, v->y);      
+}
+void vec2_println(glm::vec2 v)
+{
+    printf("[%f, %f]\n", v.x, v.y);      
+}
+void vec2_pair_println(glm::vec2* a, glm::vec2* b)
+{
+    printf("[[%f, %f][%f, %f]]\n", a->x, a->y, b->x, b->y);  
+}
+void vec2_pair_println(glm::vec2 a, glm::vec2 b)
+{
+    printf("[[%f, %f][%f, %f]]\n", a.x, a.y, b.x, b.y);  
 }
 
 void vec3_print(glm::vec3* v)
 {
     printf("[%f, %f, %f]", v->x, v->y, v->z);  
 }
-
+void vec3_print(glm::vec3 v)
+{
+    printf("[%f, %f, %f]", v.x, v.y, v.z);  
+}
 void vec3_pair_print(glm::vec3* a, glm::vec3* b)
 {
     printf("[[%f, %f, %f][%f, %f, %f]]", a->x, a->y, a->z, b->x, b->y, b->z);  
+}
+void vec3_pair_print(glm::vec3 a, glm::vec3 b)
+{
+    printf("[[%f, %f, %f][%f, %f, %f]]", a.x, a.y, a.z, b.x, b.y, b.z);  
 }
 
 void vec4_print(glm::vec4* v)
 {
     printf("[%f, %f, %f, %f]", v->x, v->y, v->z, v->w);  
 }
-
-void vec4_pair_print(glm::vec4* a, glm::vec4*b)
+void vec4_print(glm::vec4 v)
+{
+    printf("[%f, %f, %f, %f]", v.x, v.y, v.z, v.w);  
+}
+void vec4_pair_print(glm::vec4* a, glm::vec4* b)
 {
     printf("[[%f, %f, %f, %f][%f, %f, %f, %f]]", a->x, a->y, a->z, a->w, b->x, b->y, b->z, b->w);  
+}
+void vec4_pair_print(glm::vec4 a, glm::vec4 b)
+{
+    printf("[[%f, %f, %f, %f][%f, %f, %f, %f]]", a.x, a.y, a.z, a.w, b.x, b.y, b.z, b.w);  
 }
 
 template<typename T>
@@ -468,6 +557,16 @@ static inline f64 atan2pos_64(f64 y, f64 x)
     f64 val = glm::atan2<f64, glm::highp>(-y, x);
 
     return (val < 0) ? val + 2 * glm::pi<f64>() : val;
+}
+
+inline float64 angular_velocity(float64 radians, float64 time_delta)
+{
+    return radians / time_delta;
+}
+
+inline glm::vec2 angular_impulse(float64 angular_velocity, glm::vec2 center, glm::vec2 point)
+{
+    return -angular_velocity * glm::vec2(-(point.y - center.y), (point.x - center.x));
 }
 
 bool check_file_status(const char* file_path, struct stat* file_stat)

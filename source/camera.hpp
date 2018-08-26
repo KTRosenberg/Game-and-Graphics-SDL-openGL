@@ -109,7 +109,7 @@ private:
     void update_camera_vectors(void);
 };
 
-// by Laurie Bradshaw, from comment in https://learnopengl.com/#!Getting-started/Camera
+// based on code by Laurie Bradshaw, from comment in https://learnopengl.com/#!Getting-started/Camera
 struct FreeCamera {
 	glm::vec3 position;
 	glm::quat orientation;
@@ -124,15 +124,17 @@ struct FreeCamera {
 
     bool is_catching_up;
 
+    float32 scale;
+
 	//FreeCamera (void) = default;
-	FreeCamera (const FreeCamera &) = default;
+	//FreeCamera (const FreeCamera &) = default;
 
-	FreeCamera (const glm::vec3 &position) : position(position) { is_catching_up = false; }
-	FreeCamera (const glm::vec3 &position, const glm::quat &orientation) : position(position), orientation(orientation) {}
+	//FreeCamera (const glm::vec3 &position) : position(position) { is_catching_up = false; }
+	//FreeCamera (const glm::vec3 &position, const glm::quat &orientation) : position(position), orientation(orientation) {}
 
-	FreeCamera  &operator=(const FreeCamera&) = default;
+	//FreeCamera  &operator=(const FreeCamera&) = default;
 
-	glm::mat4 get_view_matrix(void) const { return glm::translate(glm::mat4_cast(orientation), -position); }
+	//glm::mat4 get_view_matrix(void) const { return glm::translate(glm::mat4_cast(orientation), -position); }
 
 	void translate(const glm::vec3 &v) { position += v * orientation; }
 	void translate(float x, float y, float z) { position += glm::vec3(x, y, z) * orientation; }
@@ -150,8 +152,9 @@ void FreeCamera_init(FreeCamera* view, glm::vec3 start_position = glm::vec3(0.0)
 
 void FreeCamera_process_directional_movement(FreeCamera* view, MOVEMENT_DIRECTION direction, GLfloat delta_time);
 
-glm::mat4 FreeCamera_calc_view_matrix(FreeCamera* view);
-glm::mat4 FreeCamera_calc_view_matrix_reverse(FreeCamera* view);
+Mat4 FreeCamera_calc_view_matrix(FreeCamera* view);
+Mat4 FreeCamera_calc_calc_reverse_translation(FreeCamera* view);
+Mat4 FreeCamera_calc_screen_to_world_matrix(FreeCamera* view);
 
 void FreeCamera_target_set(FreeCamera* view, glm::vec2 target);
 void FreeCamera_target_x_set(FreeCamera* view, f64 target);

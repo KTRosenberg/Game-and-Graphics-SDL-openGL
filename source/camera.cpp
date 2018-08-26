@@ -196,6 +196,7 @@ void FreeCamera_init(FreeCamera* view, glm::vec3 start_position)
     view->position = start_position;
     view->orientation = glm::quat();
     view->matrix = glm::mat4(1.0);
+    view->is_catching_up = false;
 }
 
 
@@ -304,14 +305,26 @@ void FreeCamera_process_directional_movement(FreeCamera* view, MOVEMENT_DIRECTIO
     p->z = glm::clamp(p->z, -1.0f, 1.0f);
 }
 
-glm::mat4 FreeCamera_calc_view_matrix(FreeCamera* view)
+Mat4 FreeCamera_calc_view_matrix(FreeCamera* view)
 {
-    return glm::translate(glm::mat4_cast(view->orientation), -view->position);    
+    //return glm::translate(glm::mat4_cast(view->orientation), -view->position);
+    return glm::inverse(glm::translate(glm::mat4_cast(view->orientation), Vec3(view->position + Vec3(view->offset, 0))) *
+                        glm::scale(Vec3(1.0 / view->scale, 1.0 / view->scale, 1)) *
+                        glm::translate(-Vec3(Vec2(view->position) + view->offset, 0)) *
+                        glm::translate(Vec3(Vec2(view->position), 0)));
 }
 
-glm::mat4 FreeCamera_calc_view_matrix_reverse(FreeCamera* view)
+Mat4 FreeCamera_calc_reverse_translation(FreeCamera* view)
 {
     return glm::translate(glm::mat4_cast(view->orientation), view->position);    
+}
+
+Mat4 FreeCamera_calc_screen_to_world_matrix(FreeCamera* view)
+{
+    return glm::translate(glm::mat4_cast(view->orientation), Vec3(Vec2(view->position) + view->offset, 0)) *
+           glm::scale(Vec3(1.0 / view->scale, 1.0 / view->scale, 1)) *
+           glm::translate(-Vec3(Vec2(view->position) + view->offset, 0)) *
+           glm::translate(Vec3(Vec2(view->position), 0));   
 }
 
         
