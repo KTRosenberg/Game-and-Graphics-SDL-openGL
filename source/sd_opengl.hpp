@@ -1,5 +1,5 @@
-#ifndef GL_DRAW2D_H
-#define GL_DRAW2D_H
+#ifndef SD_OPENGL_HPP
+#define SD_OPENGL_HPP
 
 #include "common_utils.h"
 #include "common_utils_cpp.hpp"
@@ -7,39 +7,75 @@
 #include "opengl.hpp"
 #include "shader.hpp"
 #include "sdl.hpp"
-//#include <queue>
 
-#define GL_DRAW2D_DEBUG_LOG_ON
+// strato-draw
+namespace sd {
+// inline void log(const bool log_if_false, FILE * stream, const char * format, ...)
+// {
 
-namespace Color {
-    static const glm::vec4 RED = {1.0, 0.0, 0.0, 1.0};
-    static const glm::vec4 GREEN = {0.0, 1.0, 0.0, 1.0};
-    static const glm::vec4 BLUE = {0.0, 0.0, 1.0, 1.0};
-    static const glm::vec4 MAGENTA = {1.0, 0.0, 1.0, 1.0};
-    static const glm::vec4 BLACK = {0.0, 0.0, 0.0, 1.0};
-    static const glm::vec4 WHITE = {1.0, 1.0, 1.0, 1.0};
-}
+// #ifdef DRAW2D_DEBUG_LOG_ON
+//     va_list argptr;
+//     va_start(argptr, format);
+//         vfprintf(stream, format, argptr);
+//     va_end(argptr);    
+// #else
+//     (void)log_if_false;
+//     (void)stream;
+//     (void)format;
+// #endif
+// }
 
+// inline void log(const bool log_if_false, const char * format, ...)
+// {
 
-inline void GLDraw2D_Log(FILE * stream, const char * format, ...)
-{
-#ifdef GL_DRAW2D_DEBUG_LOG_ON
-    va_list argptr;
-    va_start(argptr, format);
-        vfprintf(stream, format, argptr);
-    va_end(argptr);    
-#endif
-}
+// #ifdef DRAW2D_DEBUG_LOG_ON
+//     va_list argptr;
+//     va_start(argptr, format);
+//         vfprintf(stderr, format, argptr);
+//     va_end(argptr);    
+// #else
+//     (void)log_if_false;
+//     (void)format;
+// #endif
+// }
 
-template <usize GL_DRAW2D_SIZE = 2048>
-struct GLDraw2D {
+// inline void log(FILE * stream, const char * format, ...)
+// {
+
+// #ifdef DRAW2D_DEBUG_LOG_ON
+//     va_list argptr;
+//     va_start(argptr, format);
+//         vfprintf(stream, format, argptr);
+//     va_end(argptr);    
+// #else
+//     (void)stream;
+//     (void)format;
+// #endif
+// }
+
+// inline void log(const char * format, ...)
+// {
+
+// #ifdef DRAW2D_DEBUG_LOG_ON
+//     va_list argptr;
+//     va_start(argptr, format);
+//         vfprintf(stderr, format, argptr);
+//     va_end(argptr);    
+// #else
+//     (void)format;
+// #endif
+// }
+// }
+
+template <usize SD_CONTEXT_SIZE = 2048>
+struct Context {
     static constexpr GLuint ATTRIBUTE_STRIDE = 7;
 
-    GLfloat vertices_triangles[GL_DRAW2D_SIZE * ATTRIBUTE_STRIDE]; 
-    GLuint indices_triangles[GL_DRAW2D_SIZE * 2];
+    GLfloat vertices_triangles[SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE]; 
+    GLuint indices_triangles[SD_CONTEXT_SIZE * 2];
 
-    GLfloat vertices_lines[GL_DRAW2D_SIZE * ATTRIBUTE_STRIDE]; 
-    GLuint indices_lines[GL_DRAW2D_SIZE * 2];
+    GLfloat vertices_lines[SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE]; 
+    GLuint indices_lines[SD_CONTEXT_SIZE * 2];
 
     VertexAttributeArray vao_triangles;
     VertexBufferData triangle_buffer;
@@ -49,10 +85,10 @@ struct GLDraw2D {
 
     UniformLocation MAT_LOC;
 
-    glm::mat4 projection_matrix;
-    glm::mat4 transform_matrix;
+    Mat4 projection_matrix;
+    Mat4 transform_matrix;
 
-    glm::vec4 color;
+    Vec4 color;
 
     bool update_projection_matrix;
 
@@ -71,13 +107,11 @@ struct GLDraw2D {
         
         transform_matrix = glm::mat4(1.0f);
 
-
-
         begun = true;
     }
 
-    //template<usize GL_DRAW2D_SIZE>
-    void render(GLDraw2D<GL_DRAW2D_SIZE>* ctx)
+    //template<usize SD_CONTEXT_SIZE>
+    void render(sd::Context<SD_CONTEXT_SIZE>* ctx)
     {
         glUseProgram(ctx->shader);
 
@@ -173,7 +207,7 @@ struct GLDraw2D {
         begun = false;        
     }
 
-    void reset(GLDraw2D<GL_DRAW2D_SIZE>* ctx)
+    void reset(sd::Context<SD_CONTEXT_SIZE>* ctx)
     {
         ctx->triangle_buffer.v_count = 0;
         ctx->triangle_buffer.i_count = 0;
@@ -182,14 +216,14 @@ struct GLDraw2D {
         ctx->line_buffer.i_count = 0;
 
         ctx->index_triangles = 0;
-        ctx->index_lines = 0;        
+        ctx->index_lines     = 0;        
     }
 
     static constexpr const char* const SHADER_VERTEX_PATH = "shaders/default_2d/default_2d.vrts";
     static constexpr const char* const SHADER_FRAGMENT_PATH = "shaders/default_2d/default_2d.frgs";
 
 
-    bool init(glm::mat4 projection_matrix)
+    bool init(Mat4 projection_matrix)
     {
         this->projection_matrix = projection_matrix;
         update_projection_matrix = false;
@@ -200,14 +234,14 @@ struct GLDraw2D {
 
         draw_type = GL_TRIANGLES;
 
-        color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        color = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
         if (false == Shader_load_from_file(
             &shader,
             SHADER_VERTEX_PATH,
             SHADER_FRAGMENT_PATH
         )) {
-            fprintf(stderr, "ERROR: GLDraw2D initialization failed\n");
+            SD_LOG_ERR("%s\n", "ERROR: sd::Context initialization failed");
             return false;
         }
 
@@ -221,9 +255,9 @@ struct GLDraw2D {
 
             VertexBufferData_init_inplace(
                 &triangle_buffer, 
-                GL_DRAW2D_SIZE * ATTRIBUTE_STRIDE,
+                SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE,
                 vertices_triangles,
-                GL_DRAW2D_SIZE,
+                SD_CONTEXT_SIZE,
                 indices_triangles
             );
             triangle_buffer.v_count = 0;
@@ -242,9 +276,9 @@ struct GLDraw2D {
         glBindVertexArray(vao_lines);
             VertexBufferData_init_inplace(
                 &line_buffer, 
-                GL_DRAW2D_SIZE * ATTRIBUTE_STRIDE,
+                SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE,
                 vertices_lines,
-                GL_DRAW2D_SIZE,
+                SD_CONTEXT_SIZE,
                 indices_lines
             );
             line_buffer.v_count = 0;
@@ -277,8 +311,8 @@ struct GLDraw2D {
     void remove_line(usize idx)
     {
 
-        if ((idx * (2 * ATTRIBUTE_STRIDE) > (GL_DRAW2D_SIZE * ATTRIBUTE_STRIDE)) || (idx * 2 > GL_DRAW2D_SIZE * 2)) {
-            fprintf(stderr, "%s\n", "ERROR: remove_line INDEX OUT-OF-BOUNDS");
+        if ((idx * (2 * ATTRIBUTE_STRIDE) > (SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE)) || (idx * 2 > SD_CONTEXT_SIZE * 2)) {
+            SD_LOG_ERR("%s\n", "ERROR: remove_line INDEX OUT-OF-BOUNDS");
             return;            
         }
 
@@ -298,19 +332,14 @@ struct GLDraw2D {
 
     }
 
-    inline void line(Vec3 a, Vec3 b) 
-    {
-        line(a, b, "", -1);
-    }
-
-    void line(Vec3 a, Vec3 b, LOG_PARAMS)
+    bool line(Vec3 a, Vec3 b)
     {
         const usize v_count = line_buffer.v_count;
         const usize i_count = line_buffer.i_count;
 
-        if (v_count + (2 * ATTRIBUTE_STRIDE) > (GL_DRAW2D_SIZE * ATTRIBUTE_STRIDE) || (i_count + 2 > GL_DRAW2D_SIZE * 2)) {
-            GLDraw2D_Log(stderr, "%s : %s %d\n", "ERROR: add_line_segment MAX LINES EXCEEDED", LOG_ARGS);
-            return;
+        if (v_count + (2 * ATTRIBUTE_STRIDE) > (SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE) || (i_count + 2 > SD_CONTEXT_SIZE * 2)) {
+            SD_LOG_ERR("%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
+            return false;
         }
 
         //a = Vec3(transform_matrix * Vec4(a, 1.0f));
@@ -345,21 +374,18 @@ struct GLDraw2D {
         // }
         // std::cout << std::endl << "}" << std::endl;
         // std::cout << "END" << std::endl;
+
+        return true;
     }
 
-    inline void line(Vec2 a, Vec2 b) 
-    {
-        line(a, b, "", -1);
-    }
-
-    void line(Vec2 a, Vec2 b, LOG_PARAMS)
+    bool line(Vec2 a, Vec2 b)
     {
         const usize v_count = line_buffer.v_count;
         const usize i_count = line_buffer.i_count;
 
-        if (v_count + (2 * ATTRIBUTE_STRIDE) > GL_DRAW2D_SIZE * ATTRIBUTE_STRIDE || i_count + 2 > GL_DRAW2D_SIZE * 2) {
-            GLDraw2D_Log(stderr, "%s : %s %d\n", "ERROR: add_line_segment MAX LINES EXCEEDED", LOG_ARGS);
-            return;
+        if (v_count + (2 * ATTRIBUTE_STRIDE) > SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE || i_count + 2 > SD_CONTEXT_SIZE * 2) {
+            SD_LOG_ERR("%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
+            return false;
         }
 
         //a = glm::vec2(transform_matrix * glm::vec4(a, 0.0f, 1.0f));
@@ -382,6 +408,8 @@ struct GLDraw2D {
 
         line_buffer.v_count += (2 * ATTRIBUTE_STRIDE);
         line_buffer.i_count += 2;
+    
+        return true;
     }
 
     void polygon_convex_regular(GLfloat radius, glm::vec3 center, const size_t count_sides)
@@ -401,12 +429,12 @@ struct GLDraw2D {
             i_count = triangle_buffer.i_count;
             v_idx = v_count;
 
-            if (v_count + (ATTRIBUTE_STRIDE * count_sides) > GL_DRAW2D_SIZE * ATTRIBUTE_STRIDE || i_count + (3 * count_tris) > GL_DRAW2D_SIZE * 2) {
-                fprintf(stderr, "%s\n", "ERROR: polygon_convex_regular MAX TRIANGLES EXCEEDED");
+            if (v_count + (ATTRIBUTE_STRIDE * count_sides) > SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE || i_count + (3 * count_tris) > SD_CONTEXT_SIZE * 2) {
+                SD_LOG_ERR("%s\n", "ERROR: polygon_convex_regular MAX TRIANGLES EXCEEDED");
                 return;
             }
 
-            for (size_t p = 0, idx_off = 0; p < count_tris; ++p, idx_off += 3) {
+            for (usize p = 0, idx_off = 0; p < count_tris; ++p, idx_off += 3) {
                 indices_triangles[i_count + idx_off]     = index_triangles + 0;
                 indices_triangles[i_count + idx_off + 1] = index_triangles + p + 1;
                 indices_triangles[i_count + idx_off + 2] = index_triangles + p + 2;
@@ -414,8 +442,8 @@ struct GLDraw2D {
             triangle_buffer.i_count += (3 * count_tris);
 
 
-            for (size_t p = 0, off = 0; p < count_sides; ++p, off += inc) {
-                glm::vec3 point = glm::vec3(Mat4(1.0f) * 
+            for (usize p = 0, off = 0; p < count_sides; ++p, off += inc) {
+                Vec3 point = glm::vec3(Mat4(1.0f) * 
                     glm::vec4(
                         (radius * glm::cos(p * angle_turn)) + center.x,
                         (radius * glm::sin(p * angle_turn)) + center.y,
@@ -441,12 +469,12 @@ struct GLDraw2D {
             i_count = line_buffer.i_count;
             v_idx = v_count;
 
-            if (v_count + (ATTRIBUTE_STRIDE * count_sides) > GL_DRAW2D_SIZE * ATTRIBUTE_STRIDE || i_count + (2 * count_sides) > GL_DRAW2D_SIZE * 2) {
-                fprintf(stderr, "%s\n", "ERROR: polygon_convex_regular MAX LINES EXCEEDED");
+            if (v_count + (ATTRIBUTE_STRIDE * count_sides) > SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE || i_count + (2 * count_sides) > SD_CONTEXT_SIZE * 2) {
+                SD_LOG_ERR("%s\n", "ERROR: polygon_convex_regular MAX LINES EXCEEDED");
                 return;
             }
 
-            for (size_t p = 0, off = 0; p < count_sides; ++p, off += 2) {
+            for (usize p = 0, off = 0; p < count_sides; ++p, off += 2) {
                 indices_lines[i_count + off]     = index_lines + p;
                 indices_lines[i_count + off + 1] = index_lines + p + 1;
             }
@@ -454,9 +482,9 @@ struct GLDraw2D {
 
             line_buffer.i_count += (2 * count_sides);
 
-            for (size_t p = 0, off = 0; p < count_sides; ++p, off += inc) {
-                glm::vec3 point = glm::vec3(Mat4(1.0f) * 
-                    glm::vec4(
+            for (usize p = 0, off = 0; p < count_sides; ++p, off += inc) {
+                Vec3 point = Vec3(Mat4(1.0f) * 
+                    Vec4(
                         (radius * glm::cos(p * angle_turn)) + center.x,
                         (radius * glm::sin(p * angle_turn)) + center.y,
                         center.z,
@@ -485,9 +513,9 @@ struct GLDraw2D {
 
     void vertex(Vec3 v)
     {
-        size_t v_count = 0;
-        size_t i_count = 0;
-        size_t v_idx = 0;
+        usize v_count = 0;
+        usize i_count = 0;
+        usize v_idx = 0;
 
         switch (draw_type) {
         case GL_TRIANGLES:
@@ -495,8 +523,8 @@ struct GLDraw2D {
             i_count = triangle_buffer.i_count;
             v_idx = v_count;
 
-            if (v_count + ATTRIBUTE_STRIDE > GL_DRAW2D_SIZE * ATTRIBUTE_STRIDE || i_count + 1 > GL_DRAW2D_SIZE * 2) {
-                fprintf(stderr, "%s\n", "ERROR: vertex MAX TRIANGLES EXCEEDED");
+            if (v_count + ATTRIBUTE_STRIDE > SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE || i_count + 1 > SD_CONTEXT_SIZE * 2) {
+                SD_LOG_ERR("%s\n", "ERROR: vertex MAX TRIANGLES EXCEEDED");
                 return;
             }
 
@@ -532,8 +560,8 @@ struct GLDraw2D {
             i_count = line_buffer.i_count;
             v_idx = v_count;
 
-            if (v_count + ATTRIBUTE_STRIDE > GL_DRAW2D_SIZE * ATTRIBUTE_STRIDE || i_count + 1 > GL_DRAW2D_SIZE * 2) {
-                fprintf(stderr, "%s\n", "ERROR: vertex MAX LINES EXCEEDED");
+            if (v_count + ATTRIBUTE_STRIDE > SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE || i_count + 1 > SD_CONTEXT_SIZE * 2) {
+                SD_LOG_ERR("%s\n", "ERROR: vertex MAX LINES EXCEEDED");
                 return;
             }
 
@@ -554,10 +582,231 @@ struct GLDraw2D {
     }
 };
 
+template<usize N> void begin(sd::Context<N>* ctx);
+template<usize N> void render(sd::Context<N>* ctx);
+template<usize N> void end(sd::Context<N>* ctx);
+template<usize N> void end_no_reset(sd::Context<N>* ctx);
+template<usize N> void reset(sd::Context<N>* ctx);
+
+template<usize N> bool sys_init(void);
+template<usize N> bool Context_init(sd::Context<N>* ctx, Mat4 projection_matrix);
+template<usize N> sd::Context<N> Context_make(Mat4 projection_matrix);
+template<usize N> void Context_delete(sd::Context<N>* ctx);
+
+template<usize N> void remove_line(usize idx);
+template<usize N> void remove_triangle(usize idx);
+
+template<usize N> bool line(sd::Context<N>* ctx, Vec3 a, Vec3 b);
+template<usize N> bool line(sd::Context<N>* ctx, Vec2 a, Vec2 b);
+template<usize N> bool polygon_convex_regular(sd::Context<N>* ctx, GLfloat radius, Vec3 center, const usize count_sides);
+template<usize N> bool polygon_convex_regular(sd::Context<N>* ctx, GLfloat radius, Vec2 center, const usize count_sides);
+template<usize N> bool circle(sd::Context<N>* ctx, GLfloat radius, Vec3 center, usize detail = 37);
+template<usize N> bool circle(sd::Context<N>* ctx, GLfloat radius, Vec2 center, usize detail = 37);
+template<usize N> bool vertex(sd::Context<N>* ctx, Vec3);
+template<usize N> bool vertex(sd::Context<N>* ctx, Vec2);
+
+}
+
+#endif
+
+#ifdef SD_IMPLEMENTATION
+#undef SD_IMPLEMENTATION
+
+namespace sd {
+
+template<usize SD_CONTEXT_SIZE> inline bool Context_init(sd::Context<SD_CONTEXT_SIZE>* ctx, Mat4 projection_matrix)
+{
+    ctx->projection_matrix = projection_matrix;
+    ctx->update_projection_matrix = false;
+    ctx->begun = false;
+
+    ctx->index_triangles = 0;
+    ctx->index_lines = 0;
+
+    ctx->draw_type = GL_TRIANGLES;
+
+    ctx->color = Vec4{0.0f, 0.0f, 0.0f, 1.0f};
+
+    const char *const SHADER_VERTEX_PATH = sd::Context<SD_CONTEXT_SIZE>::SHADER_VERTEX_PATH;
+    const char *const SHADER_FRAGMENT_PATH = sd::Context<SD_CONTEXT_SIZE>::SHADER_FRAGMENT_PATH;
+
+    if (false == Shader_load_from_file(
+        &ctx->shader,
+        SHADER_VERTEX_PATH,
+        SHADER_FRAGMENT_PATH
+    )) {
+        SD_LOG_ERR("%s\n", "ERROR: sd::Context initialization failed");
+        return false;
+    }
+
+    const usize ATTRIBUTE_STRIDE = sd::Context<SD_CONTEXT_SIZE>::ATTRIBUTE_STRIDE;
+
+    glUseProgram(ctx->shader);
+    ctx->MAT_LOC = glGetUniformLocation(ctx->shader, "u_matrix");
+    glUniformMatrix4fv(ctx->MAT_LOC, 1, GL_FALSE, glm::value_ptr(ctx->projection_matrix));
+    glUseProgram(0);
+
+    VertexAttributeArray_init(&ctx->vao_triangles, ctx->ATTRIBUTE_STRIDE);
+    glBindVertexArray(ctx->vao_triangles);
+
+        VertexBufferData_init_inplace(
+            &ctx->triangle_buffer, 
+            SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE,
+            ctx->vertices_triangles,
+            SD_CONTEXT_SIZE,
+            ctx->indices_triangles
+        );
+        ctx->triangle_buffer.v_count = 0;
+        ctx->triangle_buffer.i_count = 0;
+
+        gl_bind_buffers_and_upload_data(&ctx->triangle_buffer, GL_STREAM_DRAW);
+        // POSITION
+        gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &ctx->vao_triangles);
+        // COLOR
+        gl_set_and_enable_vertex_attrib_ptr(1, 4, GL_FLOAT, GL_FALSE, 3, &ctx->vao_triangles);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    VertexAttributeArray_init(&ctx->vao_lines, ATTRIBUTE_STRIDE);
+    glBindVertexArray(ctx->vao_lines);
+        VertexBufferData_init_inplace(
+            &ctx->line_buffer, 
+            SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE,
+            ctx->vertices_lines,
+            SD_CONTEXT_SIZE,
+            ctx->indices_lines
+        );
+        ctx->line_buffer.v_count = 0;
+        ctx->line_buffer.i_count = 0;
+
+        gl_bind_buffers_and_upload_data(&ctx->line_buffer, GL_STREAM_DRAW);
+        // POSITION
+        gl_set_and_enable_vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 0, &ctx->vao_lines);
+        // COLOR
+        gl_set_and_enable_vertex_attrib_ptr(1, 4, GL_FLOAT, GL_FALSE, 3, &ctx->vao_lines);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    ctx->index_triangles = 0;
+    ctx->index_lines = 0;
+
+    return true;
+}
+
+template<usize N = 2048> sd::Context<N> Context_make(Mat4 projection_matrix)
+{
+    sd::Context<N> ctx;
+    if (sd::Context_init(&ctx, projection_matrix) == false) {
+        SD_LOG_ERR("%s\n", "ERROR: Context creation failed");
+    }
+    return ctx;
+}
+
+template<usize N> void render(sd::Context<N>* ctx)
+{
+    glUseProgram(ctx->shader);
+
+    glUniformMatrix4fv(ctx->MAT_LOC, 1, GL_FALSE, glm::value_ptr(ctx->projection_matrix * ctx->transform_matrix));
+
+    glBindVertexArray(ctx->vao_triangles);
+    gl_bind_buffers_and_upload_sub_data(&ctx->triangle_buffer);
+    if (ctx->triangle_buffer.i_count > 0) { 
+        glDrawElements(GL_TRIANGLES, ctx->triangle_buffer.i_count, GL_UNSIGNED_INT, 0);
+    }
+
+    glBindVertexArray(ctx->vao_lines);
+    gl_bind_buffers_and_upload_sub_data(&ctx->line_buffer);
+    if (ctx->line_buffer.i_count > 0) { 
+        glDrawElements(GL_LINES, ctx->line_buffer.i_count, GL_UNSIGNED_INT, 0);
+    }
+    
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glUseProgram(0);
+}
+
+template<usize N> void reset(sd::Context<N>* ctx)
+{
+    ctx->triangle_buffer.v_count = 0;
+    ctx->triangle_buffer.i_count = 0;
+
+    ctx->line_buffer.v_count = 0;
+    ctx->line_buffer.i_count = 0;
+
+    ctx->index_triangles = 0;
+    ctx->index_lines     = 0;        
+}
+
+template<usize SD_CONTEXT_SIZE> bool line(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec3 a, Vec3 b)
+{
+    const usize v_count = ctx->line_buffer.v_count;
+    const usize i_count = ctx->line_buffer.i_count;
+
+    const usize ATTRIBUTE_STRIDE = sd::Context<SD_CONTEXT_SIZE>::ATTRIBUTE_STRIDE;
+
+    if (v_count + (2 * ATTRIBUTE_STRIDE) > (SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE) || (i_count + 2 > SD_CONTEXT_SIZE * 2)) {
+        SD_LOG_ERR("%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
+        return false;
+    }
+
+    const usize v_idx = v_count;
+
+    memcpy(&ctx->vertices_lines[v_idx], &a[0], sizeof(a[0]) * 3);
+    memcpy(&ctx->vertices_lines[v_idx + 3], &ctx->color[0], sizeof(ctx->color[0]) * 4);
+
+
+    memcpy(&ctx->vertices_lines[v_idx + ATTRIBUTE_STRIDE], &b[0], sizeof(b[0]) * 3);
+    memcpy(&ctx->vertices_lines[v_idx + ATTRIBUTE_STRIDE + 3], &ctx->color[0], sizeof(ctx->color[0]) * 4);
+
+    ctx->indices_lines[i_count]     = ctx->index_lines;
+    ctx->indices_lines[i_count + 1] = ctx->index_lines + 1;
+    ctx->index_lines += 2;
+
+    ctx->line_buffer.v_count += (2 * ATTRIBUTE_STRIDE);
+    ctx->line_buffer.i_count += 2;
+
+    return true;
+}
+
+template<usize SD_CONTEXT_SIZE> bool line(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec2 a, Vec2 b)
+{
+    const usize v_count = ctx->line_buffer.v_count;
+    const usize i_count = ctx->line_buffer.i_count;
+
+    const usize ATTRIBUTE_STRIDE = sd::Context<SD_CONTEXT_SIZE>::ATTRIBUTE_STRIDE;
+
+    if (v_count + (2 * ATTRIBUTE_STRIDE) > SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE || i_count + 2 > SD_CONTEXT_SIZE * 2) {
+        SD_LOG_ERR("%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
+        return false;
+    }
+
+    const usize v_idx = v_count;
+
+    memcpy(&ctx->vertices_lines[v_idx], &a[0], sizeof(a[0]) * 2);
+    ctx->vertices_lines[v_idx + 2] = 0.0f;
+    memcpy(&ctx->vertices_lines[v_idx + 3], &ctx->color[0], sizeof(ctx->color[0]) * 4);
+
+
+    memcpy(&ctx->vertices_lines[v_idx + ATTRIBUTE_STRIDE], &b[0], sizeof(b[0]) * 2);
+    ctx->vertices_lines[v_idx + ATTRIBUTE_STRIDE + 2] = 0.0f;
+    memcpy(&ctx->vertices_lines[v_idx + ATTRIBUTE_STRIDE + 3], &ctx->color[0], sizeof(ctx->color[0]) * 4);
+
+    ctx->indices_lines[i_count]     = ctx->index_lines;
+    ctx->indices_lines[i_count + 1] = ctx->index_lines + 1;
+    ctx->index_lines += 2;
+
+    ctx->line_buffer.v_count += (2 * ATTRIBUTE_STRIDE);
+    ctx->line_buffer.i_count += 2;
+
+    return true;
+}
+
 // #define MAX_IMG_SIZE (128 * 128)
 // static bool draw_lines_from_image_visited[MAX_IMG_SIZE];
 
-// static void draw_lines_from_image_bfs(GLDraw2D* ctx, std::vector<glm::vec3>& bgr_colors_to_ignore, u8* pixels, u32 w, u32 h, u32 pitch, u32 pixels_per_move)
+// static void draw_lines_from_image_bfs(sd::Context* ctx, std::vector<glm::vec3>& bgr_colors_to_ignore, u8* pixels, u32 w, u32 h, u32 pitch, u32 pixels_per_move)
 // {
 //     // ((w / pixels_per_move) + 1) * ((h / pixels_per_move) + 1)
 //     bool* const visited = draw_lines_from_image_visited;
@@ -594,7 +843,7 @@ struct GLDraw2D {
 //     #undef IDX
 // }
 
-// static bool draw_lines_from_image(GLDraw2D* ctx, std::string path,  std::vector<glm::vec3> bgr_colors_to_ignore)
+// static bool draw_lines_from_image(sd::Context* ctx, std::string path,  std::vector<glm::vec3> bgr_colors_to_ignore)
 // {
 //     return false;
 //     SDL_RWops *rwop;
@@ -637,20 +886,22 @@ struct GLDraw2D {
 
 // }
 
-// template<usize GL_DRAW2D_SIZE>
-// inline void GLDraw2D_ERR_LOG_PRINT__(GLDraw2D<GL_DRAW2D_SIZE>* ctx, const char *const name, const char *const file, int line)
+// template<usize SD_CONTEXT_SIZE>
+// inline void sd::Context_ERR_LOG_PRINT__(sd::Context<SD_CONTEXT_SIZE>* ctx, const char *const name, const char *const file, int line)
 // {
 //     if (ctx->status == false) {
 //         fprintf(stderr, "%s, %s, %d\n", name, file, line);
 //         ctx->status = true;
 //     }
 // }
-// #ifdef GL_DRAW2D_DEBUG_LOG_ON
-//     #define GLDraw2D_ERR_LOG(ctx__, file__, line__) GLDraw2D_ERR_LOG_PRINT__(& ctx__, STRING(ctx__), file__, line__)
-//     #define GLDraw2D_PTR_ERR_LOG(ctxptr__, file__, line__) GLDraw2D_ERR_LOG_PRINT__(ctxptr__, STRING(ctxptr__), file__, line__)
+// #ifdef SD_DEBUG_LOG_ON
+//     #define sd::Context_ERR_LOG(ctx__, file__, line__) sd::Context_ERR_LOG_PRINT__(& ctx__, STRING(ctx__), file__, line__)
+//     #define sd::Context_PTR_ERR_LOG(ctxptr__, file__, line__) sd::Context_ERR_LOG_PRINT__(ctxptr__, STRING(ctxptr__), file__, line__)
 // #else
-//     #define GLDraw2D_ERR_LOG(ctx__, file__, line__)
-//     #define GLDraw2D_PTR_ERR_LOG(ctxptr__, file__, line__)
+//     #define sd::Context_ERR_LOG(ctx__, file__, line__)
+//     #define sd::Context_PTR_ERR_LOG(ctxptr__, file__, line__)
 // #endif
 
-#endif // GL_DRAW_H
+}
+
+#endif // SD_OPENGL_HPP

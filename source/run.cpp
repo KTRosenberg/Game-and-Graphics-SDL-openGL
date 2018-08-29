@@ -404,8 +404,12 @@ struct GlobalData {
 
 GlobalData program_data;
 
-#define GL_DRAW2D
-#include "gl_draw2d.h"
+#define SD
+
+#define SD_DEBUG_LOG_ON
+#define SD_RENDERER_OPENGL
+#define SD_IMPLEMENTATION
+#include "sd.hpp"
 
 WindowState window_state;
 
@@ -856,9 +860,9 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 }
 
 template <usize N>
-void draw_player_collision(Player* you, GLDraw2D<N>* ctx)
+void draw_player_collision(Player* you, sd::Context<N>* ctx)
 {
-    const glm::vec3 off(0.5, 0.5, 0.0);
+    const Vec3 off(0.5, 0.5, 0.0);
     BoxComponent* bc = &you->bound;
     glm::vec3 top_left = bc->position() + off;
     glm::vec3 top_right = top_left + glm::vec3(bc->width, 0.0, 0.0);
@@ -900,7 +904,7 @@ void draw_player_collision(Player* you, GLDraw2D<N>* ctx)
 }
 
 template <usize N>
-void BoxComponent_draw(BoxComponent* bc, GLDraw2D<N>* ctx)
+void BoxComponent_draw(BoxComponent* bc, sd::Context<N>* ctx)
 {
     const glm::vec3 off(0.5, 0.5, 0.0);
     glm::vec3 top_left = bc->position() + off;
@@ -912,7 +916,7 @@ void BoxComponent_draw(BoxComponent* bc, GLDraw2D<N>* ctx)
     ctx->line(top_left, top_right);
     ctx->line(top_right, bottom_right);
     ctx->line(bottom_right, bottom_left);
-    ctx->line(bottom_left, top_left);    
+    ctx->line(bottom_left, top_left);
 }
 
 bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
@@ -1138,7 +1142,7 @@ bool load_config(AirPhysicsConfig* conf)
 #endif
 
 int main(int argc, char* argv[])
-{
+{   
     #ifdef METATESTING
     puts("metatesting, main program disabled");
     metatesting();
@@ -1531,11 +1535,8 @@ int main(int argc, char* argv[])
     gl_get_errors();
 
 
-    #ifdef GL_DRAW2D
-    GLDraw2D<> gl_draw2d;
-    if (!gl_draw2d.init(mat_projection)) {
-        return EXIT_FAILURE;
-    }
+    #ifdef SD
+    sd::Context<> drawctx = sd::Context_make(mat_projection);
     #endif
 
     Toggle free_cam_toggle = false;
@@ -1558,8 +1559,8 @@ int main(int argc, char* argv[])
     UniformLocation SCALE_LOC_GRID = glGetUniformLocation(shader_grid, "u_scale");
     glUniform1f(SCALE_LOC_GRID, (GLfloat)1.0);
 
-    GLDraw2D<> existing;
-    GLDraw2D<256> in_prog;
+    sd::Context<> existing;
+    sd::Context<256> in_prog;
     Toggle drawing = false;
     Toggle deletion = false;
 
@@ -1656,8 +1657,9 @@ int main(int argc, char* argv[])
     existing.color = Color::BLACK;
     
     foreach (i, collision_map.elements_used) {
-        existing.line(collision_map[i].a, collision_map[i].b);
+        SD_ASSERT(existing.line(collision_map[i].a, collision_map[i].b));
     }
+
     existing.end_no_reset();
 
 
@@ -1990,7 +1992,7 @@ int main(int argc, char* argv[])
                 you.bound.spatial.x += you.velocity_ground.x * x_comp;
                 you.bound.spatial.y += you.velocity_ground.x * y_comp;
 
-                //draw_player_collision(&you, &gl_draw2d);
+                //draw_player_collision(&you, &drawctx);
 
             } else {
                 you.bound.spatial.x += you.velocity_ground.x;
@@ -2012,8 +2014,8 @@ int main(int argc, char* argv[])
                 // this will be off by one movement, need to reorganize so camera updated after play is updated,
                 // also cannot draw bg yet... will need to sequence things differently
 
-                gl_draw2d.begin();
-                gl_draw2d.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+                drawctx.begin();
+                drawctx.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
 
                 for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
                 {
@@ -2021,12 +2023,12 @@ int main(int argc, char* argv[])
                     
                     switch (temp_test_collision_sides(&you, it, &status_l, &status_r)) {
                     case 'l': { // left
-                        gl_draw2d.line(Vec3(0.0), status_l.intersection);
+                        drawctx.line(Vec3(0.0), status_l.intersection);
                         collided_l = true;
                         break;
                     }
                     case 'r': { // right
-                        gl_draw2d.line(Vec3(0.0), status_r.intersection);
+                        drawctx.line(Vec3(0.0), status_r.intersection);
                         collided_r = true;
                         break;
                     }
@@ -2041,7 +2043,7 @@ int main(int argc, char* argv[])
 
                     }
                 }
-                gl_draw2d.end_no_reset();
+                drawctx.end_no_reset();
 
                 // TODO slopes
 
@@ -2244,7 +2246,7 @@ int main(int argc, char* argv[])
         glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, 0);
         //glBindVertexArray(0);
 
-        #ifdef GL_DRAW2D
+        #ifdef SD
 
         glEnable(GL_DEPTH_TEST);
         glDepthRange(0, 1);
@@ -2253,44 +2255,44 @@ int main(int argc, char* argv[])
 
         glm::mat4 cam = FreeCamera_calc_view_matrix(&main_cam);
 
-        // gl_draw2d.begin();
+        // drawctx.begin();
 
-        //     //gl_draw2d.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
-        //     gl_draw2d.transform_matrix = glm::mat4(1.0f);
+        //     //drawctx.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+        //     drawctx.transform_matrix = glm::mat4(1.0f);
 
-        //     // gl_draw2d.draw_type = GL_LINES;
-        //     // gl_draw2d.color = Color::RED;
-        //     // gl_draw2d.vertex({0.5, 0.0, -1.0});
-        //     // gl_draw2d.vertex({1.0, 1.0, -1.0});
+        //     // drawctx.draw_type = GL_LINES;
+        //     // drawctx.color = Color::RED;
+        //     // drawctx.vertex({0.5, 0.0, -1.0});
+        //     // drawctx.vertex({1.0, 1.0, -1.0});
             
-        //     // gl_draw2d.draw_type = GL_LINES;
-        //     // gl_draw2d.color = Color::GREEN;
-        //     // gl_draw2d.line({0.0, 0.0, -5.0}, {1.0, 1.0, -5.0});
+        //     // drawctx.draw_type = GL_LINES;
+        //     // drawctx.color = Color::GREEN;
+        //     // drawctx.line({0.0, 0.0, -5.0}, {1.0, 1.0, -5.0});
 
-        //     // gl_draw2d.color = Color::GREEN;
-        //     // gl_draw2d.circle(0.25, {0.0, 0.0, 0.0});
+        //     // drawctx.color = Color::GREEN;
+        //     // drawctx.circle(0.25, {0.0, 0.0, 0.0});
 
-        //     gl_draw2d.draw_type = GL_TRIANGLES;
+        //     drawctx.draw_type = GL_TRIANGLES;
 
         //     GLfloat CX = (SCREEN_WIDTH / 2.0f);
         //     GLfloat CY = 384.0f;
 
-        //     gl_draw2d.color = glm::vec4(252.0f / 255.0f, 212.0f / 255.0f, 64.0f / 255.0f, 1.0f);
+        //     drawctx.color = glm::vec4(252.0f / 255.0f, 212.0f / 255.0f, 64.0f / 255.0f, 1.0f);
 
-        //     gl_draw2d.transform_matrix = cam;
+        //     drawctx.transform_matrix = cam;
 
-        //     gl_draw2d.circle(90.0f, {CX, CY, -1.0});
+        //     drawctx.circle(90.0f, {CX, CY, -1.0});
 
-        //     gl_draw2d.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        //     gl_draw2d.transform_matrix = glm::translate(cam, glm::vec3(CX - 27.0f, CY - 25.0f, 0.0f));
-        //     gl_draw2d.circle(10.0f, {0.0f, 0.0f, 0.0f});
+        //     drawctx.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        //     drawctx.transform_matrix = glm::translate(cam, glm::vec3(CX - 27.0f, CY - 25.0f, 0.0f));
+        //     drawctx.circle(10.0f, {0.0f, 0.0f, 0.0f});
 
-        //     gl_draw2d.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        //     gl_draw2d.transform_matrix = glm::translate(cam, glm::vec3(CX + 27.0f, CY - 25.0f, 0.0f));
-        //     gl_draw2d.circle(10.0f, {0.0f, 0.0f, 0.0f});
+        //     drawctx.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        //     drawctx.transform_matrix = glm::translate(cam, glm::vec3(CX + 27.0f, CY - 25.0f, 0.0f));
+        //     drawctx.circle(10.0f, {0.0f, 0.0f, 0.0f});
 
             
-        //     gl_draw2d.draw_type = GL_LINES;
+        //     drawctx.draw_type = GL_LINES;
 
         //     #define BASE_TILE_SIZE (128.0f)
         //     #define TILE_SCALE (2.0f)
@@ -2305,22 +2307,22 @@ int main(int argc, char* argv[])
         //     model = glm::translate(model, glm::vec3({-CX, -CY, 0.0}));
             
 
-        //     gl_draw2d.transform_matrix = cam * model;
+        //     drawctx.transform_matrix = cam * model;
 
-        //     gl_draw2d.color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+        //     drawctx.color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
         //     {
         //         GLfloat off = 1.0f;
         //         // horizontal
-        //         gl_draw2d.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX + off, CY - off, 0.0f));
-        //         gl_draw2d.line(glm::vec3(CX - off, CY + off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
+        //         drawctx.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX + off, CY - off, 0.0f));
+        //         drawctx.line(glm::vec3(CX - off, CY + off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
         //         // vertical
-        //         gl_draw2d.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX - off, CY + off, 0.0f));
-        //         gl_draw2d.line(glm::vec3(CX + off, CY - off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
+        //         drawctx.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX - off, CY + off, 0.0f));
+        //         drawctx.line(glm::vec3(CX + off, CY - off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
         //     }   
 
 
 
-        // gl_draw2d.end();
+        // drawctx.end();
 
         #endif
 
@@ -2716,17 +2718,17 @@ int main(int argc, char* argv[])
                 }
             }
 
-            gl_draw2d.begin();
+            drawctx.begin();
 
             glClear(GL_DEPTH_BUFFER_BIT);
 
-            gl_draw2d.draw_type = GL_LINES;
+            drawctx.draw_type = GL_LINES;
 
-            gl_draw2d.color = Color::BLUE;
+            drawctx.color = Color::BLUE;
 
-            gl_draw2d.transform_matrix = cam;
+            drawctx.transform_matrix = cam;
 
-            //draw_lines_from_image(&gl_draw2d, "./test_paths/C.bmp", {glm::vec3(1.0f), glm::vec3(0.0f)});
+            //draw_lines_from_image(&drawctx, "./test_paths/C.bmp", {glm::vec3(1.0f), glm::vec3(0.0f)});
 
 
             // f64 WEE = ((f64)(t_now - you.state_change_time)) / frequency;
@@ -2738,14 +2740,14 @@ int main(int argc, char* argv[])
             // }
 
             
-            gl_draw2d.end();
+            drawctx.end();
 
-            gl_draw2d.begin();
+            drawctx.begin();
 
             glClear(GL_DEPTH_BUFFER_BIT);
 
-            gl_draw2d.color = Color::GREEN;
-            gl_draw2d.transform_matrix = cam;
+            drawctx.color = Color::GREEN;
+            drawctx.transform_matrix = cam;
 
 
             if (cmd.hot_config && air_physics_conf.fd != nullptr && key_is_pressed(&input, CONTROL::LOAD_CONFIG)) {
@@ -2792,7 +2794,7 @@ int main(int argc, char* argv[])
                 
                 if (temp_test_collision(&you, it, &status)) {
                     //printf("COLLISION\n");
-                    gl_draw2d.line(Vec3(0.0), status.intersection);
+                    drawctx.line(Vec3(0.0), status.intersection);
 
                     you.on_ground = true;
                     // you.state_change_time = t_now;
@@ -2807,11 +2809,11 @@ int main(int argc, char* argv[])
 
             // glm::vec2 tang = .1 * angular_impulse(glm::pi<double>() / 30.0, glm::vec2(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5), glm::vec2(you.bound.spatial.x, you.bound.spatial.y));
 
-            // gl_draw2d.circle(glm::distance(glm::vec2(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5), glm::vec2(you.bound.calc_position_center())), glm::vec3(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5, 1.0));
+            // drawctx.circle(glm::distance(glm::vec2(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5), glm::vec2(you.bound.calc_position_center())), glm::vec3(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5, 1.0));
             
-            // gl_draw2d.color = glm::vec4(1.0, 1.0, 0.0, 1.0);
+            // drawctx.color = glm::vec4(1.0, 1.0, 0.0, 1.0);
 
-            // gl_draw2d.line(glm::vec2(you.bound.calc_position_center()), tang + glm::vec2(you.bound.calc_position_center()));
+            // drawctx.line(glm::vec2(you.bound.calc_position_center()), tang + glm::vec2(you.bound.calc_position_center()));
 
             if (!collided) {
                 you.on_ground = false;
@@ -2855,17 +2857,17 @@ int main(int argc, char* argv[])
                     f64 dy = col->b.y - col->a.y;
                     f64 dx = col->b.x - col->a.x;
 
-                    glm::vec3 na(-dy, dx, 0.0);
-                    glm::vec3 nb(dy, -dx, 0.0);
+                    auto na = Vec3{-dy, dx, 0.0};
+                    auto nb = Vec3{dy, -dx, 0.0};
 
                     //na = glm::normalize(na);
                     //nb = glm::normalize(nb);
 
-                    gl_draw2d.color = Color::GREEN;
-                    gl_draw2d.line(status.collider->a, status.collider->b);
+                    drawctx.color = Color::CYAN;
+                    sd::line(&drawctx, status.collider->a, status.collider->b);
 
-                    gl_draw2d.color = Color::BLUE;
-                    gl_draw2d.line(/* na + */col->a, nb + col->a);
+                    drawctx.color = Color::BLUE;
+                    sd::line(&drawctx,/* na + */col->a, nb + col->a);
 
                     
                     //existing.color = Color::BLACK;
@@ -2876,10 +2878,10 @@ int main(int argc, char* argv[])
 
             }
 
-            gl_draw2d.color = Color::BLUE;
-            draw_player_collision(&you, &gl_draw2d);
+            drawctx.color = Color::BLUE;
+            draw_player_collision(&you, &drawctx);
 
-            gl_draw2d.end();
+            drawctx.end();
 
             glDisable(GL_BLEND);
 
@@ -2897,12 +2899,12 @@ int main(int argc, char* argv[])
             //existing.render(&existing);
             //in_prog.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
             //in_prog.render(&in_prog);
-            in_prog.reset(&in_prog);
+            sd::reset(&in_prog);
         }
 
-        //gl_draw2d.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
-        //gl_draw2d.render(&gl_draw2d);
-        gl_draw2d.reset(&gl_draw2d);
+        //drawctx.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+        //drawctx.render(&drawctx);
+        sd::reset(&drawctx);
 
         #endif
 
@@ -2929,8 +2931,8 @@ int main(int argc, char* argv[])
     
     VertexAttributeArray_delete(&vao_2d2);
     VertexBufferData_delete_inplace(&tri_data);
-    #ifdef GL_DRAW2D
-    gl_draw2d.free();
+    #ifdef SD
+    drawctx.free();
     #endif
     #ifdef EDITOR
     in_prog.free();

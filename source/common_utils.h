@@ -49,6 +49,7 @@ typedef uint64   u64;
 typedef float32  f32; 
 typedef float64  f64;
 
+typedef i64 isize;
 typedef u64 usize;
 typedef unsigned char* ucharptr;
 
@@ -70,6 +71,9 @@ typedef unsigned char* ucharptr;
 
 #define LOG_PARAMS const char *const file_name, const int line_number
 #define LOG_ARGS __FILE__, __LINE__
+
+#define FILE_NAME (__FILE__)
+#define LINE_NUMBER (__LINE__)
 
 // }
 
@@ -127,9 +131,14 @@ void ArenaAllocator_delete(ArenaAllocator* arena);
 void debug_print(const char* const in);
 
 // https://stackoverflow.com/questions/3767869/adding-message-to-assert
-#define ASSERT(condition,...) assert( \
+#define ASSERT_MSG(condition,...) assert( \
     condition|| \
     (fprintf(stderr,__VA_ARGS__)&&fprintf(stderr," at %s:%d\n",__FILE__,__LINE__)) \
+);
+
+#define ASSERT(condition) assert( \
+    condition|| \
+    (fprintf(stderr," at %s:%d\n",__FILE__,__LINE__)) \
 );
 
 typedef void* (*Fn_MemoryAllocator)(size_t bytes);
