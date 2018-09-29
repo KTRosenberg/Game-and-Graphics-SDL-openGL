@@ -69,12 +69,12 @@ namespace sd {
 
 template <usize SD_CONTEXT_SIZE = 2048>
 struct Context {
-    static constexpr GLuint ATTRIBUTE_STRIDE = 7;
+    static constexpr GLuint DEFAULT_ATTRIBUTE_STRIDE = 7;
 
-    GLfloat vertices_triangles[SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE]; 
+    GLfloat vertices_triangles[SD_CONTEXT_SIZE * DEFAULT_ATTRIBUTE_STRIDE]; 
     GLuint indices_triangles[SD_CONTEXT_SIZE * 2];
 
-    GLfloat vertices_lines[SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE]; 
+    GLfloat vertices_lines[SD_CONTEXT_SIZE * DEFAULT_ATTRIBUTE_STRIDE]; 
     GLuint indices_lines[SD_CONTEXT_SIZE * 2];
 
     VertexAttributeArray vao_triangles;
@@ -245,17 +245,19 @@ struct Context {
             return false;
         }
 
+        const usize attribute_stride = sd::Context<SD_CONTEXT_SIZE>::DEFAULT_ATTRIBUTE_STRIDE;
+
         glUseProgram(shader);
         MAT_LOC = glGetUniformLocation(shader, "u_matrix");
         glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(projection_matrix));
         glUseProgram(0);
 
-        VertexAttributeArray_init(&vao_triangles, ATTRIBUTE_STRIDE);
+        VertexAttributeArray_init(&vao_triangles, attribute_stride);
         glBindVertexArray(vao_triangles);
 
             VertexBufferData_init_inplace(
                 &triangle_buffer, 
-                SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE,
+                SD_CONTEXT_SIZE * attribute_stride,
                 vertices_triangles,
                 SD_CONTEXT_SIZE,
                 indices_triangles
@@ -272,11 +274,11 @@ struct Context {
             glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
 
-        VertexAttributeArray_init(&vao_lines, ATTRIBUTE_STRIDE);
+        VertexAttributeArray_init(&vao_lines, attribute_stride);
         glBindVertexArray(vao_lines);
             VertexBufferData_init_inplace(
                 &line_buffer, 
-                SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE,
+                SD_CONTEXT_SIZE * attribute_stride,
                 vertices_lines,
                 SD_CONTEXT_SIZE,
                 indices_lines
@@ -308,25 +310,6 @@ struct Context {
         glDeleteProgram(shader);
     }
 
-    void remove_line(usize idx)
-    {
-
-        if ((idx * (2 * ATTRIBUTE_STRIDE) > (SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE)) || (idx * 2 > SD_CONTEXT_SIZE * 2)) {
-            SD_LOG_ERR("%s\n", "ERROR: remove_line INDEX OUT-OF-BOUNDS");
-            return;            
-        }
-
-        // reduce counts
-        line_buffer.v_count -= (2 * ATTRIBUTE_STRIDE);
-        line_buffer.i_count -= 2;
-
-        // overwrite the element-to-delete with the last element
-        memcpy(&vertices_lines[(2 * ATTRIBUTE_STRIDE) * idx], &vertices_lines[line_buffer.v_count], sizeof(GLfloat) * 2 * ATTRIBUTE_STRIDE);
-
-        // move the line index back by 2 (for each point in the segment)
-        index_lines -= 2;
-    }
-
     void remove_triangle()
     {
 
@@ -337,7 +320,9 @@ struct Context {
         const usize v_count = line_buffer.v_count;
         const usize i_count = line_buffer.i_count;
 
-        if (v_count + (2 * ATTRIBUTE_STRIDE) > (SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE) || (i_count + 2 > SD_CONTEXT_SIZE * 2)) {
+        const usize attribute_stride = this->vao_lines.stride;
+
+        if (v_count + (2 * attribute_stride) > (SD_CONTEXT_SIZE * attribute_stride) || (i_count + 2 > SD_CONTEXT_SIZE * 2)) {
             SD_LOG_ERR("%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
             return false;
         }
@@ -351,14 +336,14 @@ struct Context {
         memcpy(&vertices_lines[v_idx + 3], &color[0], sizeof(color[0]) * 4);
 
 
-        memcpy(&vertices_lines[v_idx + ATTRIBUTE_STRIDE], &b[0], sizeof(b[0]) * 3);
-        memcpy(&vertices_lines[v_idx + ATTRIBUTE_STRIDE + 3], &color[0], sizeof(color[0]) * 4);
+        memcpy(&vertices_lines[v_idx + attribute_stride], &b[0], sizeof(b[0]) * 3);
+        memcpy(&vertices_lines[v_idx + attribute_stride + 3], &color[0], sizeof(color[0]) * 4);
 
         indices_lines[i_count] = index_lines;
         indices_lines[i_count + 1] = index_lines + 1;
         index_lines += 2;
 
-        line_buffer.v_count += (2 * ATTRIBUTE_STRIDE);
+        line_buffer.v_count += (2 * attribute_stride);
         line_buffer.i_count += 2;
 
         // std::cout << "BEGIN" << std::endl;
@@ -383,7 +368,10 @@ struct Context {
         const usize v_count = line_buffer.v_count;
         const usize i_count = line_buffer.i_count;
 
-        if (v_count + (2 * ATTRIBUTE_STRIDE) > SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE || i_count + 2 > SD_CONTEXT_SIZE * 2) {
+        const usize attribute_stride = this->vao_lines.stride;
+
+
+        if (v_count + (2 * attribute_stride) > SD_CONTEXT_SIZE * attribute_stride || i_count + 2 > SD_CONTEXT_SIZE * 2) {
             SD_LOG_ERR("%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
             return false;
         }
@@ -398,15 +386,15 @@ struct Context {
         memcpy(&vertices_lines[v_idx + 3], &color[0], sizeof(color[0]) * 4);
 
 
-        memcpy(&vertices_lines[v_idx + ATTRIBUTE_STRIDE], &b[0], sizeof(b[0]) * 2);
-        vertices_lines[v_idx + ATTRIBUTE_STRIDE + 2] = 0.0f;
-        memcpy(&vertices_lines[v_idx + ATTRIBUTE_STRIDE + 3], &color[0], sizeof(color[0]) * 4);
+        memcpy(&vertices_lines[v_idx + attribute_stride], &b[0], sizeof(b[0]) * 2);
+        vertices_lines[v_idx + attribute_stride + 2] = 0.0f;
+        memcpy(&vertices_lines[v_idx + attribute_stride + 3], &color[0], sizeof(color[0]) * 4);
 
         indices_lines[i_count] = index_lines;
         indices_lines[i_count + 1] = index_lines + 1;
         index_lines += 2;
 
-        line_buffer.v_count += (2 * ATTRIBUTE_STRIDE);
+        line_buffer.v_count += (2 * attribute_stride);
         line_buffer.i_count += 2;
     
         return true;
@@ -416,7 +404,8 @@ struct Context {
     {
         size_t count_tris = count_sides - 2;
 
-        const size_t inc = ATTRIBUTE_STRIDE;
+        usize attribute_stride;
+        size_t inc;
 
         size_t v_count = 0;
         size_t i_count = 0;
@@ -425,11 +414,14 @@ struct Context {
 
         switch (draw_type) {
         case GL_TRIANGLES:
+            attribute_stride = vao_triangles.stride;
+            inc = attribute_stride;
+
             v_count = triangle_buffer.v_count;
             i_count = triangle_buffer.i_count;
             v_idx = v_count;
 
-            if (v_count + (ATTRIBUTE_STRIDE * count_sides) > SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE || i_count + (3 * count_tris) > SD_CONTEXT_SIZE * 2) {
+            if (v_count + (attribute_stride * count_sides) > SD_CONTEXT_SIZE * attribute_stride || i_count + (3 * count_tris) > SD_CONTEXT_SIZE * 2) {
                 SD_LOG_ERR("%s\n", "ERROR: polygon_convex_regular MAX TRIANGLES EXCEEDED");
                 return;
             }
@@ -459,17 +451,20 @@ struct Context {
                 memcpy(&vertices_triangles[v_idx + off + 3], &color[0], sizeof(color[0]) * 4);
             }
 
-            triangle_buffer.v_count += (ATTRIBUTE_STRIDE * count_sides);
+            triangle_buffer.v_count += (attribute_stride * count_sides);
 
             index_triangles += count_sides;
 
             break;
         case GL_LINES:
+            attribute_stride = vao_lines.stride;
+            inc = attribute_stride;
+
             v_count = line_buffer.v_count;
             i_count = line_buffer.i_count;
             v_idx = v_count;
 
-            if (v_count + (ATTRIBUTE_STRIDE * count_sides) > SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE || i_count + (2 * count_sides) > SD_CONTEXT_SIZE * 2) {
+            if (v_count + (attribute_stride * count_sides) > SD_CONTEXT_SIZE * attribute_stride || i_count + (2 * count_sides) > SD_CONTEXT_SIZE * 2) {
                 SD_LOG_ERR("%s\n", "ERROR: polygon_convex_regular MAX LINES EXCEEDED");
                 return;
             }
@@ -498,7 +493,7 @@ struct Context {
                 memcpy(&vertices_lines[v_idx + off + 3], &color[0], sizeof(color[0]) * 4);
             }
 
-            line_buffer.v_count += (ATTRIBUTE_STRIDE * count_sides);          
+            line_buffer.v_count += (attribute_stride * count_sides);          
 
             index_lines += count_sides; 
 
@@ -517,13 +512,17 @@ struct Context {
         usize i_count = 0;
         usize v_idx = 0;
 
+        usize attribute_stride;
+
         switch (draw_type) {
         case GL_TRIANGLES:
+            attribute_stride = vao_triangles.stride;
+
             v_count = triangle_buffer.v_count;
             i_count = triangle_buffer.i_count;
             v_idx = v_count;
 
-            if (v_count + ATTRIBUTE_STRIDE > SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE || i_count + 1 > SD_CONTEXT_SIZE * 2) {
+            if (v_count + attribute_stride > SD_CONTEXT_SIZE * attribute_stride || i_count + 1 > SD_CONTEXT_SIZE * 2) {
                 SD_LOG_ERR("%s\n", "ERROR: vertex MAX TRIANGLES EXCEEDED");
                 return;
             }
@@ -537,7 +536,7 @@ struct Context {
             indices_triangles[i_count] = index_triangles;
             ++index_triangles;
 
-            triangle_buffer.v_count += ATTRIBUTE_STRIDE;
+            triangle_buffer.v_count += attribute_stride;
             ++triangle_buffer.i_count;
 
             // std::cout << "BEGIN" << std::endl;
@@ -556,11 +555,13 @@ struct Context {
 
             break;
         case GL_LINES:
+            attribute_stride = vao_lines.stride;
+
             v_count = line_buffer.v_count;
             i_count = line_buffer.i_count;
             v_idx = v_count;
 
-            if (v_count + ATTRIBUTE_STRIDE > SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE || i_count + 1 > SD_CONTEXT_SIZE * 2) {
+            if (v_count + attribute_stride > SD_CONTEXT_SIZE * attribute_stride || i_count + 1 > SD_CONTEXT_SIZE * 2) {
                 SD_LOG_ERR("%s\n", "ERROR: vertex MAX LINES EXCEEDED");
                 return;
             }
@@ -574,7 +575,7 @@ struct Context {
             indices_lines[i_count] = index_lines;
             ++index_lines;
 
-            line_buffer.v_count += ATTRIBUTE_STRIDE;
+            line_buffer.v_count += attribute_stride;
             ++line_buffer.i_count;
 
             break;
@@ -582,28 +583,36 @@ struct Context {
     }
 };
 
-template<usize N> void begin(sd::Context<N>* ctx);
-template<usize N> void render(sd::Context<N>* ctx);
-template<usize N> void end(sd::Context<N>* ctx);
-template<usize N> void end_no_reset(sd::Context<N>* ctx);
-template<usize N> void reset(sd::Context<N>* ctx);
+template<usize SD_CONTEXT_SIZE> void begin(sd::Context<SD_CONTEXT_SIZE>* ctx);
+template<usize SD_CONTEXT_SIZE> void render(sd::Context<SD_CONTEXT_SIZE>* ctx);
+template<usize SD_CONTEXT_SIZE> void end(sd::Context<SD_CONTEXT_SIZE>* ctx);
+template<usize SD_CONTEXT_SIZE> void end_no_reset(sd::Context<SD_CONTEXT_SIZE>* ctx);
+template<usize SD_CONTEXT_SIZE> void reset(sd::Context<SD_CONTEXT_SIZE>* ctx);
 
-template<usize N> bool sys_init(void);
-template<usize N> bool Context_init(sd::Context<N>* ctx, Mat4 projection_matrix);
-template<usize N> sd::Context<N> Context_make(Mat4 projection_matrix);
-template<usize N> void Context_delete(sd::Context<N>* ctx);
+template<usize SD_CONTEXT_SIZE> bool sys_init(void);
+template<usize SD_CONTEXT_SIZE> bool init(sd::Context<SD_CONTEXT_SIZE>* ctx, Mat4 projection_matrix);
+template<usize SD_CONTEXT_SIZE> sd::Context<SD_CONTEXT_SIZE> Context_make(Mat4 projection_matrix);
+template<usize SD_CONTEXT_SIZE> void free(sd::Context<SD_CONTEXT_SIZE>* ctx);
 
-template<usize N> void remove_line(usize idx);
-template<usize N> void remove_triangle(usize idx);
-
-template<usize N> bool line(sd::Context<N>* ctx, Vec3 a, Vec3 b);
-template<usize N> bool line(sd::Context<N>* ctx, Vec2 a, Vec2 b);
-template<usize N> bool polygon_convex_regular(sd::Context<N>* ctx, GLfloat radius, Vec3 center, const usize count_sides);
-template<usize N> bool polygon_convex_regular(sd::Context<N>* ctx, GLfloat radius, Vec2 center, const usize count_sides);
-template<usize N> bool circle(sd::Context<N>* ctx, GLfloat radius, Vec3 center, usize detail = 37);
-template<usize N> bool circle(sd::Context<N>* ctx, GLfloat radius, Vec2 center, usize detail = 37);
-template<usize N> bool vertex(sd::Context<N>* ctx, Vec3);
-template<usize N> bool vertex(sd::Context<N>* ctx, Vec2);
+template<usize SD_CONTEXT_SIZE> bool line(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec3 a, Vec3 b);
+template<usize SD_CONTEXT_SIZE> bool line(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec2 a, Vec2 b);
+template<usize SD_CONTEXT_SIZE> bool remove_line_swap_end(sd::Context<SD_CONTEXT_SIZE>* ctx, usize idx);
+template<usize SD_CONTEXT_SIZE> bool quad(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec3, Vec3, Vec3, Vec3);
+template<usize SD_CONTEXT_SIZE> bool quad(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec2, Vec2, Vec2, Vec2);
+template<usize SD_CONTEXT_SIZE> bool polygon_convex_regular(sd::Context<SD_CONTEXT_SIZE>* ctx, GLfloat radius, Vec3 center, const usize count_sides);
+template<usize SD_CONTEXT_SIZE> bool polygon_convex_regular(sd::Context<SD_CONTEXT_SIZE>* ctx, GLfloat radius, Vec2 center, const usize count_sides);
+template<usize SD_CONTEXT_SIZE> bool circle(sd::Context<SD_CONTEXT_SIZE>* ctx, GLfloat radius, Vec3 center, usize detail = 37);
+template<usize SD_CONTEXT_SIZE> bool circle(sd::Context<SD_CONTEXT_SIZE>* ctx, GLfloat radius, Vec2 center, usize detail = 37);
+template<usize SD_CONTEXT_SIZE> bool vertex(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec3 v);
+template<usize SD_CONTEXT_SIZE> bool vertex(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec2 v);
+// template<usize SD_CONTEXT_SIZE, usize N> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, Buffer<Vec3, N>* vs);
+// template<usize SD_CONTEXT_SIZE, usize N> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, Buffer<Vec2, N>* vs);
+// template<usize SD_CONTEXT_SIZE> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, DynamicBuffer<Vec3>* vs);
+// template<usize SD_CONTEXT_SIZE> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, DynamicBuffer<Vec2>* vs);
+template<usize SD_CONTEXT_SIZE> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec3* vs, const usize count);
+template<usize SD_CONTEXT_SIZE> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec2* vs, const usize count);
+template<usize SD_CONTEXT_SIZE> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, ArraySlice<Vec3> slice);
+template<usize SD_CONTEXT_SIZE> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, ArraySlice<Vec2>* slice);
 
 }
 
@@ -614,7 +623,7 @@ template<usize N> bool vertex(sd::Context<N>* ctx, Vec2);
 
 namespace sd {
 
-template<usize SD_CONTEXT_SIZE> inline bool Context_init(sd::Context<SD_CONTEXT_SIZE>* ctx, Mat4 projection_matrix)
+template<usize SD_CONTEXT_SIZE> inline bool init(sd::Context<SD_CONTEXT_SIZE>* ctx, Mat4 projection_matrix)
 {
     ctx->projection_matrix = projection_matrix;
     ctx->update_projection_matrix = false;
@@ -639,19 +648,19 @@ template<usize SD_CONTEXT_SIZE> inline bool Context_init(sd::Context<SD_CONTEXT_
         return false;
     }
 
-    const usize ATTRIBUTE_STRIDE = sd::Context<SD_CONTEXT_SIZE>::ATTRIBUTE_STRIDE;
+    const usize attribute_stride = sd::Context<SD_CONTEXT_SIZE>::DEFAULT_ATTRIBUTE_STRIDE;
 
     glUseProgram(ctx->shader);
     ctx->MAT_LOC = glGetUniformLocation(ctx->shader, "u_matrix");
     glUniformMatrix4fv(ctx->MAT_LOC, 1, GL_FALSE, glm::value_ptr(ctx->projection_matrix));
     glUseProgram(0);
 
-    VertexAttributeArray_init(&ctx->vao_triangles, ctx->ATTRIBUTE_STRIDE);
+    VertexAttributeArray_init(&ctx->vao_triangles, attribute_stride);
     glBindVertexArray(ctx->vao_triangles);
 
         VertexBufferData_init_inplace(
             &ctx->triangle_buffer, 
-            SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE,
+            SD_CONTEXT_SIZE * attribute_stride,
             ctx->vertices_triangles,
             SD_CONTEXT_SIZE,
             ctx->indices_triangles
@@ -668,11 +677,11 @@ template<usize SD_CONTEXT_SIZE> inline bool Context_init(sd::Context<SD_CONTEXT_
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    VertexAttributeArray_init(&ctx->vao_lines, ATTRIBUTE_STRIDE);
+    VertexAttributeArray_init(&ctx->vao_lines, attribute_stride);
     glBindVertexArray(ctx->vao_lines);
         VertexBufferData_init_inplace(
             &ctx->line_buffer, 
-            SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE,
+            SD_CONTEXT_SIZE * attribute_stride,
             ctx->vertices_lines,
             SD_CONTEXT_SIZE,
             ctx->indices_lines
@@ -695,10 +704,10 @@ template<usize SD_CONTEXT_SIZE> inline bool Context_init(sd::Context<SD_CONTEXT_
     return true;
 }
 
-template<usize N = 2048> sd::Context<N> Context_make(Mat4 projection_matrix)
+template<usize SD_CONTEXT_SIZE = 2048> sd::Context<SD_CONTEXT_SIZE> Context_make(Mat4 projection_matrix)
 {
-    sd::Context<N> ctx;
-    if (sd::Context_init(&ctx, projection_matrix) == false) {
+    sd::Context<SD_CONTEXT_SIZE> ctx;
+    if (sd::init(&ctx, projection_matrix) == false) {
         SD_LOG_ERR("%s\n", "ERROR: Context creation failed");
     }
     return ctx;
@@ -727,7 +736,16 @@ template<usize N> void render(sd::Context<N>* ctx)
     glUseProgram(0);
 }
 
-template<usize N> void reset(sd::Context<N>* ctx)
+template<usize N> void free(sd::Context<N>* ctx)
+{
+    VertexAttributeArray_delete(&ctx->vao_triangles);
+    VertexAttributeArray_delete(&ctx->vao_lines);
+    VertexBufferData_delete_inplace(&ctx->triangle_buffer);
+    VertexBufferData_delete_inplace(&ctx->line_buffer);
+    glDeleteProgram(ctx->shader);
+}
+
+template<usize SD_CONTEXT_SIZE> void reset(sd::Context<SD_CONTEXT_SIZE>* ctx)
 {
     ctx->triangle_buffer.v_count = 0;
     ctx->triangle_buffer.i_count = 0;
@@ -739,14 +757,15 @@ template<usize N> void reset(sd::Context<N>* ctx)
     ctx->index_lines     = 0;        
 }
 
+
 template<usize SD_CONTEXT_SIZE> bool line(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec3 a, Vec3 b)
 {
     const usize v_count = ctx->line_buffer.v_count;
     const usize i_count = ctx->line_buffer.i_count;
 
-    const usize ATTRIBUTE_STRIDE = sd::Context<SD_CONTEXT_SIZE>::ATTRIBUTE_STRIDE;
+    const usize attribute_stride = ctx->vao_lines.stride;
 
-    if (v_count + (2 * ATTRIBUTE_STRIDE) > (SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE) || (i_count + 2 > SD_CONTEXT_SIZE * 2)) {
+    if (v_count + (2 * attribute_stride) > (SD_CONTEXT_SIZE * attribute_stride) || (i_count + 2 > SD_CONTEXT_SIZE * 2)) {
         SD_LOG_ERR("%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
         return false;
     }
@@ -757,14 +776,14 @@ template<usize SD_CONTEXT_SIZE> bool line(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec
     memcpy(&ctx->vertices_lines[v_idx + 3], &ctx->color[0], sizeof(ctx->color[0]) * 4);
 
 
-    memcpy(&ctx->vertices_lines[v_idx + ATTRIBUTE_STRIDE], &b[0], sizeof(b[0]) * 3);
-    memcpy(&ctx->vertices_lines[v_idx + ATTRIBUTE_STRIDE + 3], &ctx->color[0], sizeof(ctx->color[0]) * 4);
+    memcpy(&ctx->vertices_lines[v_idx + attribute_stride], &b[0], sizeof(b[0]) * 3);
+    memcpy(&ctx->vertices_lines[v_idx + attribute_stride + 3], &ctx->color[0], sizeof(ctx->color[0]) * 4);
 
     ctx->indices_lines[i_count]     = ctx->index_lines;
     ctx->indices_lines[i_count + 1] = ctx->index_lines + 1;
     ctx->index_lines += 2;
 
-    ctx->line_buffer.v_count += (2 * ATTRIBUTE_STRIDE);
+    ctx->line_buffer.v_count += (2 * attribute_stride);
     ctx->line_buffer.i_count += 2;
 
     return true;
@@ -772,35 +791,216 @@ template<usize SD_CONTEXT_SIZE> bool line(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec
 
 template<usize SD_CONTEXT_SIZE> bool line(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec2 a, Vec2 b)
 {
-    const usize v_count = ctx->line_buffer.v_count;
-    const usize i_count = ctx->line_buffer.i_count;
+    return sd::line(ctx, Vec3(a, 1), Vec3(b, 1));
+}
 
-    const usize ATTRIBUTE_STRIDE = sd::Context<SD_CONTEXT_SIZE>::ATTRIBUTE_STRIDE;
+template<usize SD_CONTEXT_SIZE> bool remove_line_swap_end(sd::Context<SD_CONTEXT_SIZE>* ctx, usize idx)
+{
+    const usize attribute_stride = ctx->vao_lines.stride;
 
-    if (v_count + (2 * ATTRIBUTE_STRIDE) > SD_CONTEXT_SIZE * ATTRIBUTE_STRIDE || i_count + 2 > SD_CONTEXT_SIZE * 2) {
-        SD_LOG_ERR("%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
-        return false;
+#ifdef SD_BOUNDS_CHECK
+    if ((idx * (2 * attribute_stride) > (SD_CONTEXT_SIZE * attribute_stride)) || (idx * 2 > SD_CONTEXT_SIZE * 2)) {
+        SD_LOG_ERR("%s\n", "ERROR: remove_line INDEX OUT-OF-BOUNDS");
+        return false;           
     }
+#endif
 
-    const usize v_idx = v_count;
+    // reduce counts
+    ctx->line_buffer.v_count -= (2 * attribute_stride);
+    ctx->line_buffer.i_count -= 2;
 
-    memcpy(&ctx->vertices_lines[v_idx], &a[0], sizeof(a[0]) * 2);
-    ctx->vertices_lines[v_idx + 2] = 0.0f;
-    memcpy(&ctx->vertices_lines[v_idx + 3], &ctx->color[0], sizeof(ctx->color[0]) * 4);
+    // overwrite the element-to-delete with the last element
+    memcpy(&ctx->vertices_lines[(2 * attribute_stride) * idx], &ctx->vertices_lines[ctx->line_buffer.v_count], sizeof(GLfloat) * 2 * attribute_stride);
 
-
-    memcpy(&ctx->vertices_lines[v_idx + ATTRIBUTE_STRIDE], &b[0], sizeof(b[0]) * 2);
-    ctx->vertices_lines[v_idx + ATTRIBUTE_STRIDE + 2] = 0.0f;
-    memcpy(&ctx->vertices_lines[v_idx + ATTRIBUTE_STRIDE + 3], &ctx->color[0], sizeof(ctx->color[0]) * 4);
-
-    ctx->indices_lines[i_count]     = ctx->index_lines;
-    ctx->indices_lines[i_count + 1] = ctx->index_lines + 1;
-    ctx->index_lines += 2;
-
-    ctx->line_buffer.v_count += (2 * ATTRIBUTE_STRIDE);
-    ctx->line_buffer.i_count += 2;
+    // move the line index back by 2 (for each point in the segment)
+    ctx->index_lines -= 2;
 
     return true;
+}
+
+template<usize SD_CONTEXT_SIZE> bool polygon_convex_regular(sd::Context<SD_CONTEXT_SIZE>* ctx, GLfloat radius, Vec3 center, const usize count_sides)
+{
+    usize count_tris = count_sides - 2;
+
+    usize attribute_stride;
+    usize inc;
+
+    usize v_count = 0;
+    usize i_count = 0;
+    usize v_idx   = 0;
+    GLdouble angle_turn = -(TAU) / count_sides;
+
+    switch (ctx->draw_type) {
+    case GL_TRIANGLES:
+        attribute_stride = ctx->vao_triangles.stride;
+        inc = attribute_stride;
+
+        v_count = ctx->triangle_buffer.v_count;
+        i_count = ctx->triangle_buffer.i_count;
+        v_idx = v_count;
+#ifdef SD_BOUNDS_CHECK
+        if (v_count + (attribute_stride * count_sides) > SD_CONTEXT_SIZE * attribute_stride || i_count + (3 * count_tris) > SD_CONTEXT_SIZE * 2) {
+            SD_LOG_ERR("%s\n", "ERROR: polygon_convex_regular MAX TRIANGLES EXCEEDED");
+            return false;
+        }
+#endif
+
+        for (usize p = 0, idx_off = 0; p < count_tris; ++p, idx_off += 3) {
+            ctx->indices_triangles[i_count + idx_off]     = ctx->index_triangles + 0;
+            ctx->indices_triangles[i_count + idx_off + 1] = ctx->index_triangles + p + 1;
+            ctx->indices_triangles[i_count + idx_off + 2] = ctx->index_triangles + p + 2;
+        }
+        ctx->triangle_buffer.i_count += (3 * count_tris);
+
+
+        for (usize p = 0, off = 0; p < count_sides; ++p, off += inc) {
+            Vec3 point = glm::vec3(Mat4(1.0f) * 
+                glm::vec4(
+                    (radius * glm::cos(p * angle_turn)) + center.x,
+                    (radius * glm::sin(p * angle_turn)) + center.y,
+                    center.z,
+                    1.0f
+                )
+            );
+
+            ctx->vertices_triangles[v_idx + off]     = point.x;
+            ctx->vertices_triangles[v_idx + off + 1] = point.y;
+            ctx->vertices_triangles[v_idx + off + 2] = point.z;
+
+            memcpy(&ctx->vertices_triangles[v_idx + off + 3], &ctx->color[0], sizeof(ctx->color[0]) * 4);
+        }
+
+        ctx->triangle_buffer.v_count += (attribute_stride * count_sides);
+
+        ctx->index_triangles += count_sides;
+
+        break;
+    case GL_LINES:
+        attribute_stride = ctx->vao_lines.stride;
+        inc = attribute_stride;
+
+        v_count = ctx->line_buffer.v_count;
+        i_count = ctx->line_buffer.i_count;
+        v_idx = v_count;
+#ifdef SD_BOUNDS_CHECK
+        if (v_count + (attribute_stride * count_sides) > SD_CONTEXT_SIZE * attribute_stride || i_count + (2 * count_sides) > SD_CONTEXT_SIZE * 2) {
+            SD_LOG_ERR("%s\n", "ERROR: polygon_convex_regular MAX LINES EXCEEDED");
+            return false;
+        }
+#endif
+
+        for (usize p = 0, off = 0; p < count_sides; ++p, off += 2) {
+            ctx->indices_lines[i_count + off]     = ctx->index_lines + p;
+            ctx->indices_lines[i_count + off + 1] = ctx->index_lines + p + 1;
+        }
+        ctx->indices_lines[i_count + (count_sides * 2) - 1] = ctx->index_lines;
+
+        ctx->line_buffer.i_count += (2 * count_sides);
+
+        for (usize p = 0, off = 0; p < count_sides; ++p, off += inc) {
+            Vec3 point = Vec3(Mat4(1.0f) * 
+                Vec4(
+                    (radius * glm::cos(p * angle_turn)) + center.x,
+                    (radius * glm::sin(p * angle_turn)) + center.y,
+                    center.z,
+                    1.0f
+                )
+            );
+            ctx->vertices_lines[v_idx + off]     = point.x;
+            ctx->vertices_lines[v_idx + off + 1] = point.y;
+            ctx->vertices_lines[v_idx + off + 2] = point.z;
+
+            memcpy(&ctx->vertices_lines[v_idx + off + 3], &ctx->color[0], sizeof(ctx->color[0]) * 4);
+        }
+
+        ctx->line_buffer.v_count += (attribute_stride * count_sides);          
+
+        ctx->index_lines += count_sides; 
+
+        break;
+    }
+
+    return true;
+}
+
+template<usize SD_CONTEXT_SIZE> bool polygon_convex_regular(sd::Context<SD_CONTEXT_SIZE>* ctx, GLfloat radius, Vec2 center, const usize count_sides)
+{
+    return sd::polygon_convex_regular(ctx, radius, Vec3(center, 1.0), count_sides);
+}
+
+template<usize SD_CONTEXT_SIZE> bool circle(sd::Context<SD_CONTEXT_SIZE>* ctx, GLfloat radius, Vec3 center, usize detail)
+{
+    return sd::polygon_convex_regular(ctx, radius, center, detail);
+}
+
+template<usize SD_CONTEXT_SIZE> bool circle(sd::Context<SD_CONTEXT_SIZE>* ctx, GLfloat radius, Vec2 center, usize detail)
+{
+    return sd::polygon_convex_regular(ctx, radius, center, detail);
+}
+
+template<usize SD_CONTEXT_SIZE> bool vertex(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec3 v)
+{
+    usize v_count = 0;
+    usize i_count = 0;
+    usize v_idx = 0;
+
+    usize attribute_stride;
+
+    switch (ctx->draw_type) {
+    case GL_TRIANGLES:
+        attribute_stride = ctx->vao_triangles.stride;
+
+        v_count = ctx->triangle_buffer.v_count;
+        i_count = ctx->triangle_buffer.i_count;
+        v_idx = v_count;
+#ifdef SD_BOUNDS_CHECK
+        if (v_count + attribute_stride > SD_CONTEXT_SIZE * attribute_stride || i_count + 1 > SD_CONTEXT_SIZE * 2) {
+            SD_LOG_ERR("%s\n", "ERROR: vertex MAX TRIANGLES EXCEEDED");
+            return false;
+        }
+#endif
+
+        memcpy(&ctx->vertices_triangles[v_idx], &v[0], sizeof(v[0]) * 3);
+        memcpy(&ctx->vertices_triangles[v_idx + 3], &ctx->color[0], sizeof(ctx->color[0]) * 4);
+
+        ctx->indices_triangles[i_count] = ctx->index_triangles;
+        ctx->index_triangles += 1;
+
+        ctx->triangle_buffer.v_count += attribute_stride;
+        ctx->triangle_buffer.i_count += 1;
+
+        break;
+    case GL_LINES:
+        attribute_stride = ctx->vao_lines.stride;
+
+        v_count = ctx->line_buffer.v_count;
+        i_count = ctx->line_buffer.i_count;
+        v_idx = v_count;
+#ifdef SD_BOUNDS_CHECK
+        if (v_count + attribute_stride > SD_CONTEXT_SIZE * attribute_stride || i_count + 1 > SD_CONTEXT_SIZE * 2) {
+            SD_LOG_ERR("%s\n", "ERROR: vertex MAX LINES EXCEEDED");
+            return false;
+        }
+#endif
+
+        memcpy(&ctx->vertices_lines[v_idx], &v[0], sizeof(v[0]) * 3);
+        memcpy(&ctx->vertices_lines[v_idx + 3], &ctx->color[0], sizeof(ctx->color[0]) * 4);
+
+        ctx->indices_lines[i_count] = ctx->index_lines;
+        ctx->index_lines += 1;
+
+        ctx->line_buffer.v_count += attribute_stride;
+        ctx->line_buffer.i_count += 1;
+
+        break;
+    }
+
+    return true;      
+}
+
+template<usize SD_CONTEXT_SIZE> bool vertex(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec2 v)
+{
+    return sd::vertex(ctx, Vec3(v, 1.0));
 }
 
 // #define MAX_IMG_SIZE (128 * 128)

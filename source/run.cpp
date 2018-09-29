@@ -35,6 +35,7 @@
 #define COLLISION_IMPLEMENTATION
 #include "collision.h"
 
+#define OPEN_GL_IMPLEMENTATION
 #include "opengl.hpp"
 
 #include "sdl.hpp"
@@ -58,211 +59,7 @@ int ignore_mouse_movement(void* unused, SDL_Event* event)
     return (event->type == SDL_MOUSEMOTION) ? 0 : 1;
 }
 
-
 SDL_Window* window = NULL;
-
-typedef void* (*Fn_MemoryAllocator)(size_t bytes);
-
-
-// TEXTURES, GEOMETRY
-typedef struct TextureData {
-    Texture* ids;
-    size_t count;
-} TextureData;
-
-void TextureData_init(TextureData* t, const size_t id_count) 
-{
-    t->ids = (Texture*)xmalloc(id_count * sizeof(t->ids));
-    t->count = id_count;
-    glGenTextures(t->count, t->ids);
-}
-
-void TextureData_init_inplace(TextureData* t, const size_t id_count, Texture* buffer)
-{
-    t->ids = buffer;
-    t->count = id_count;
-    glGenTextures(id_count, t->ids);
-}
-
-void TextureData_delete(TextureData* t)
-{
-    glDeleteTextures(t->count, t->ids);
-    free(t);
-}
-void TextureData_delete_inplace(TextureData* t)
-{
-    glDeleteTextures(t->count, t->ids);
-}
-
-struct sceneData {
-    glm::mat4 m_model;
-    glm::mat4 m_view;
-    glm::mat4 m_projection;
-} scene;
-
-
-// ATTRIBUTES AND VERTEX ARRAYS
-
-typedef struct AttributeData {
-    GLuint    index;
-    GLint     size;
-    GLenum    type;
-    GLboolean normalized;
-    GLsizei   stride;
-    GLvoid*   pointer;
-    GLchar*   name;
-} AttributeData;
-
-void AttributeData_init(
-    AttributeData* a,
-    GLuint index,
-    GLint size,
-    GLenum type,
-    GLboolean normalized,
-    GLsizei stride,
-    GLvoid* pointer,
-    GLchar* name    
-) {
-    a->index = index;
-    a->size = size;
-    a->type = type;
-    a->normalized = normalized;
-    a->stride = stride;
-    a->pointer = pointer;
-    a->name = name;
-}
-
-// #define VAO_ATTRIBUTE_MAIN_TEST_COUNT 3
-// typedef struct _VertexArrayData {
-//     VertexArray vao;
-//     size_t attribute_count;
-//     AttributeData attributes[VAO_ATTRIBUTE_MAIN_TEST_COUNT];
-// } VertexArrayData;
-
-// #define VAO_ATTRIBUTE_LIGHT_DAT_COUNT 3
-// typedef struct _VertexArrayData {
-//     VertexArray vao;
-//     size_t attribute_count;
-//     AttributeData attributes[VAO_ATTRIBUTE_MAIN_TEST_COUNT];
-// } VertexArrayData;
-
-// VERTEX BUFFERS
-
-
-// struct MemoryAllocator {
-//     void* type;
-//     Fn_MemoryAllocator fn_alloc;
-    
-//     void* alloc(size_t bytes)
-//     {
-//         return Fn_MemoryAllocator(type, bytes);
-//     }
-// };
-
-// void MemoryAllocator_init(MemoryAllocator* ma, void* type, Fn_MemoryAllocator* fn_alloc, Fn_MemoryAllocatorType_init fn_init, void* args)
-// {
-//     ma->fn_alloc = fn_alloc;
-//     ma->type = alloc;
-//     fn_init(fn_alloc, args);
-// }
-
-struct VertexBufferData {
-    VertexBuffer vbo;
-    ElementBuffer ebo;
-    size_t    v_cap;
-    size_t    v_count;
-    size_t    i_cap;
-    size_t    i_count;
-    GLfloat*  vertices;
-    GLuint*   indices;
-};
-
-struct Open_GL_Data {
-    VertexBuffer vbo;
-    ElementBuffer ebo;
-    DynamicBuffer<GLfloat> vertices;
-    DynamicBuffer<GLuint> indices;
-};
-
-struct Entity {
-    glm::vec3 position;
-    GLfloat rotation;
-};
-
-// struct VertexBufferDataAlt {
-//     VertexBuffer vbo;
-//     ElementBuffer ebo;
-//     Buffer<GLfloat> vertices_lines;
-//     Buffer<GLuint>  indices;
-// } VertexBufferDataAlt;
-
-// typedef VertexBufferData VBData;
-
-
-
-void VertexBufferData_init(
-    VertexBufferData* g,
-    const size_t v_cap,
-    const size_t i_cap,
-    Fn_MemoryAllocator alloc_v,
-    Fn_MemoryAllocator alloc_i
-) {
-    glGenBuffers(1, (GLBuffer*)&g->vbo);
-    glGenBuffers(1, (GLBuffer*)&g->ebo);
-
-    g->v_cap = v_cap;
-    g->i_cap = i_cap;
-
-    g->vertices = (GLfloat*)alloc_v(sizeof(GLfloat) * g->v_cap);
-    g->indices  = (GLuint*)alloc_i(sizeof(GLuint) * g->i_cap);
-
-    g->v_count = v_cap;
-    g->i_count = i_cap;
-}
-
-void VertexBufferData_init_inplace(
-    VertexBufferData* g,
-    const size_t v_cap,
-    GLfloat* vertices,
-    const size_t i_cap,
-    GLuint* indices
-) {
-    glGenBuffers(1, (GLBuffer*)&g->vbo);
-    glGenBuffers(1, (GLBuffer*)&g->ebo);
-
-    g->v_cap = v_cap;
-    g->i_cap = i_cap;
-
-    g->vertices = vertices;
-    g->indices  = indices;
-
-    g->v_count = v_cap;
-    g->i_count = i_cap;
-}
-
-void VertexBufferData_delete(VertexBufferData* g)
-{
-    glDeleteBuffers(1, (GLBuffer*)&g->vbo);
-    glDeleteBuffers(1, (GLBuffer*)&g->ebo);
-    free(g->vertices);
-    free(g->indices);
-}
-void VertexBufferData_delete_inplace(VertexBufferData* g)
-{
-    glDeleteBuffers(1, (GLBuffer*)&g->vbo);
-    glDeleteBuffers(1, (GLBuffer*)&g->ebo);
-}
-
-void VertexBufferData_init_with_arenas(ArenaAllocator* v_arena, ArenaAllocator* i_arena, VertexBufferData* vbd, size_t v_count_elements, size_t i_count_elements) 
-{
-    VertexBufferData_init_inplace(
-        vbd, 
-        v_count_elements,
-        (GLfloat*)ArenaAllocator_allocate(v_arena, v_count_elements * sizeof(GLfloat)),
-        i_count_elements,
-        (GLuint*)ArenaAllocator_allocate(i_arena, i_count_elements * sizeof(GLuint))
-    );
-}
 
 void* GlobalArenaAlloc_vertex_attribute_data(size_t count) 
 {
@@ -271,117 +68,6 @@ void* GlobalArenaAlloc_vertex_attribute_data(size_t count)
 void* GlobalArenaAlloc_index_data(size_t count) 
 {
     return xmalloc(count * sizeof(GLuint));    
-}
-
-
-typedef struct VertexAttributeArray {
-    VertexArray vao;
-    size_t stride;
-
-    operator GLuint() { return vao; }
-
-} VertexAttributeArray;
-
-typedef VertexAttributeArray VAttribArr;
-
-void VertexAttributeArray_init(VertexAttributeArray* vao, size_t stride) 
-{
-    glGenVertexArrays(1, &vao->vao);
-    vao->stride = stride;
-}
-void VertexAttributeArray_delete(VertexAttributeArray* vao) 
-{
-    glDeleteVertexArrays(1, &vao->vao);
-}
-
-#define attribute_offsetof(offset) (GLvoid*)(offset * sizeof(GLfloat))
-
-#define attribute_sizeof(vao) vao->stride * sizeof(GLfloat)
-
-void gl_set_and_enable_vertex_attrib_ptr(GLuint index, GLint size, GLenum type, GLboolean normalized, size_t offset, VertexAttributeArray* va)
-{
-    glVertexAttribPointer(index, size, type, normalized, attribute_sizeof(va), attribute_offsetof(offset));            
-    glEnableVertexAttribArray(index);
-}
-
-void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, GLenum usage, size_t v_cap, size_t i_cap, GLintptr v_begin_offset = 0, GLintptr i_begin_offset = 0)
-{
-    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
-    glBufferData(GL_ARRAY_BUFFER, v_cap * sizeof(GLfloat), vbd->vertices + v_begin_offset, usage);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbd->ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, i_cap * sizeof(GLuint), vbd->indices + i_begin_offset, usage);            
-}
-
-void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, GLenum usage, GLintptr v_begin_offset = 0, GLintptr i_begin_offset = 0)
-{
-    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
-    glBufferData(GL_ARRAY_BUFFER, vbd->v_cap * sizeof(GLfloat), vbd->vertices + v_begin_offset, usage);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbd->ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, vbd->i_cap * sizeof(GLuint), vbd->indices + i_begin_offset, usage);           
-}
-
-void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd)
-{
-    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, vbd->v_count * sizeof(GLfloat), vbd->vertices);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, vbd->ebo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, vbd->i_count * sizeof(GLuint), vbd->indices);
-}
-
-void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset)
-{
-    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, v_dest_offset * sizeof(GLfloat), v_sub_count * sizeof(GLfloat), vbd->vertices + v_begin_offset);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, vbd->ebo);
-    glBufferSubData(GL_ARRAY_BUFFER, i_dest_offset * sizeof(GLuint), i_sub_count * sizeof(GLuint), vbd->indices + i_begin_offset);
-}
-
-void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset, GLfloat* vertices, GLuint* indices)
-{
-    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, v_dest_offset * sizeof(GLfloat), v_sub_count * sizeof(GLfloat), vertices + v_begin_offset);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, vbd->ebo);
-    glBufferSubData(GL_ARRAY_BUFFER, i_dest_offset * sizeof(GLuint), i_sub_count * sizeof(GLuint), indices + i_begin_offset);
-}
-
-struct GLData {
-    VertexAttributeArray vao;
-    VertexBufferData vbd;
-};
-
-void GLData_init(GLData* gl_data, size_t attribute_stride, const size_t v_cap, const size_t i_cap, Fn_MemoryAllocator alloc_v, Fn_MemoryAllocator alloc_i) 
-{
-    VertexAttributeArray_init(&gl_data->vao, attribute_stride);
-    VertexBufferData_init(&gl_data->vbd, v_cap, i_cap, alloc_v, alloc_i);
-}
-
-void GLData_init_inplace(GLData* gl_data, size_t attribute_stride, const size_t v_cap, GLfloat* vertices, const size_t i_cap, GLuint* indices) 
-{
-    VertexAttributeArray_init(&gl_data->vao, attribute_stride);
-    VertexBufferData_init_inplace(&gl_data->vbd, v_cap, vertices, i_cap, indices);    
-}
-
-inline void GLData_advance(GLData* const gl_data, const size_t i)
-{
-    gl_data->vbd.v_count += (i * gl_data->vao.stride);
-    gl_data->vbd.i_count += i;
-}
-
-void GLData_delete(GLData* gl_data)
-{
-    VertexAttributeArray_delete(&gl_data->vao);
-    VertexBufferData_delete(&gl_data->vbd);
-}
-
-void GLData_delete_inplace(GLData* gl_data)
-{
-    VertexAttributeArray_delete(&gl_data->vao);
-    VertexBufferData_delete_inplace(&gl_data->vbd);    
 }
 
 // WORLD STATE
@@ -408,6 +94,7 @@ GlobalData program_data;
 
 #define SD_DEBUG_LOG_ON
 #define SD_RENDERER_OPENGL
+#define SD_BOUNDS_CHECK
 #define SD_IMPLEMENTATION
 #include "sd.hpp"
 
@@ -864,17 +551,17 @@ void draw_player_collision(Player* you, sd::Context<N>* ctx)
 {
     const Vec3 off(0.5, 0.5, 0.0);
     BoxComponent* bc = &you->bound;
-    glm::vec3 top_left = bc->position() + off;
-    glm::vec3 top_right = top_left + glm::vec3(bc->width, 0.0, 0.0);
-    glm::vec3 bottom_right = top_left + glm::vec3(bc->width, bc->height, 0.0);
-    glm::vec3 bottom_left = top_left + glm::vec3(0.0, bc->height, 0.0);
+    Vec3 top_left = bc->position() + off;
+    Vec3 top_right = top_left + Vec3(bc->width, 0.0, 0.0);
+    Vec3 bottom_right = top_left + Vec3(bc->width, bc->height, 0.0);
+    Vec3 bottom_left = top_left + Vec3(0.0, bc->height, 0.0);
 
     { // bound
         ctx->draw_type = GL_LINES;
-        ctx->line(top_left, top_right);
-        ctx->line(top_right, bottom_right);
-        ctx->line(bottom_right, bottom_left);
-        ctx->line(bottom_left, top_left);
+        sd::line(ctx, top_left, top_right);
+        sd::line(ctx, top_right, bottom_right);
+        sd::line(ctx, bottom_right, bottom_left);
+        sd::line(ctx, bottom_left, top_left);
     }
 
     { // floor sensors
@@ -885,8 +572,8 @@ void draw_player_collision(Player* you, sd::Context<N>* ctx)
         floor_sensor_rays.second.first  += off;
         floor_sensor_rays.second.second += off;
 
-        ctx->line(floor_sensor_rays.first.first, floor_sensor_rays.first.second);
-        ctx->line(floor_sensor_rays.second.first, floor_sensor_rays.second.second);
+        sd::line(ctx, floor_sensor_rays.first.first, floor_sensor_rays.first.second);
+        sd::line(ctx, floor_sensor_rays.second.first, floor_sensor_rays.second.second);
     }
 
     { // side sensors
@@ -896,35 +583,35 @@ void draw_player_collision(Player* you, sd::Context<N>* ctx)
         side_sensor_rays.second.first  += off;
         side_sensor_rays.second.second += off;
 
-        ctx->color = glm::vec4(1.0, 165.0 / 255, 0.0, 1.0);
-        ctx->line(side_sensor_rays.first.first, side_sensor_rays.first.second);
-        ctx->color = glm::vec4(148.0 / 255, 0.0, 211.0 / 255, 1.0);
-        ctx->line(side_sensor_rays.second.first, side_sensor_rays.second.second);
+        ctx->color = Vec4(1.0, 165.0 / 255, 0.0, 1.0);
+        sd::line(ctx, side_sensor_rays.first.first, side_sensor_rays.first.second);
+        ctx->color = Vec4(148.0 / 255, 0.0, 211.0 / 255, 1.0);
+        sd::line(ctx, side_sensor_rays.second.first, side_sensor_rays.second.second);
     }
 }
 
 template <usize N>
 void BoxComponent_draw(BoxComponent* bc, sd::Context<N>* ctx)
 {
-    const glm::vec3 off(0.5, 0.5, 0.0);
-    glm::vec3 top_left = bc->position() + off;
-    glm::vec3 top_right = top_left + Vec3(bc->width, 0.0, 0.0);
-    glm::vec3 bottom_right = top_left + Vec3(bc->width, bc->height, 0.0);
-    glm::vec3 bottom_left = top_left + Vec3(0.0, bc->height, 0.0);
+    const Vec3 off(0.5, 0.5, 0.0);
+    Vec3 top_left = bc->position() + off;
+    Vec3 top_right = top_left + Vec3(bc->width, 0.0, 0.0);
+    Vec3 bottom_right = top_left + Vec3(bc->width, bc->height, 0.0);
+    Vec3 bottom_left = top_left + Vec3(0.0, bc->height, 0.0);
 
     ctx->draw_type = GL_LINES;
-    ctx->line(top_left, top_right);
-    ctx->line(top_right, bottom_right);
-    ctx->line(bottom_right, bottom_left);
-    ctx->line(bottom_left, top_left);
+    sd::line(ctx, top_left, top_right);
+    sd::line(ctx, top_right, bottom_right);
+    sd::line(ctx, bottom_right, bottom_left);
+    sd::line(ctx, bottom_left, top_left);
 }
 
 bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
 {
     auto sensors = you->floor_sensor_rays();
 
-    std::pair<Vec3, Vec3>* ray0 = &sensors.first;
-    std::pair<Vec3, Vec3>* ray1 = &sensors.second;
+    vec3_pair* ray0 = &sensors.first;
+    vec3_pair* ray1 = &sensors.second;
     std::pair<Vec3, Vec3> collider = {
         c->a,
         c->b
@@ -1141,8 +828,18 @@ bool load_config(AirPhysicsConfig* conf)
 #include "metatesting.cpp"
 #endif
 
+
 int main(int argc, char* argv[])
-{   
+{  
+    // auto b = Buffer<usize, 10>::Buffer_make();
+    // b.elements_used = 0;
+    // for (usize i = 0; i < 10; i += 1) {
+    //     b.push_back(i);
+    // }
+    // WEE(b);
+    // WEE(b.slice(1, 3));
+
+    // return 0; 
     #ifdef METATESTING
     puts("metatesting, main program disabled");
     metatesting();
@@ -1165,8 +862,8 @@ int main(int argc, char* argv[])
 
     std::cout << StaticArrayCount(config_state) << std::endl;
     // modify
-    for (usize k = 0; k < 2; ++k) {
-        for (usize i = 0; i < StaticArrayCount(config_state); ++i) {
+    for (usize k = 0; k < 2; k += 1) {
+        for (usize i = 0; i < StaticArrayCount(config_state); i += 1) {
             using pt = PROPERTY_TYPE;
             switch (config_state[i].type) {
             case pt::PROP_f64:
@@ -1176,7 +873,7 @@ int main(int argc, char* argv[])
         }
     }
     // reset to defaults
-    for (usize i = 0; i < StaticArrayCount(config_state); ++i) {
+    for (usize i = 0; i < StaticArrayCount(config_state); i += 1) {
         using pt = PROPERTY_TYPE;
         switch (config_state[i].type) {
         case pt::PROP_f64:
@@ -2017,7 +1714,7 @@ int main(int argc, char* argv[])
                 drawctx.begin();
                 drawctx.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
 
-                for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
+                for (auto it = collision_map.begin(); it != collision_map.first_free(); it += 1)
                 {
                     //Collider_print(it);
                     
@@ -2514,7 +2211,8 @@ int main(int argc, char* argv[])
                         in_prog.draw_type = GL_TRIANGLES;
                         in_prog.transform_matrix = cam;
                         in_prog.color = Color::RED;
-                        in_prog.circle(
+                        sd::circle(
+                            &in_prog,
                             10.0f * (1.0 / main_cam.scale),
                             Vec3(
                                 mouse.x, 
@@ -2538,16 +2236,16 @@ int main(int argc, char* argv[])
                     f64 min_dist = dist_to_segment_squared(it->a, it->b, mouse);
                     Collider* nearest_seg = it;
                     usize selection = 0;
-                    ++it;
+                    it += 1;
                     usize idx = 1;
-                    for (; it != collision_map.first_free(); ++it) {
+                    for (; it != collision_map.first_free(); it += 1) {
                         f64 d2 = dist_to_segment_squared(it->a, it->b, mouse);
                         if (d2 < min_dist) {
                             min_dist = d2;
                             nearest_seg = it;
                             selection = idx;
                         }
-                        ++idx;
+                        idx += 1;
                     }
                     if (min_dist <= COLLIDER_MAX_SELECTION_DISTANCE * (1.0 / main_cam.scale)) {
                         in_prog.begin();
@@ -2558,9 +2256,9 @@ int main(int argc, char* argv[])
                         in_prog.end();
 
                         collision_map[selection] = collision_map[collision_map.elements_used - 1];
-                        --collision_map.elements_used;
+                        collision_map.elements_used -= 1;
 
-                        existing.remove_line(selection);
+                        sd::remove_line_swap_end(&existing, selection);
                     }
                 } else {
                     in_prog.begin();
@@ -2569,7 +2267,8 @@ int main(int argc, char* argv[])
                         in_prog.draw_type = GL_TRIANGLES;
                         in_prog.transform_matrix = cam;
                         in_prog.color = Color::RED;
-                        in_prog.circle(
+                        sd::circle(
+                            &in_prog,
                             5.0f * (1.0 / main_cam.scale),
                             glm::vec3(
                                 mouse.x, 
@@ -2612,7 +2311,8 @@ int main(int argc, char* argv[])
                         in_prog.draw_type = GL_TRIANGLES;
                         in_prog.transform_matrix = cam;
                         in_prog.color = Color::BLUE;
-                        in_prog.circle(
+                        sd::circle(
+                            &in_prog,
                             5.0f * (1.0 / main_cam.scale),
                             glm::vec3(
                                 snap_to_grid(mouse.x, grid_len), 
@@ -2645,7 +2345,8 @@ int main(int argc, char* argv[])
                         in_prog.draw_type = GL_TRIANGLES;
                         in_prog.transform_matrix = cam;
                         in_prog.color = Color::GREEN;
-                        in_prog.circle(
+                        sd::circle(
+                            &in_prog,
                             10.0f * (1.0 / main_cam.scale),
                             glm::vec3(
                                 snap_to_grid(mouse.x, grid_len), 
@@ -2695,7 +2396,8 @@ int main(int argc, char* argv[])
                         in_prog.draw_type = GL_TRIANGLES;
                         in_prog.transform_matrix = cam;
                         in_prog.color = Color::BLUE;
-                        in_prog.circle(
+                        sd::circle(
+                            &in_prog,
                             5.0f * (1.0 / main_cam.scale),
                             glm::vec3(
                                 snap_to_grid(mouse.x, grid_len), 
@@ -2788,7 +2490,7 @@ int main(int argc, char* argv[])
 
             CollisionStatus status;
             CollisionStatus_init(&status);
-            for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
+            for (auto it = collision_map.begin(); it != collision_map.first_free(); it += 1)
             {
                 //Collider_print(it);
                 

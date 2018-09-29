@@ -82,14 +82,25 @@ constexpr bool is_powerof2(usize N)
 #define PI (PI64)
 #define TAU (2 * PI)
 
+template <typename T>
+struct ArraySlice {
+    const T* data;
+    const usize count;
+};
+
 template <typename T, usize N>
 struct Buffer {
     T memory[N];
     usize elements_used;
 
-    operator T*(void)
+    operator ArraySlice<T>(void)
     {
-        return this->memory;
+        return ArraySlice<T>{this->memory, this->elements_used};
+    }
+
+    inline ArraySlice<T> slice(usize i, usize j)
+    {
+        return ArraySlice<T>{&this->memory[i], j - i};
     }
 
     inline T& operator[](usize i)
@@ -114,6 +125,7 @@ struct Buffer {
 
     inline void push_back(T val)
     {
+        //std::cout << this->elements_used << "/" << N << std::endl;
         assert(this->elements_used < N);
         memory[this->elements_used] = val;
         this->elements_used += 1;
@@ -136,40 +148,52 @@ struct Buffer {
     iterator begin(void) { return &this->memory[0]; }
     iterator end(void) { return &this->memory[N]; }
     iterator first_free(void) { return &this->memory[this->elements_used]; }
+
+
+    static void init(Buffer<T, N>* buffer)
+    {
+        buffer->elements_used = 0;
+    }
+    static Buffer<T, N> Buffer_make(void)
+    {
+        Buffer<T, N> buff;
+        buff.init(&buff);
+        return buff;
+    }
 };
 
 template <typename T>
 struct DynamicBuffer {
-    size_t cap;
-    size_t count;
-    T*  array;
+    usize cap;
+    usize count;
+    T*    data;
 
-    operator T*()
+    operator T*(void)
     {
-        return this->array;
+        return this->data;
     }
 
-    T& operator[](size_t i)
+    T& operator[](usize i)
     {
-        return this->array[i];
+        return this->data[i];
     }
      
-    const T& operator[](size_t i) const 
+    const T& operator[](usize i) const 
     {
-        return this->array[i];
+        return this->data[i];
     }
 
-    inline size_t element_count() const
+    inline usize element_count(void) const
     {
         return this->count;
     }
 
-    inline size_t element_size() const
+    inline usize element_size(void) const
     {
         return sizeof(T);
     }
 
-    inline size_t size() const
+    inline usize size(void) const
     {
         return this->cap;
     }
@@ -180,7 +204,6 @@ struct DynamicBuffer {
     iterator begin() { return &this->array[0]; }
     iterator end() { return &this->array[this->cap]; }
 };
-
 
 
 constexpr bool is_pow_2_greater_equal_4(usize N)

@@ -60,8 +60,8 @@ typedef unsigned char* ucharptr;
 #define gb(n) (mb(n) * 1024ull)
 
 
-#define foreach(i, lim) for (u64 (i) = 0; (i) < ((u64)lim); ++(i))
-#define forrange(i, l, h) for (i64 (i) = (l); (i) < (h); ++(i))
+#define foreach(i, lim) for (u64 (i) = 0; (i) < ((u64)lim); (i += 1))
+#define forrange(i, l, h) for (i64 (i) = (l); (i) < (h); (i += 1))
 
 
 #define PASTE2(x, y) x##y
