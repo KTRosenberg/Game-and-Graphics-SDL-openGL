@@ -1215,7 +1215,7 @@ int main(int argc, char* argv[])
 
     delete[] and_gate.and_n.in;
     delete[] and_gate.and_n.out;
-    return 0;
+    //return 0;
     // auto b = Buffer<usize, 10>::Buffer_make();
     // b.elements_used = 0;
     // for (usize i = 0; i < 10; i += 1) {

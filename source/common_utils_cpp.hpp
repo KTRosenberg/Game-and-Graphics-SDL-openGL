@@ -162,6 +162,7 @@ struct Buffer {
     }
 };
 
+
 template <typename T>
 struct DynamicBuffer {
     usize cap;
