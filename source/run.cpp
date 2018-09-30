@@ -91,12 +91,328 @@ struct GlobalData {
 GlobalData program_data;
 
 #define SD
-
 #define SD_DEBUG_LOG_ON
-#define SD_RENDERER_OPENGL
-#define SD_BOUNDS_CHECK
+#ifdef VULKAN_HPP
+    #define SD_RENDERER_VULKAN
+#elif defined(OPEN_GL_HPP)
+    #define SD_RENDERER_OPENGL
+#endif
+#if RELEASE_MODE
+#else
+    #define SD_BOUNDS_CHECK
+#endif
+
 #define SD_IMPLEMENTATION
 #include "sd.hpp"
+
+
+#define LOGIC_NODE_TYPE_LIST \
+    LOGIC_NODE_ENTRY(VALUE, STRING(VALUE)) \
+    LOGIC_NODE_ENTRY(NONE, STRING(NONE)) \
+    LOGIC_NODE_ENTRY(AND, STRING(AND)) \
+    LOGIC_NODE_ENTRY(OR, STRING(OR)) \
+    LOGIC_NODE_ENTRY(XOR, STRING(XOR)) \
+    LOGIC_NODE_ENTRY(NOT, STRING(NOT)) \
+    LOGIC_NODE_ENTRY(LESS_THAN, STRING(LESS_THAN)) \
+    LOGIC_NODE_ENTRY(LESS_EQ, STRING(LESS_EQ)) \
+    LOGIC_NODE_ENTRY(GREATER_THAN, STRING(GREATER_THAN)) \
+    LOGIC_NODE_ENTRY(GREATER_EQ, STRING(GREATER_EQ)) \
+    LOGIC_NODE_ENTRY(EQUAL, STRING(EQUAL)) \
+    LOGIC_NODE_ENTRY(WHILE, STRING(WHILE)) \
+    LOGIC_NODE_ENTRY(ADD, STRING(ADD)) \
+    LOGIC_NODE_ENTRY(SUBTRACT, STRING(SUBTRACT)) \
+    LOGIC_NODE_ENTRY(MULTIPLY, STRING(MULTIPLY)) \
+    LOGIC_NODE_ENTRY(DIVIDE, STRING(DIVIDE))
+
+// for visual linking gameplay
+enum struct LOGIC_NODE_TYPE {
+    #define LOGIC_NODE_ENTRY(a, b) a,
+    LOGIC_NODE_TYPE_LIST
+    #undef LOGIC_NODE_ENTRY
+    ENUM_COUNT
+};
+const char* const logic_node_type_strings[] = {
+    #define LOGIC_NODE_ENTRY(a, b) b,
+    LOGIC_NODE_TYPE_LIST
+    #undef LOGIC_NODE_ENTRY
+};
+
+struct LogicNode {
+    Vec3 position;
+    LOGIC_NODE_TYPE type;
+    float64 value;
+
+    union {
+        struct {
+            LogicNode* out;
+            usize out_count;
+            float64* value_ptr;
+        } value_n;
+        struct {
+            LogicNode* out;
+            usize out_count;
+        } none_n;
+
+        struct {
+            LogicNode** out;
+            usize out_count;
+            float64* in;
+            usize in_received;
+            usize in_count; 
+            bool negated;
+        } and_n;
+        
+        struct {
+            LogicNode* out;
+            usize out_count;
+            bool negated;
+        } or_n;
+        
+        struct {
+            LogicNode* out;
+            usize out_count;
+            bool negated;
+        } xor_n;
+
+        struct {
+            LogicNode* out;
+            usize out_count;
+            bool negated;
+        } not_n;
+        
+        struct {
+            LogicNode* out;
+            usize out_count;
+            bool negated;
+        } less_than_n;
+        struct {
+            LogicNode* out;
+            usize out_count;
+            bool negated;
+        } less_eq_n;
+        struct {
+            LogicNode* out;
+            usize out_count;
+            bool negated;
+        } greater_than_n;
+        struct {
+            LogicNode* out;
+            usize out_count;
+            bool negated;
+        } greater_eq_n;
+        struct {
+            LogicNode* out;
+            usize out_count;
+            bool negated;
+        } equal_n;
+
+        struct {
+            LogicNode* out_true; // multiple out or use a separate node to feed multiple outputs? TODO
+            LogicNode* out_false;
+            usize out_count_true;
+            usize out_count_false;
+        } while_n;
+
+        struct {
+            LogicNode* out;
+            usize out_count;
+            float64 value;
+        } add_n;
+        struct {
+            LogicNode* out;
+            usize out_count;
+            float64 value;
+        } subtract_n;
+        struct {
+            LogicNode* out;
+            usize out_count;
+            float64 value;
+        } multiply_n;
+        struct {
+            LogicNode* out;
+            usize out_count;
+            float64 value;
+        } divide_n;
+        
+        // struct {
+
+        // } for_n;
+    };
+};
+
+// TODO set input of child node in parent node, must move data outside the union
+
+#define LOGIC_NODE_PRINT
+void LogicNode_traverse(LogicNode* v, float64 value, std::string tabs);
+
+void LogicNode_handle_value(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << *(v->value_n.value_ptr) << std::endl;
+    #endif
+    // TODO multiple outs
+    LogicNode_traverse(v->value_n.out, *(v->value_n.value_ptr), tabs + "  ");
+}
+void LogicNode_handle_none(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << " : " << value << std::endl;
+    #endif
+}
+void LogicNode_handle_and(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;    
+    #endif
+    
+    v->and_n.in[v->and_n.in_received] = value;
+    v->and_n.in_received += 1;
+    if (v->and_n.in_received == v->and_n.in_count) {
+        v->and_n.in_received = 0;
+        bool out_val = true;
+        for (usize i = 0; i < v->and_n.in_count && out_val == true; i += 1) {
+            out_val &= (bool)v->and_n.in[i];
+        }
+        for (usize i = 0; i < v->and_n.out_count; i += 1) {
+            LogicNode_traverse(v->and_n.out[i], out_val, tabs + "  ");
+        }
+    }
+}
+void LogicNode_handle_or(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_xor(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_not(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_less_than(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_less_eq(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_greater_than(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_greater_eq(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_equal(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_while(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_add(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_subtract(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_multiply(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_divide(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+
+void LogicNode_traverse(LogicNode* v, float64 value, std::string tabs)
+{
+    using T = LOGIC_NODE_TYPE;
+    switch (v->type) {
+    case T::VALUE:
+        LogicNode_handle_value(v, value, tabs);
+        break;
+    case T::NONE:
+        LogicNode_handle_none(v, value, tabs);
+        break;
+    case T::AND:
+        LogicNode_handle_and(v, value, tabs);
+        break;
+    case T::OR:
+        LogicNode_handle_or(v, value, tabs);
+        break;
+    case T::XOR:
+        LogicNode_handle_xor(v, value, tabs);
+        break;
+    case T::NOT:
+        LogicNode_handle_not(v, value, tabs);
+        break;
+    case T::LESS_THAN:
+        LogicNode_handle_less_than(v, value, tabs);
+        break;
+    case T::LESS_EQ:
+        LogicNode_handle_less_eq(v, value, tabs);
+        break;
+    case T::GREATER_THAN:
+        LogicNode_handle_greater_than(v, value, tabs);
+        break;
+    case T::GREATER_EQ:
+        LogicNode_handle_greater_eq(v, value, tabs);
+        break;
+    case T::EQUAL:
+        LogicNode_handle_equal(v, value, tabs);
+        break;
+    case T::WHILE:
+        LogicNode_handle_while(v, value, tabs);
+        break;
+    case T::ADD:
+        LogicNode_handle_add(v, value, tabs);
+        break;
+    case T::SUBTRACT:
+        LogicNode_handle_subtract(v, value, tabs);
+        break;
+    case T::MULTIPLY:
+        LogicNode_handle_multiply(v, value, tabs);
+        break;
+    case T::DIVIDE:
+        LogicNode_handle_divide(v, value, tabs);
+        break;
+    default:
+        break;
+    }
+}
 
 WindowState window_state;
 
@@ -829,8 +1145,77 @@ bool load_config(AirPhysicsConfig* conf)
 #endif
 
 
+#include <time.h>
 int main(int argc, char* argv[])
 {  
+
+
+/*
+        struct {
+            LogicNode* out;
+            usize count;
+            float64* value_ptr;
+        } value_n;
+        struct {
+            LogicNode* out;
+            usize count;
+        } none_n;
+
+        struct {
+            LogicNode** out;
+            usize count;
+            float64* in;
+            usize input_received;
+            usize input_count; 
+            bool negated;
+        } and_n;
+        */
+
+    srand(time(NULL));
+
+    float64 avals[] = {(float64)(rand() % 2), (float64)(rand() % 2), (float64)(rand() % 2)};
+    float64 bvals[] = {(float64)(rand() % 2), (float64)(rand() % 2), (float64)(rand() % 2)};
+
+    float64 root_a_val = 0.0;
+    float64 root_b_val = 0.0;
+
+    LogicNode root_a;
+    root_a.type = LOGIC_NODE_TYPE::VALUE;
+    root_a.value_n.out_count = 1;
+    root_a.value_n.value_ptr = &root_a_val;
+    LogicNode root_b;
+    root_b.type = LOGIC_NODE_TYPE::VALUE;
+    root_b.value_n.out_count = 1;
+    root_b.value_n.value_ptr = &root_b_val;
+
+
+    LogicNode and_gate;
+    and_gate.type = LOGIC_NODE_TYPE::AND;
+    and_gate.and_n.in = new float64[2];
+    and_gate.and_n.in_received = 0;
+    and_gate.and_n.in_count = 2;
+    and_gate.and_n.out = new LogicNode*[1];
+    and_gate.and_n.out_count = 1;
+    
+    LogicNode leaf;
+    leaf.type = LOGIC_NODE_TYPE::NONE;
+
+    root_a.value_n.out = &and_gate;
+    root_b.value_n.out = &and_gate;
+    and_gate.and_n.out[0] = &leaf;
+
+    foreach (i, 3) {
+        root_a_val = avals[i];
+        root_b_val = bvals[i];
+        LogicNode_traverse(&root_a, 0.0, "");
+        LogicNode_traverse(&root_b, 0.0, "");
+        std::cout << "------------------------" << std::endl;
+
+    }
+
+    delete[] and_gate.and_n.in;
+    delete[] and_gate.and_n.out;
+    return 0;
     // auto b = Buffer<usize, 10>::Buffer_make();
     // b.elements_used = 0;
     // for (usize i = 0; i < 10; i += 1) {

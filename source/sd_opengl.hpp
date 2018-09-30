@@ -67,6 +67,33 @@ namespace sd {
 // }
 // }
 
+struct Vertex_Default {
+    Vec3 position;
+    Vec4 color;
+};
+typedef Vertex_Default Vertex;
+
+struct Vertex_Textured {
+    Vec3 position;
+    Vec4 color;
+    Vec2 uv;
+};
+typedef Vertex_Textured Vertex_Tex;
+
+struct Vertex_LineSegment {
+    Vec4 segment;
+    Vec4 color;
+    float32 z_layer;
+};
+typedef Vertex_LineSegment Vertex_LS;
+
+// TODO
+struct ShaderRegistry {
+    Shader shaders[63];  
+};
+
+
+
 template <usize SD_CONTEXT_SIZE = 2048>
 struct Context {
     static constexpr GLuint DEFAULT_ATTRIBUTE_STRIDE = 7;
@@ -590,7 +617,7 @@ template<usize SD_CONTEXT_SIZE> void end_no_reset(sd::Context<SD_CONTEXT_SIZE>* 
 template<usize SD_CONTEXT_SIZE> void reset(sd::Context<SD_CONTEXT_SIZE>* ctx);
 
 template<usize SD_CONTEXT_SIZE> bool sys_init(void);
-template<usize SD_CONTEXT_SIZE> bool init(sd::Context<SD_CONTEXT_SIZE>* ctx, Mat4 projection_matrix);
+template<usize SD_CONTEXT_SIZE> inline bool init(sd::Context<SD_CONTEXT_SIZE>* ctx, Mat4 projection_matrix);
 template<usize SD_CONTEXT_SIZE> sd::Context<SD_CONTEXT_SIZE> Context_make(Mat4 projection_matrix);
 template<usize SD_CONTEXT_SIZE> void free(sd::Context<SD_CONTEXT_SIZE>* ctx);
 
@@ -613,6 +640,10 @@ template<usize SD_CONTEXT_SIZE> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, 
 template<usize SD_CONTEXT_SIZE> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec2* vs, const usize count);
 template<usize SD_CONTEXT_SIZE> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, ArraySlice<Vec3> slice);
 template<usize SD_CONTEXT_SIZE> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, ArraySlice<Vec2>* slice);
+
+template<usize SD_CONTEXT_SIZE> inline void color(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec4 color);
+template<usize SD_CONTEXT_SIZE> inline void push_context(sd::Context<SD_CONTEXT_SIZE>* ctx);
+
 
 }
 
@@ -1002,6 +1033,17 @@ template<usize SD_CONTEXT_SIZE> bool vertex(sd::Context<SD_CONTEXT_SIZE>* ctx, V
 {
     return sd::vertex(ctx, Vec3(v, 1.0));
 }
+
+template<usize SD_CONTEXT_SIZE> inline void color(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec4 color)
+{
+    ctx->color = color;
+}
+
+template<usize SD_CONTEXT_SIZE> inline void push_context(sd::Context<SD_CONTEXT_SIZE>* ctx)
+{
+    // TODO
+}
+
 
 // #define MAX_IMG_SIZE (128 * 128)
 // static bool draw_lines_from_image_visited[MAX_IMG_SIZE];

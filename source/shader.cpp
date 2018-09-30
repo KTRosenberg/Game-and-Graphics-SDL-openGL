@@ -2,6 +2,8 @@
 
 using namespace file_io;
 
+usize Shader::id_pool = 0;
+
 bool Shader_load_from_file(Shader* shader, const std::string& vertex_path, const std::string& fragment_path,
                         const std::string& vert_addons,
                         const std::string& frag_addons) 
