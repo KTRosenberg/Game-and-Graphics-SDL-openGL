@@ -125,22 +125,57 @@ struct Buffer {
 
     inline void push_back(T val)
     {
-        //std::cout << this->elements_used << "/" << N << std::endl;
-        assert(this->elements_used < N);
-        memory[this->elements_used] = val;
-        this->elements_used += 1;
+        ASSERT(elements_used < N);
+        memory[elements_used] = val;
+        elements_used += 1;
     }
 
     inline void push_back(T* val)
     {
-        assert(this->elements_used < N);
-        memory[this->elements_used] = *val;
-        this->elements_used += 1;
+        ASSERT(elements_used < N);
+        memory[elements_used] = *val;
+        elements_used += 1;
     }
 
-    inline void reset()
+    inline void push(T val)
+    {
+        ASSERT(elements_used < N);
+        memory[elements_used] = val;
+        elements_used += 1;
+    }
+
+    inline void push(T* val)
+    {
+        ASSERT(elements_used < N);
+        memory[elements_used] = *val;
+        elements_used += 1;
+    }
+
+    inline T* peek(void)
+    {
+        if (this->elements_used == 0) {
+            return nullptr;
+        }
+        return &memory[elements_used - 1];
+    }
+
+    inline T pop(void)
+    {
+        ASSERT(this->elements_used != 0);
+
+        T* out = &memory[elements_used - 1];
+        elements_used -= 1;
+        return *out;
+    }
+
+    inline void reset(void)
     {
         this->elements_used = 0;
+    }
+
+    inline bool is_empty(void)
+    {
+        return elements_used == 0;
     }
 
     typedef T* iterator;
@@ -154,13 +189,13 @@ struct Buffer {
     {
         buffer->elements_used = 0;
     }
-    static Buffer<T, N> Buffer_make(void)
+    static Buffer<T, N> make(void)
     {
         Buffer<T, N> buff;
         buff.init(&buff);
         return buff;
     }
-};
+}; 
 
 
 template <typename T>

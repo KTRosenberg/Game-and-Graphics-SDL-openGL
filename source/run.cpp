@@ -10,7 +10,11 @@
 //#define DEBUG_PRINT
 //#define FPS_COUNT
 
-#define RELEASE_MODE (0)
+#define RELEASE_MODE (false)
+
+#if !(RELEASE_MODE)
+    #define USE_ASSERTS
+#endif
 
 //#define METATESTING
 
@@ -97,8 +101,7 @@ GlobalData program_data;
 #elif defined(OPEN_GL_HPP)
     #define SD_RENDERER_OPENGL
 #endif
-#if RELEASE_MODE
-#else
+#if !(RELEASE_MODE)
     #define SD_BOUNDS_CHECK
 #endif
 
@@ -137,10 +140,27 @@ const char* const logic_node_type_strings[] = {
     #undef LOGIC_NODE_ENTRY
 };
 
+struct LogicInput {
+    float64 value;
+
+    operator float64(void)
+    {
+        return this->value;
+    }
+};
+
 struct LogicNode {
     Vec3 position;
     LOGIC_NODE_TYPE type;
-    float64 value;
+    
+    LogicInput* in;
+    usize in_count;
+    usize in_received;
+
+    LogicNode** out;
+    usize out_count;
+    
+    bool is_negated;
 
     union {
         struct {
@@ -1148,7 +1168,7 @@ bool load_config(AirPhysicsConfig* conf)
 #include <time.h>
 int main(int argc, char* argv[])
 {  
-
+    auto buf = Buffer<LogicNode*, 5>::make();
 
 /*
         struct {
@@ -1618,7 +1638,7 @@ int main(int argc, char* argv[])
 
 
     #ifdef SD
-    sd::Context<> drawctx = sd::Context_make(mat_projection);
+    auto drawctx = sd::Context_make(mat_projection);
     #endif
 
     Toggle free_cam_toggle = false;
