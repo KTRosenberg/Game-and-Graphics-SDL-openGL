@@ -90,8 +90,9 @@ char *strf(const char *fmt, ...);
 
 // I/O
 char* read_file(const char *path);
+char* read_file_mode(const char *path, const char * mode);
 bool write_file(const char *path, const char *buf, size_t len);
-
+bool write_file_mode(const char *path, const char* mode, const char *buf, size_t len);
 
 
 #define ARENA_DEFAULT_BLOCK_SIZE (1024 * 1024)
@@ -304,8 +305,40 @@ char* read_file(const char* path) {
     return buf;
 }
 
+char* read_file_mode(const char* path, const char* mode) {
+    FILE* file = fopen(path, mode);
+    if (!file) {
+        return NULL;
+    }
+
+    fseek(file, 0, SEEK_END);
+    long len = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    char *buf = xmalloc(len + 1);
+    if (len && fread(buf, len, 1, file) != 1) {
+        fclose(file);
+        free(buf);
+        return NULL;
+    }
+
+    fclose(file);   
+    buf[len] = 0;
+    return buf;
+}
+
 bool write_file(const char* path, const char* buf, size_t len) {
     FILE* file = fopen(path, "w");
+    if (!file) {
+        return false;
+    }
+
+    size_t n = fwrite(buf, len, 1, file);
+    fclose(file);
+    return n == 1;
+}
+
+bool write_file_mode(const char* path, const char* mode, const char* buf, size_t len) {
+    FILE* file = fopen(path, mode);
     if (!file) {
         return false;
     }
