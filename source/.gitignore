@@ -1,5 +1,6 @@
 *.psd
 *.o
+*.d
 run
 *.wav
 
