@@ -1,18 +1,20 @@
 #ifndef COLLISION_H
 #define COLLISION_H
 
-#include "common_utils.h"
-#include "common_utils_cpp.hpp"
-#include "core_utils.h"
-#include "opengl.hpp"
+#if !(UNITY_BUILD)
+    #define COMMON_UTILS_CPP_IMPLEMENTATION
+    #include "common_utils_cpp.hpp"
+    #include "core_utils.h"
+    #include "opengl.hpp"
+#endif
 
 #define COLLIDER_MAX_SELECTION_DISTANCE (81)
 
 //typedef CollisionStatus (*Fn_CollisionHandler)(glm::vec3 incoming);
 
 struct Collider {
-    glm::vec3 a;
-    glm::vec3 b;
+    vec3 a;
+    vec3 b;
     //Fn_CollisionHandler handler;
 };
 

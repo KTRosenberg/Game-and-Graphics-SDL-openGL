@@ -6,12 +6,16 @@
 // {
 // #endif
 
+#if !(UNITY_BUILD)
+
 #include <ostream>
 
 #include "sdl.hpp"
-#include "common_utils.h"
+#define COMMON_UTILS_CPP_IMPLEMENTATION
 #include "common_utils_cpp.hpp"
 #include "opengl.hpp"
+
+#endif
 
 enum struct MOVEMENT_DIRECTION : unsigned char 
 {
@@ -24,8 +28,9 @@ enum struct MOVEMENT_DIRECTION : unsigned char
 };
 
 //#define DELTA_TIME_FACTOR(t_delta_s, refresh_rate) ((1 / (t_delta_s * refresh_rate)))
-#define DELTA_TIME_FACTOR(t_delta_s, refresh_rate) (1.0)
-
+//#define DELTA_TIME_FACTOR(t_delta_s, refresh_rate) (1.0)
+#define UNIT (60.0)
+#define DELTA_TIME_FACTOR(t_step_s, temp) (UNIT * (t_step_s))
 namespace input_sys {
 
 enum struct CONTROL {

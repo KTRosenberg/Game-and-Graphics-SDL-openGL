@@ -1,10 +1,12 @@
 #ifndef ENTITY_H
     #define ENTITY_H
 
-    #include "common_utils.h"
-    #include "common_utils_cpp.hpp"
+    #if !(UNITY_BUILD)
+        #define COMMON_UTILS_CPP_IMPLEMENTATION
+        #include "common_utils_cpp.hpp"
 
-    #include "types.h"
+        #include "types.h"
+    #endif
 
 //  enums
     #define entity_begin() PASTE(f_, ENTITY_NAME), 

@@ -1,16 +1,12 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#include "common_utils.h"
+#if !(UNITY_BUILD)
+#define COMMON_UTILS_CPP_IMPLEMENTATION
+#include "common_utils.cpp"
 #include "opengl.hpp"
 
-#include <glm/glm.hpp>
-
-using glm::vec2;
-using glm::vec3;
-using glm::vec4;
-using glm::mat3;
-using glm::mat4;
+#endif
 
 // alias, actual type name 
 // (I may remove the latter if I don't add any types that require a different name)
