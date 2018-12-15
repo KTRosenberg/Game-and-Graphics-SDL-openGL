@@ -9,8 +9,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_FORCE_LEFT_HANDED
+//#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+//#define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #define GLM_ENABLE_EXPERIMENTAL
 //#define GLM_FORCE_INLINE
@@ -113,8 +113,8 @@ struct ArraySlice {
 };
 
 template <typename T, usize N>
-struct Buffer {
-    T memory[N];
+struct Array {
+    T data[N];
     usize elements_used;
 
     operator ArraySlice<T>(void)
@@ -129,12 +129,12 @@ struct Buffer {
 
     inline T& operator[](usize i)
     {
-        return this->memory[i];
+        return this->data[i];
     }
 
     inline const T& operator[](usize i) const 
     {
-        return this->memory[i];
+        return this->data[i];
     }
 
     inline usize byte_length(void) const
@@ -150,28 +150,28 @@ struct Buffer {
     inline void push_back(T val)
     {
         ASSERT(elements_used < N);
-        memory[elements_used] = val;
+        data[elements_used] = val;
         elements_used += 1;
     }
 
     inline void push_back(T* val)
     {
         ASSERT(elements_used < N);
-        memory[elements_used] = *val;
+        data[elements_used] = *val;
         elements_used += 1;
     }
 
     inline void push(T val)
     {
         ASSERT(elements_used < N);
-        memory[elements_used] = val;
+        data[elements_used] = val;
         elements_used += 1;
     }
 
     inline void push(T* val)
     {
         ASSERT(elements_used < N);
-        memory[elements_used] = *val;
+        data[elements_used] = *val;
         elements_used += 1;
     }
 
@@ -180,14 +180,14 @@ struct Buffer {
         if (this->elements_used == 0) {
             return nullptr;
         }
-        return &memory[elements_used - 1];
+        return &data[elements_used - 1];
     }
 
     inline T pop(void)
     {
         ASSERT(this->elements_used != 0);
 
-        T* out = &memory[elements_used - 1];
+        T* out = &data[elements_used - 1];
         elements_used -= 1;
         return *out;
     }
@@ -204,26 +204,26 @@ struct Buffer {
 
     typedef T* iterator;
     typedef const T* const_iterator;
-    iterator begin(void) { return &this->memory[0]; }
-    iterator end(void) { return &this->memory[N]; }
-    iterator first_free(void) { return &this->memory[this->elements_used]; }
+    iterator begin(void) { return &this->data[0]; }
+    iterator end(void) { return &this->data[N]; }
+    iterator first_free(void) { return &this->data[this->elements_used]; }
 
 
-    static void init(Buffer<T, N>* buffer)
+    static void init(Array<T, N>* array)
     {
-        buffer->elements_used = 0;
+        array->elements_used = 0;
     }
-    static Buffer<T, N> make(void)
+    static Array<T, N> make(void)
     {
-        Buffer<T, N> buff;
-        buff.init(&buff);
-        return buff;
+        Array<T, N> array;
+        array.init(&array);
+        return array;
     }
 }; 
 
 
 template <typename T>
-struct DynamicBuffer {
+struct DynamicArray {
     usize cap;
     usize count;
     T*    data;

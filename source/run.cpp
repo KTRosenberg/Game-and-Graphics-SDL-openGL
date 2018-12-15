@@ -1517,14 +1517,14 @@ int main(int argc, char* argv[])
 
     printf("USING GL VERSION: %s\n", glGetString(GL_VERSION));
 
-    glm::mat4 mat_ident(1.0f);
-    glm::mat4 mat_projection = glm::ortho(
+    mat4 mat_ident(1.0f);
+    mat4 mat_projection = glm::ortho(
         0.0f, 
         1.0f * SCREEN_WIDTH, 
         1.0f * SCREEN_HEIGHT,
         0.0f,
         0.0f, 
-        1.0f
+        1.0f * 10.0f
     );
     //glm::mat4 mat_projection = glm::perspective(glm::radians(45.0f), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
 
@@ -3045,11 +3045,11 @@ int main(int argc, char* argv[])
     VertexAttributeArray_delete(&vao_2d2);
     VertexBufferData_delete_inplace(&tri_data);
     #ifdef SD
-    drawctx.free();
+    sd::free(&drawctx);
     #endif
     #ifdef EDITOR
-    in_prog.free();
-    existing.free();
+    sd::free(&in_prog);
+    sd::free(&existing);
     glDeleteProgram(shader_grid);
     #endif
     glDeleteProgram(shader_2d);
@@ -3061,5 +3061,3 @@ int main(int argc, char* argv[])
 
     return EXIT_SUCCESS;
 }
-
-#pragma message("WEE")

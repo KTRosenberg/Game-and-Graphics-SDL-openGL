@@ -40,9 +40,7 @@
 
 struct Shader {
     GLuint program;
-    usize id;
-    static usize id_pool;
-        
+
     operator GLuint() 
     {
         return this->program;

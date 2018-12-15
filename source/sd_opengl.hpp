@@ -440,7 +440,7 @@ struct RenderBatch {
         size_t v_count = 0;
         size_t i_count = 0;
         size_t v_idx = 0;
-        GLdouble angle_turn = -(2 * glm::pi<float64>()) / count_sides;
+        GLdouble angle_turn = -(2 * PI) / count_sides;
 
         switch (draw_type) {
         case GL_TRIANGLES:

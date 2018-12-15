@@ -13,8 +13,8 @@
 //typedef CollisionStatus (*Fn_CollisionHandler)(glm::vec3 incoming);
 
 struct Collider {
-    vec3 a;
-    vec3 b;
+    Vec3 a;
+    Vec3 b;
     //Fn_CollisionHandler handler;
 };
 
@@ -24,7 +24,7 @@ void Collider_print(Collider* c);
 struct CollisionStatus {
     Collider* collider;
 
-    glm::vec3 intersection;
+    Vec3 intersection;
 
     inline bool collided(void)
     {
@@ -32,27 +32,25 @@ struct CollisionStatus {
     }
 };
 
-void CollisionStatus_init(CollisionStatus* out, glm::vec3 init_val = glm::vec3(POSITIVE_INFINITY, POSITIVE_INFINITY, 0.0));
+void CollisionStatus_init(CollisionStatus* out, Vec3 init_val = Vec3(POSITIVE_INFINITY, POSITIVE_INFINITY, 0.0));
 
 #define MAX_COLLIDERS (2048)
-extern Buffer<Collider, MAX_COLLIDERS> collision_map; 
+extern Array<Collider, MAX_COLLIDERS> collision_map; 
 
-
-
-glm::vec3 temp_test_collision(Player* you, Collider* c);
+Vec3 temp_test_collision(Player* you, Collider* c);
 
 #endif
 
 #ifdef COLLISION_IMPLEMENTATION
 #undef COLLISION_IMPLEMENTATION
 
-void CollisionStatus_init(CollisionStatus* out, glm::vec3 init_val)
+void CollisionStatus_init(CollisionStatus* out, Vec3 init_val)
 {
     out->collider = nullptr;
     out->intersection = init_val;
 }
 
-Buffer<Collider, MAX_COLLIDERS> collision_map;
+Array<Collider, MAX_COLLIDERS> collision_map;
 
 
 void Collider_print(Collider* c)
