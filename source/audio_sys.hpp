@@ -9,8 +9,8 @@
 
 #include "external_libraries/freeverb/freeverb.c"
 
-#include "external_libraries/mini_al/extras/dr_flac.h"  // Enables FLAC decoding.
-#include "external_libraries/mini_al/extras/dr_mp3.h"   // Enables MP3 decoding.
+//#include "external_libraries/mini_al/extras/dr_flac.h"  // Enables FLAC decoding.
+//#include "external_libraries/mini_al/extras/dr_mp3.h"   // Enables MP3 decoding.
 #include "external_libraries/mini_al/extras/dr_wav.h" // Enables WAV decoding.
 #include "external_libraries/mini_al/mini_al.h"
 
@@ -257,6 +257,7 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
 
     static f64 master_volume_percentage = 1.0f;
 
+
     while (ck_ring_dequeue_spsc(&args->fifo.ring, args->fifo.buffer, &result)) {
         //std::cout << (i64)result << std::endl;
         
@@ -272,6 +273,12 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
 
 
     f64 t_now_s = (f64)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency();
+
+    f64 master_pan_value = 0.0f;//glm::sin(t_now_s) * 100.0f;
+    static f64 pan_range = 200.0;
+    #define PAN_FOR_RIGHT(val) ((val / pan_range) + 0.5)
+    #define PAN_FOR_LEFT(val) (1 - PAN_FOR_RIGHT(val))
+    f64 pan[2] = {PAN_FOR_LEFT(master_pan_value), PAN_FOR_RIGHT(master_pan_value)};
 
     for (usize i = 0, size = audio_system.command_queue.size; i < size; ++i) {
         AudioCommand* cmd = RingBuffer_dequeue_pointer(&audio_system.command_queue);
@@ -345,13 +352,13 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
         //fv_process(&fx_reverb.ctx, (float*)p_samples, frames_read * 2);
     }
 
-    if (master_volume_percentage != 1.0) {
-        for (usize frame = 0; frame < frames_read; ++frame) {
-            for (usize channel = 0; channel < 2; ++channel) {
-                ((float*)p_samples)[(frame * 2) + channel] *= master_volume_percentage;
-            }
+
+    for (usize frame = 0; frame < frames_read; ++frame) {
+        for (usize channel = 0; channel < 2; ++channel) {
+            ((float*)p_samples)[(frame * 2) + channel] *= pan[channel] * master_volume_percentage;
         }
     }
+
 
     args->total_frames_read += frames_read;
 

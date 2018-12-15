@@ -1,6 +1,7 @@
 #ifndef CAMERA_HPP
 #define CAMERA_HPP
 
+#if !(UNITY_BUILD)
 #include "opengl.hpp"
 
 #include <glm/glm.hpp>
@@ -12,6 +13,7 @@
 #include <limits>
 
 #include "core_utils.h"
+#endif
 
 #define MAX_BOUND 89.0f
 #define MIN_BOUND -89.0f

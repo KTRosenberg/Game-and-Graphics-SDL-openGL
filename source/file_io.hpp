@@ -1,12 +1,14 @@
 #ifndef FILE_IO_HPP
 #define FILE_IO_HPP
 
+#if !(UNITY_BUILD)
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <cerrno>
 
 #include <string>
+#endif
 
 namespace file_io {
 

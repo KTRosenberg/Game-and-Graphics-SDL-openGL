@@ -4,11 +4,10 @@
 #include "common_utils.h"
 
 // audio
-
-#define DR_FLAC_IMPLEMENTATION
-#include "external_libraries/mini_al/extras/dr_flac.h"  // Enables FLAC decoding.
-#define DR_MP3_IMPLEMENTATION
-#include "external_libraries/mini_al/extras/dr_mp3.h"   // Enables MP3 decoding.
+//#define DR_FLAC_IMPLEMENTATION
+//#include "external_libraries/mini_al/extras/dr_flac.h"  // Enables FLAC decoding.
+//#define DR_MP3_IMPLEMENTATION
+//#include "external_libraries/mini_al/extras/dr_mp3.h"   // Enables MP3 decoding.
 #define DR_WAV_IMPLEMENTATION
 #include "external_libraries/mini_al/extras/dr_wav.h" // Enables WAV decoding.
 

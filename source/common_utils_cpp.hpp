@@ -9,6 +9,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#define GLM_ENABLE_EXPERIMENTAL
+//#define GLM_FORCE_INLINE
+#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -40,6 +43,23 @@ typedef IntVector4 iVec4;
 typedef Matrix3    Mat3;
 typedef Matrix4    Mat4;
 typedef Quaternion Quat;
+
+typedef Vector2    vec2;
+typedef Vector3    vec3;
+typedef Vector4    vec4;
+typedef IntVector2 ivec2;
+typedef IntVector3 ivec3;
+typedef IntVector4 ivec4;
+typedef Matrix3    mat3;
+typedef Matrix4    mat4;
+typedef Quaternion quat;
+
+typedef Vector2    float2;
+typedef Vector3    float3;
+typedef Vector4    float4;
+typedef IntVector2 int2;
+typedef IntVector3 int3;
+typedef IntVector4 int4;
 
 template <typename T>
 inline T dref_as(void* ptr);

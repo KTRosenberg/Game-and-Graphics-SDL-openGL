@@ -1,21 +1,24 @@
 #ifndef OPEN_GL_HPP
+#define OPEN_GL_HPP
 
 #ifdef _WIN32
 #   include <GL\glew.h>
 #   include <SDL_opengl.h>
 #   include <gl\glu.h>
 #else // __APPLE_
-#   define GL3_PROTOTYPES 1
-#   define GLEW_STATIC
+//#   define GL3_PROTOTYPES 1
+//#   define GLEW_STATIC
 #   include <GL/glew.h>
 #   //include <OpenGL/glu.h>
 #   include <OpenGL/gl.h>
-//#   include <OpenGL/gl3.h>
 #endif
 
-#define OPEN_GL_HPP
+#if !(UNITY_BUILD)
 
+#define COMMON_UTILS_CPP_IMPLEMENTATION
 #include "common_utils_cpp.hpp"
+
+#endif
 
 typedef GLuint UniformLocation;
 typedef GLuint Texture;

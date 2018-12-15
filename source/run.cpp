@@ -8,7 +8,7 @@
 #define EDITOR
 
 //#define DEBUG_PRINT
-//#define FPS_COUNT
+#define FPS_COUNT
 
 #define RELEASE_MODE (false)
 
@@ -16,10 +16,10 @@
     #define USE_ASSERTS
 #endif
 
-//#define METATESTING
 
-#include "types.h"
-#include "config/config_state.cpp"
+#define UNITY_BUILD (true)
+
+//#define METATESTING
 
 // audio
 #define AUDIO_SYS_IMPLEMENTATION
@@ -30,6 +30,13 @@
 
 #define COMMON_UTILS_CPP_IMPLEMENTATION
 #include "common_utils_cpp.hpp"
+
+#include "types.h"
+#include "config/config_state.cpp"
+
+#define OPEN_GL_IMPLEMENTATION
+#include "opengl.hpp"
+
 #define CORE_UTILS_IMPLEMENTATION
 #include "core_utils.h"
 
@@ -39,15 +46,12 @@
 #define COLLISION_IMPLEMENTATION
 #include "collision.h"
 
-#define OPEN_GL_IMPLEMENTATION
-#include "opengl.hpp"
+
 
 #include "sdl.hpp"
 
 #include <iostream>
 #include <string>
-//#include <array>
-//#include <vector>
 
 #define SHADER_IMPLEMENTATION
 #include "shader.hpp"
@@ -883,7 +887,7 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 }
 
 template <usize N>
-void draw_player_collision(Player* you, sd::Context<N>* ctx)
+void draw_player_collision(Player* you, sd::RenderBatch<N>* ctx)
 {
     const Vec3 off(0.5, 0.5, 0.0);
     BoxComponent* bc = &you->bound;
@@ -893,7 +897,7 @@ void draw_player_collision(Player* you, sd::Context<N>* ctx)
     Vec3 bottom_left = top_left + Vec3(0.0, bc->height, 0.0);
 
     { // bound
-        ctx->draw_type = GL_LINES;
+        ctx->draw_type = sd::LINES;
         sd::line(ctx, top_left, top_right);
         sd::line(ctx, top_right, bottom_right);
         sd::line(ctx, bottom_right, bottom_left);
@@ -927,7 +931,7 @@ void draw_player_collision(Player* you, sd::Context<N>* ctx)
 }
 
 template <usize N>
-void BoxComponent_draw(BoxComponent* bc, sd::Context<N>* ctx)
+void BoxComponent_draw(BoxComponent* bc, sd::RenderBatch<N>* ctx)
 {
     const Vec3 off(0.5, 0.5, 0.0);
     Vec3 top_left = bc->position() + off;
@@ -935,7 +939,7 @@ void BoxComponent_draw(BoxComponent* bc, sd::Context<N>* ctx)
     Vec3 bottom_right = top_left + Vec3(bc->width, bc->height, 0.0);
     Vec3 bottom_left = top_left + Vec3(0.0, bc->height, 0.0);
 
-    ctx->draw_type = GL_LINES;
+    ctx->draw_type = sd::LINES;
     sd::line(ctx, top_left, top_right);
     sd::line(ctx, top_right, bottom_right);
     sd::line(ctx, bottom_right, bottom_left);
@@ -1165,9 +1169,19 @@ bool load_config(AirPhysicsConfig* conf)
 #endif
 
 
+template <typename T>
+auto A_test()
+{
+    if constexpr (std::is_arithmetic_v<T>) {
+        return 5;
+    }
+    return 4;
+}
+
 #include <time.h>
 int main(int argc, char* argv[])
 {  
+    std::cout << A_test<uint32>() << std::endl;
     auto buf = Buffer<LogicNode*, 5>::make();
 
 /*
@@ -1329,7 +1343,7 @@ int main(int argc, char* argv[])
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
         SCREEN_WIDTH, SCREEN_HEIGHT,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI)))
+        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN)))
     {
         fprintf(stderr, "Window could not be created\n");
         return EXIT_FAILURE;
@@ -1359,7 +1373,7 @@ int main(int argc, char* argv[])
     std::string glsl_perlin_noise = Shader_retrieve_src_from_file("shaders/perlin_noise.glsl", &status);
     if (!status) {
         fprintf(stderr, "ERROR: failed to load shader addon source");
-        return false;
+        return EXIT_FAILURE;
     } 
 
     // SHADERS
@@ -1638,7 +1652,7 @@ int main(int argc, char* argv[])
 
 
     #ifdef SD
-    auto drawctx = sd::Context_make(mat_projection);
+    auto drawctx = sd::RenderBatch_make(mat_projection);
     #endif
 
     Toggle free_cam_toggle = false;
@@ -1661,8 +1675,8 @@ int main(int argc, char* argv[])
     UniformLocation SCALE_LOC_GRID = glGetUniformLocation(shader_grid, "u_scale");
     glUniform1f(SCALE_LOC_GRID, (GLfloat)1.0);
 
-    sd::Context<> existing;
-    sd::Context<256> in_prog;
+    sd::RenderBatch<> existing;
+    sd::RenderBatch<256> in_prog;
     Toggle drawing = false;
     Toggle deletion = false;
 
@@ -1755,7 +1769,7 @@ int main(int argc, char* argv[])
     collision_map.elements_used += 1;
 
     existing.begin();
-    existing.draw_type = GL_LINES;
+    existing.draw_type = sd::LINES;
     existing.color = Color::BLACK;
     
     foreach (i, collision_map.elements_used) {
@@ -1876,7 +1890,12 @@ int main(int argc, char* argv[])
 
     // return EXIT_SUCCESS;
 
-
+    {
+        int w = 0;
+        int h = 0;
+        SDL_GetWindowSize(window, &w, &h);
+        std::cout << "WIDTH: " << w << " HEIGHT: " << h << std::endl;
+    }
     while (is_running) {
         t_prev = t_now;
         t_prev_s = t_now_s;
@@ -2018,7 +2037,7 @@ int main(int argc, char* argv[])
 
             float64 angle = you.bound.spatial.w;
 
-            std::cout << "ANGLE: " << angle << std::endl;
+            // TODO RE-ADD STATEMENT std::cout << "ANGLE: " << angle << std::endl;
 
             if (you.on_ground) {
 
@@ -2081,7 +2100,7 @@ int main(int argc, char* argv[])
                 float64 x_comp = glm::cos(angle);
 
 
-                std::cout << "V: " << you.velocity_ground.x << ":" << x_comp << ":" << y_comp << " SLOPE FACTOR: " << (.125 * 4) * glm::sin(angle) * dt_factor << std::endl;
+                // TODO RE-ADD STATEMENT std::cout << "V: " << you.velocity_ground.x << ":" << x_comp << ":" << y_comp << " SLOPE FACTOR: " << (.125 * 4) * glm::sin(angle) * dt_factor << std::endl;
             if (you.on_ground) {
 
 
@@ -2603,7 +2622,7 @@ int main(int argc, char* argv[])
                 existing.begin();
                 existing.transform_matrix = cam;
 
-                existing.draw_type = GL_LINES;
+                existing.draw_type = sd::LINES;
                 //existing.transform_matrix = cam;
                 existing.end_no_reset();
 
@@ -2613,7 +2632,7 @@ int main(int argc, char* argv[])
                     in_prog.begin();
 
                     {
-                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.draw_type = sd::TRIANGLES;
                         in_prog.transform_matrix = cam;
                         in_prog.color = Color::RED;
                         sd::circle(
@@ -2654,7 +2673,7 @@ int main(int argc, char* argv[])
                     }
                     if (min_dist <= COLLIDER_MAX_SELECTION_DISTANCE * (1.0 / main_cam.scale)) {
                         in_prog.begin();
-                        in_prog.draw_type = GL_LINES;
+                        in_prog.draw_type = sd::LINES;
                         in_prog.transform_matrix = cam;
                         in_prog.color = Color::RED;
                         in_prog.line(nearest_seg->a, nearest_seg->b);
@@ -2669,7 +2688,7 @@ int main(int argc, char* argv[])
                     in_prog.begin();
 
                     {
-                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.draw_type = sd::TRIANGLES;
                         in_prog.transform_matrix = cam;
                         in_prog.color = Color::RED;
                         sd::circle(
@@ -2707,13 +2726,13 @@ int main(int argc, char* argv[])
                     collision_map.first_free()->b.z = 0;
 
                     in_prog.begin();
-                    in_prog.draw_type = GL_LINES;
+                    in_prog.draw_type = sd::LINES;
                     in_prog.transform_matrix = cam;
                     in_prog.color = Color::BLACK;
                     in_prog.line(in_progress_line[0], in_progress_line[1]);
 
                     {
-                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.draw_type = sd::TRIANGLES;
                         in_prog.transform_matrix = cam;
                         in_prog.color = Color::BLUE;
                         sd::circle(
@@ -2734,7 +2753,7 @@ int main(int argc, char* argv[])
                     existing.begin();
                     existing.transform_matrix = cam;
 
-                    existing.draw_type = GL_LINES;
+                    existing.draw_type = sd::LINES;
                     //existing.transform_matrix = cam;
                     existing.end_no_reset();
 
@@ -2747,7 +2766,7 @@ int main(int argc, char* argv[])
 
                     in_prog.begin();
                     {
-                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.draw_type = sd::TRIANGLES;
                         in_prog.transform_matrix = cam;
                         in_prog.color = Color::GREEN;
                         sd::circle(
@@ -2766,7 +2785,7 @@ int main(int argc, char* argv[])
                     existing.begin();
                     existing.transform_matrix = cam;
 
-                    existing.draw_type = GL_LINES;
+                    existing.draw_type = sd::LINES;
                     //existing.transform_matrix = cam;
 
                     //sort_segment(in_progress_line);
@@ -2798,7 +2817,7 @@ int main(int argc, char* argv[])
                 case TOGGLE_BRANCH::OFF:
                     in_prog.begin();
                     {
-                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.draw_type = sd::TRIANGLES;
                         in_prog.transform_matrix = cam;
                         in_prog.color = Color::BLUE;
                         sd::circle(
@@ -2816,7 +2835,7 @@ int main(int argc, char* argv[])
 
                     existing.begin();
                     existing.transform_matrix = cam;
-                    existing.draw_type = GL_LINES;
+                    existing.draw_type = sd::LINES;
                     //existing.transform_matrix = cam;
                     existing.end_no_reset();
                     break;
@@ -2829,7 +2848,7 @@ int main(int argc, char* argv[])
 
             glClear(GL_DEPTH_BUFFER_BIT);
 
-            drawctx.draw_type = GL_LINES;
+            drawctx.draw_type = sd::LINES;
 
             drawctx.color = Color::BLUE;
 
@@ -3055,3 +3074,5 @@ int main(int argc, char* argv[])
 
     return EXIT_SUCCESS;
 }
+
+#pragma message("WEE")

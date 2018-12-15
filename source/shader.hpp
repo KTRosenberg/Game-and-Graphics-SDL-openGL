@@ -1,6 +1,7 @@
 #ifndef SHADER_HPP
 #define SHADER_HPP
 
+#if !(UNITY_BUILD)
 #include "opengl.hpp"
 
 #include <string>
@@ -9,6 +10,9 @@
 #include <stdbool.h>
 
 #include "file_io.hpp"
+#endif
+
+
 
 // #ifdef __cplusplus 
 // extern "C" {

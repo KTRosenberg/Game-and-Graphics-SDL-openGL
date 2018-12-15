@@ -1,12 +1,14 @@
 #ifndef SD_OPENGL_HPP
 #define SD_OPENGL_HPP
 
-#include "common_utils.h"
+#if !(UNITY_BUILD)
+#define COMMON_UTILS_CPP_IMPLEMENTATION
 #include "common_utils_cpp.hpp"
 
 #include "opengl.hpp"
 #include "shader.hpp"
 #include "sdl.hpp"
+#endif
 
 // strato-draw
 namespace sd {
@@ -92,17 +94,18 @@ struct ShaderRegistry {
     Shader shaders[63];  
 };
 
+static constexpr GLenum TRIANGLES = GL_TRIANGLES;
+static constexpr GLenum LINES     = GL_LINES;
 
-
-template <usize SD_CONTEXT_SIZE = 2048>
-struct Context {
+template <usize SD_RENDER_BATCH_SIZE = 2048>
+struct RenderBatch {
     static constexpr GLuint DEFAULT_ATTRIBUTE_STRIDE = 7;
 
-    GLfloat vertices_triangles[SD_CONTEXT_SIZE * DEFAULT_ATTRIBUTE_STRIDE]; 
-    GLuint indices_triangles[SD_CONTEXT_SIZE * 2];
+    GLfloat vertices_triangles[SD_RENDER_BATCH_SIZE * DEFAULT_ATTRIBUTE_STRIDE]; 
+    GLuint indices_triangles[SD_RENDER_BATCH_SIZE * 2];
 
-    GLfloat vertices_lines[SD_CONTEXT_SIZE * DEFAULT_ATTRIBUTE_STRIDE]; 
-    GLuint indices_lines[SD_CONTEXT_SIZE * 2];
+    GLfloat vertices_lines[SD_RENDER_BATCH_SIZE * DEFAULT_ATTRIBUTE_STRIDE]; 
+    GLuint indices_lines[SD_RENDER_BATCH_SIZE * 2];
 
     VertexAttributeArray vao_triangles;
     VertexBufferData triangle_buffer;
@@ -137,8 +140,8 @@ struct Context {
         begun = true;
     }
 
-    //template<usize SD_CONTEXT_SIZE>
-    void render(sd::Context<SD_CONTEXT_SIZE>* ctx)
+    //template<usize SD_RENDER_BATCH_SIZE>
+    void render(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx)
     {
         glUseProgram(ctx->shader);
 
@@ -234,7 +237,7 @@ struct Context {
         begun = false;        
     }
 
-    void reset(sd::Context<SD_CONTEXT_SIZE>* ctx)
+    void reset(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx)
     {
         ctx->triangle_buffer.v_count = 0;
         ctx->triangle_buffer.i_count = 0;
@@ -268,11 +271,11 @@ struct Context {
             SHADER_VERTEX_PATH,
             SHADER_FRAGMENT_PATH
         )) {
-            SD_LOG_ERR("%s\n", "ERROR: sd::Context initialization failed");
+            SD_LOG_ERR("%s\n", "ERROR: sd::RenderBatch initialization failed");
             return false;
         }
 
-        const usize attribute_stride = sd::Context<SD_CONTEXT_SIZE>::DEFAULT_ATTRIBUTE_STRIDE;
+        const usize attribute_stride = sd::RenderBatch<SD_RENDER_BATCH_SIZE>::DEFAULT_ATTRIBUTE_STRIDE;
 
         glUseProgram(shader);
         MAT_LOC = glGetUniformLocation(shader, "u_matrix");
@@ -284,9 +287,9 @@ struct Context {
 
             VertexBufferData_init_inplace(
                 &triangle_buffer, 
-                SD_CONTEXT_SIZE * attribute_stride,
+                SD_RENDER_BATCH_SIZE * attribute_stride,
                 vertices_triangles,
-                SD_CONTEXT_SIZE,
+                SD_RENDER_BATCH_SIZE,
                 indices_triangles
             );
             triangle_buffer.v_count = 0;
@@ -305,9 +308,9 @@ struct Context {
         glBindVertexArray(vao_lines);
             VertexBufferData_init_inplace(
                 &line_buffer, 
-                SD_CONTEXT_SIZE * attribute_stride,
+                SD_RENDER_BATCH_SIZE * attribute_stride,
                 vertices_lines,
-                SD_CONTEXT_SIZE,
+                SD_RENDER_BATCH_SIZE,
                 indices_lines
             );
             line_buffer.v_count = 0;
@@ -349,7 +352,7 @@ struct Context {
 
         const usize attribute_stride = this->vao_lines.stride;
 
-        if (v_count + (2 * attribute_stride) > (SD_CONTEXT_SIZE * attribute_stride) || (i_count + 2 > SD_CONTEXT_SIZE * 2)) {
+        if (v_count + (2 * attribute_stride) > (SD_RENDER_BATCH_SIZE * attribute_stride) || (i_count + 2 > SD_RENDER_BATCH_SIZE * 2)) {
             SD_LOG_ERR("%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
             return false;
         }
@@ -398,7 +401,7 @@ struct Context {
         const usize attribute_stride = this->vao_lines.stride;
 
 
-        if (v_count + (2 * attribute_stride) > SD_CONTEXT_SIZE * attribute_stride || i_count + 2 > SD_CONTEXT_SIZE * 2) {
+        if (v_count + (2 * attribute_stride) > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + 2 > SD_RENDER_BATCH_SIZE * 2) {
             SD_LOG_ERR("%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
             return false;
         }
@@ -448,7 +451,7 @@ struct Context {
             i_count = triangle_buffer.i_count;
             v_idx = v_count;
 
-            if (v_count + (attribute_stride * count_sides) > SD_CONTEXT_SIZE * attribute_stride || i_count + (3 * count_tris) > SD_CONTEXT_SIZE * 2) {
+            if (v_count + (attribute_stride * count_sides) > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + (3 * count_tris) > SD_RENDER_BATCH_SIZE * 2) {
                 SD_LOG_ERR("%s\n", "ERROR: polygon_convex_regular MAX TRIANGLES EXCEEDED");
                 return;
             }
@@ -491,7 +494,7 @@ struct Context {
             i_count = line_buffer.i_count;
             v_idx = v_count;
 
-            if (v_count + (attribute_stride * count_sides) > SD_CONTEXT_SIZE * attribute_stride || i_count + (2 * count_sides) > SD_CONTEXT_SIZE * 2) {
+            if (v_count + (attribute_stride * count_sides) > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + (2 * count_sides) > SD_RENDER_BATCH_SIZE * 2) {
                 SD_LOG_ERR("%s\n", "ERROR: polygon_convex_regular MAX LINES EXCEEDED");
                 return;
             }
@@ -549,7 +552,7 @@ struct Context {
             i_count = triangle_buffer.i_count;
             v_idx = v_count;
 
-            if (v_count + attribute_stride > SD_CONTEXT_SIZE * attribute_stride || i_count + 1 > SD_CONTEXT_SIZE * 2) {
+            if (v_count + attribute_stride > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + 1 > SD_RENDER_BATCH_SIZE * 2) {
                 SD_LOG_ERR("%s\n", "ERROR: vertex MAX TRIANGLES EXCEEDED");
                 return;
             }
@@ -588,7 +591,7 @@ struct Context {
             i_count = line_buffer.i_count;
             v_idx = v_count;
 
-            if (v_count + attribute_stride > SD_CONTEXT_SIZE * attribute_stride || i_count + 1 > SD_CONTEXT_SIZE * 2) {
+            if (v_count + attribute_stride > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + 1 > SD_RENDER_BATCH_SIZE * 2) {
                 SD_LOG_ERR("%s\n", "ERROR: vertex MAX LINES EXCEEDED");
                 return;
             }
@@ -610,39 +613,39 @@ struct Context {
     }
 };
 
-template<usize SD_CONTEXT_SIZE> void begin(sd::Context<SD_CONTEXT_SIZE>* ctx);
-template<usize SD_CONTEXT_SIZE> void render(sd::Context<SD_CONTEXT_SIZE>* ctx);
-template<usize SD_CONTEXT_SIZE> void end(sd::Context<SD_CONTEXT_SIZE>* ctx);
-template<usize SD_CONTEXT_SIZE> void end_no_reset(sd::Context<SD_CONTEXT_SIZE>* ctx);
-template<usize SD_CONTEXT_SIZE> void reset(sd::Context<SD_CONTEXT_SIZE>* ctx);
+template<usize SD_RENDER_BATCH_SIZE> void begin(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx);
+template<usize SD_RENDER_BATCH_SIZE> void render(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx);
+template<usize SD_RENDER_BATCH_SIZE> void end(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx);
+template<usize SD_RENDER_BATCH_SIZE> void end_no_reset(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx);
+template<usize SD_RENDER_BATCH_SIZE> void reset(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx);
 
-template<usize SD_CONTEXT_SIZE> bool sys_init(void);
-template<usize SD_CONTEXT_SIZE> inline bool init(sd::Context<SD_CONTEXT_SIZE>* ctx, Mat4 projection_matrix);
-template<usize SD_CONTEXT_SIZE> sd::Context<SD_CONTEXT_SIZE> Context_make(Mat4 projection_matrix);
-template<usize SD_CONTEXT_SIZE> void free(sd::Context<SD_CONTEXT_SIZE>* ctx);
+template<usize SD_RENDER_BATCH_SIZE> bool sys_init(void);
+template<usize SD_RENDER_BATCH_SIZE> inline bool init(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Mat4 projection_matrix);
+template<usize SD_RENDER_BATCH_SIZE> sd::RenderBatch<SD_RENDER_BATCH_SIZE> RenderBatch_make(Mat4 projection_matrix);
+template<usize SD_RENDER_BATCH_SIZE> void free(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx);
 
-template<usize SD_CONTEXT_SIZE> bool line(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec3 a, Vec3 b);
-template<usize SD_CONTEXT_SIZE> bool line(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec2 a, Vec2 b);
-template<usize SD_CONTEXT_SIZE> bool remove_line_swap_end(sd::Context<SD_CONTEXT_SIZE>* ctx, usize idx);
-template<usize SD_CONTEXT_SIZE> bool quad(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec3, Vec3, Vec3, Vec3);
-template<usize SD_CONTEXT_SIZE> bool quad(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec2, Vec2, Vec2, Vec2);
-template<usize SD_CONTEXT_SIZE> bool polygon_convex_regular(sd::Context<SD_CONTEXT_SIZE>* ctx, GLfloat radius, Vec3 center, const usize count_sides);
-template<usize SD_CONTEXT_SIZE> bool polygon_convex_regular(sd::Context<SD_CONTEXT_SIZE>* ctx, GLfloat radius, Vec2 center, const usize count_sides);
-template<usize SD_CONTEXT_SIZE> bool circle(sd::Context<SD_CONTEXT_SIZE>* ctx, GLfloat radius, Vec3 center, usize detail = 37);
-template<usize SD_CONTEXT_SIZE> bool circle(sd::Context<SD_CONTEXT_SIZE>* ctx, GLfloat radius, Vec2 center, usize detail = 37);
-template<usize SD_CONTEXT_SIZE> bool vertex(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec3 v);
-template<usize SD_CONTEXT_SIZE> bool vertex(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec2 v);
-// template<usize SD_CONTEXT_SIZE, usize N> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, Buffer<Vec3, N>* vs);
-// template<usize SD_CONTEXT_SIZE, usize N> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, Buffer<Vec2, N>* vs);
-// template<usize SD_CONTEXT_SIZE> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, DynamicBuffer<Vec3>* vs);
-// template<usize SD_CONTEXT_SIZE> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, DynamicBuffer<Vec2>* vs);
-template<usize SD_CONTEXT_SIZE> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec3* vs, const usize count);
-template<usize SD_CONTEXT_SIZE> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec2* vs, const usize count);
-template<usize SD_CONTEXT_SIZE> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, ArraySlice<Vec3> slice);
-template<usize SD_CONTEXT_SIZE> bool polygon(sd::Context<SD_CONTEXT_SIZE>* ctx, ArraySlice<Vec2>* slice);
+template<usize SD_RENDER_BATCH_SIZE> bool line(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec3 a, Vec3 b);
+template<usize SD_RENDER_BATCH_SIZE> bool line(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec2 a, Vec2 b);
+template<usize SD_RENDER_BATCH_SIZE> bool remove_line_swap_end(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, usize idx);
+template<usize SD_RENDER_BATCH_SIZE> bool quad(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec3, Vec3, Vec3, Vec3);
+template<usize SD_RENDER_BATCH_SIZE> bool quad(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec2, Vec2, Vec2, Vec2);
+template<usize SD_RENDER_BATCH_SIZE> bool polygon_convex_regular(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, GLfloat radius, Vec3 center, const usize count_sides);
+template<usize SD_RENDER_BATCH_SIZE> bool polygon_convex_regular(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, GLfloat radius, Vec2 center, const usize count_sides);
+template<usize SD_RENDER_BATCH_SIZE> bool circle(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, GLfloat radius, Vec3 center, usize detail = 37);
+template<usize SD_RENDER_BATCH_SIZE> bool circle(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, GLfloat radius, Vec2 center, usize detail = 37);
+template<usize SD_RENDER_BATCH_SIZE> bool vertex(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec3 v);
+template<usize SD_RENDER_BATCH_SIZE> bool vertex(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec2 v);
+// template<usize SD_RENDER_BATCH_SIZE, usize N> bool polygon(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Buffer<Vec3, N>* vs);
+// template<usize SD_RENDER_BATCH_SIZE, usize N> bool polygon(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Buffer<Vec2, N>* vs);
+// template<usize SD_RENDER_BATCH_SIZE> bool polygon(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, DynamicBuffer<Vec3>* vs);
+// template<usize SD_RENDER_BATCH_SIZE> bool polygon(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, DynamicBuffer<Vec2>* vs);
+template<usize SD_RENDER_BATCH_SIZE> bool polygon(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec3* vs, const usize count);
+template<usize SD_RENDER_BATCH_SIZE> bool polygon(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec2* vs, const usize count);
+template<usize SD_RENDER_BATCH_SIZE> bool polygon(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, ArraySlice<Vec3> slice);
+template<usize SD_RENDER_BATCH_SIZE> bool polygon(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, ArraySlice<Vec2>* slice);
 
-template<usize SD_CONTEXT_SIZE> inline void color(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec4 color);
-template<usize SD_CONTEXT_SIZE> inline void push_context(sd::Context<SD_CONTEXT_SIZE>* ctx);
+template<usize SD_RENDER_BATCH_SIZE> inline void color(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec4 color);
+template<usize SD_RENDER_BATCH_SIZE> inline void push_context(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx);
 
 
 }
@@ -654,7 +657,7 @@ template<usize SD_CONTEXT_SIZE> inline void push_context(sd::Context<SD_CONTEXT_
 
 namespace sd {
 
-template<usize SD_CONTEXT_SIZE> inline bool init(sd::Context<SD_CONTEXT_SIZE>* ctx, Mat4 projection_matrix)
+template<usize SD_RENDER_BATCH_SIZE> inline bool init(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Mat4 projection_matrix)
 {
     ctx->projection_matrix = projection_matrix;
     ctx->update_projection_matrix = false;
@@ -667,19 +670,19 @@ template<usize SD_CONTEXT_SIZE> inline bool init(sd::Context<SD_CONTEXT_SIZE>* c
 
     ctx->color = Vec4{0.0f, 0.0f, 0.0f, 1.0f};
 
-    const char *const SHADER_VERTEX_PATH = sd::Context<SD_CONTEXT_SIZE>::SHADER_VERTEX_PATH;
-    const char *const SHADER_FRAGMENT_PATH = sd::Context<SD_CONTEXT_SIZE>::SHADER_FRAGMENT_PATH;
+    const char *const SHADER_VERTEX_PATH = sd::RenderBatch<SD_RENDER_BATCH_SIZE>::SHADER_VERTEX_PATH;
+    const char *const SHADER_FRAGMENT_PATH = sd::RenderBatch<SD_RENDER_BATCH_SIZE>::SHADER_FRAGMENT_PATH;
 
     if (false == Shader_load_from_file(
         &ctx->shader,
         SHADER_VERTEX_PATH,
         SHADER_FRAGMENT_PATH
     )) {
-        SD_LOG_ERR("%s\n", "ERROR: sd::Context initialization failed");
+        SD_LOG_ERR("%s\n", "ERROR: sd::RenderBatch initialization failed");
         return false;
     }
 
-    const usize attribute_stride = sd::Context<SD_CONTEXT_SIZE>::DEFAULT_ATTRIBUTE_STRIDE;
+    const usize attribute_stride = sd::RenderBatch<SD_RENDER_BATCH_SIZE>::DEFAULT_ATTRIBUTE_STRIDE;
 
     glUseProgram(ctx->shader);
     ctx->MAT_LOC = glGetUniformLocation(ctx->shader, "u_matrix");
@@ -691,9 +694,9 @@ template<usize SD_CONTEXT_SIZE> inline bool init(sd::Context<SD_CONTEXT_SIZE>* c
 
         VertexBufferData_init_inplace(
             &ctx->triangle_buffer, 
-            SD_CONTEXT_SIZE * attribute_stride,
+            SD_RENDER_BATCH_SIZE * attribute_stride,
             ctx->vertices_triangles,
-            SD_CONTEXT_SIZE,
+            SD_RENDER_BATCH_SIZE,
             ctx->indices_triangles
         );
         ctx->triangle_buffer.v_count = 0;
@@ -712,9 +715,9 @@ template<usize SD_CONTEXT_SIZE> inline bool init(sd::Context<SD_CONTEXT_SIZE>* c
     glBindVertexArray(ctx->vao_lines);
         VertexBufferData_init_inplace(
             &ctx->line_buffer, 
-            SD_CONTEXT_SIZE * attribute_stride,
+            SD_RENDER_BATCH_SIZE * attribute_stride,
             ctx->vertices_lines,
-            SD_CONTEXT_SIZE,
+            SD_RENDER_BATCH_SIZE,
             ctx->indices_lines
         );
         ctx->line_buffer.v_count = 0;
@@ -735,16 +738,16 @@ template<usize SD_CONTEXT_SIZE> inline bool init(sd::Context<SD_CONTEXT_SIZE>* c
     return true;
 }
 
-template<usize SD_CONTEXT_SIZE = 2048> sd::Context<SD_CONTEXT_SIZE> Context_make(Mat4 projection_matrix)
+template<usize SD_RENDER_BATCH_SIZE = 2048> sd::RenderBatch<SD_RENDER_BATCH_SIZE> RenderBatch_make(Mat4 projection_matrix)
 {
-    sd::Context<SD_CONTEXT_SIZE> ctx;
+    sd::RenderBatch<SD_RENDER_BATCH_SIZE> ctx;
     if (sd::init(&ctx, projection_matrix) == false) {
         SD_LOG_ERR("%s\n", "ERROR: Context creation failed");
     }
     return ctx;
 }
 
-template<usize N> void render(sd::Context<N>* ctx)
+template<usize N> void render(sd::RenderBatch<N>* ctx)
 {
     glUseProgram(ctx->shader);
 
@@ -767,7 +770,7 @@ template<usize N> void render(sd::Context<N>* ctx)
     glUseProgram(0);
 }
 
-template<usize N> void free(sd::Context<N>* ctx)
+template<usize N> void free(sd::RenderBatch<N>* ctx)
 {
     VertexAttributeArray_delete(&ctx->vao_triangles);
     VertexAttributeArray_delete(&ctx->vao_lines);
@@ -776,7 +779,7 @@ template<usize N> void free(sd::Context<N>* ctx)
     glDeleteProgram(ctx->shader);
 }
 
-template<usize SD_CONTEXT_SIZE> void reset(sd::Context<SD_CONTEXT_SIZE>* ctx)
+template<usize SD_RENDER_BATCH_SIZE> void reset(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx)
 {
     ctx->triangle_buffer.v_count = 0;
     ctx->triangle_buffer.i_count = 0;
@@ -789,26 +792,44 @@ template<usize SD_CONTEXT_SIZE> void reset(sd::Context<SD_CONTEXT_SIZE>* ctx)
 }
 
 
-template<usize SD_CONTEXT_SIZE> bool line(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec3 a, Vec3 b)
+template<usize SD_RENDER_BATCH_SIZE> bool line(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec3 a, Vec3 b)
 {
     const usize v_count = ctx->line_buffer.v_count;
     const usize i_count = ctx->line_buffer.i_count;
 
     const usize attribute_stride = ctx->vao_lines.stride;
 
-    if (v_count + (2 * attribute_stride) > (SD_CONTEXT_SIZE * attribute_stride) || (i_count + 2 > SD_CONTEXT_SIZE * 2)) {
+    if (v_count + (2 * attribute_stride) > (SD_RENDER_BATCH_SIZE * attribute_stride) || (i_count + 2 > SD_RENDER_BATCH_SIZE * 2)) {
         SD_LOG_ERR("%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
         return false;
     }
 
     const usize v_idx = v_count;
 
-    memcpy(&ctx->vertices_lines[v_idx], &a[0], sizeof(a[0]) * 3);
-    memcpy(&ctx->vertices_lines[v_idx + 3], &ctx->color[0], sizeof(ctx->color[0]) * 4);
+    // memcpy(&ctx->vertices_lines[v_idx], &a[0], sizeof(a[0]) * 3);
+    // memcpy(&ctx->vertices_lines[v_idx + 3], &ctx->color[0], sizeof(ctx->color[0]) * 4);
+
+    ctx->vertices_lines[v_idx]     = a.x;
+    ctx->vertices_lines[v_idx + 1] = a.y;
+    ctx->vertices_lines[v_idx + 2] = a.z;
+    ctx->vertices_lines[v_idx + 3] = ctx->color[0];
+    ctx->vertices_lines[v_idx + 4] = ctx->color[1];
+    ctx->vertices_lines[v_idx + 5] = ctx->color[2];
+    ctx->vertices_lines[v_idx + 6] = ctx->color[3];
 
 
-    memcpy(&ctx->vertices_lines[v_idx + attribute_stride], &b[0], sizeof(b[0]) * 3);
-    memcpy(&ctx->vertices_lines[v_idx + attribute_stride + 3], &ctx->color[0], sizeof(ctx->color[0]) * 4);
+
+    // memcpy(&ctx->vertices_lines[v_idx + attribute_stride], &b[0], sizeof(b[0]) * 3);
+    // memcpy(&ctx->vertices_lines[v_idx + attribute_stride + 3], &ctx->color[0], sizeof(ctx->color[0]) * 4);
+
+
+    ctx->vertices_lines[v_idx + attribute_stride]     = b.x;
+    ctx->vertices_lines[v_idx + 1 + attribute_stride] = b.y;
+    ctx->vertices_lines[v_idx + 2 + attribute_stride] = b.z;
+    ctx->vertices_lines[v_idx + 3 + attribute_stride] = ctx->color[0];
+    ctx->vertices_lines[v_idx + 4 + attribute_stride] = ctx->color[1];
+    ctx->vertices_lines[v_idx + 5 + attribute_stride] = ctx->color[2];
+    ctx->vertices_lines[v_idx + 6 + attribute_stride] = ctx->color[3];
 
     ctx->indices_lines[i_count]     = ctx->index_lines;
     ctx->indices_lines[i_count + 1] = ctx->index_lines + 1;
@@ -820,17 +841,17 @@ template<usize SD_CONTEXT_SIZE> bool line(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec
     return true;
 }
 
-template<usize SD_CONTEXT_SIZE> bool line(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec2 a, Vec2 b)
+template<usize SD_RENDER_BATCH_SIZE> bool line(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec2 a, Vec2 b)
 {
     return sd::line(ctx, Vec3(a, 1), Vec3(b, 1));
 }
 
-template<usize SD_CONTEXT_SIZE> bool remove_line_swap_end(sd::Context<SD_CONTEXT_SIZE>* ctx, usize idx)
+template<usize SD_RENDER_BATCH_SIZE> bool remove_line_swap_end(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, usize idx)
 {
     const usize attribute_stride = ctx->vao_lines.stride;
 
 #ifdef SD_BOUNDS_CHECK
-    if ((idx * (2 * attribute_stride) > (SD_CONTEXT_SIZE * attribute_stride)) || (idx * 2 > SD_CONTEXT_SIZE * 2)) {
+    if ((idx * (2 * attribute_stride) > (SD_RENDER_BATCH_SIZE * attribute_stride)) || (idx * 2 > SD_RENDER_BATCH_SIZE * 2)) {
         SD_LOG_ERR("%s\n", "ERROR: remove_line INDEX OUT-OF-BOUNDS");
         return false;           
     }
@@ -849,7 +870,7 @@ template<usize SD_CONTEXT_SIZE> bool remove_line_swap_end(sd::Context<SD_CONTEXT
     return true;
 }
 
-template<usize SD_CONTEXT_SIZE> bool polygon_convex_regular(sd::Context<SD_CONTEXT_SIZE>* ctx, GLfloat radius, Vec3 center, const usize count_sides)
+template<usize SD_RENDER_BATCH_SIZE> bool polygon_convex_regular(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, GLfloat radius, Vec3 center, const usize count_sides)
 {
     usize count_tris = count_sides - 2;
 
@@ -870,7 +891,7 @@ template<usize SD_CONTEXT_SIZE> bool polygon_convex_regular(sd::Context<SD_CONTE
         i_count = ctx->triangle_buffer.i_count;
         v_idx = v_count;
 #ifdef SD_BOUNDS_CHECK
-        if (v_count + (attribute_stride * count_sides) > SD_CONTEXT_SIZE * attribute_stride || i_count + (3 * count_tris) > SD_CONTEXT_SIZE * 2) {
+        if (v_count + (attribute_stride * count_sides) > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + (3 * count_tris) > SD_RENDER_BATCH_SIZE * 2) {
             SD_LOG_ERR("%s\n", "ERROR: polygon_convex_regular MAX TRIANGLES EXCEEDED");
             return false;
         }
@@ -914,7 +935,7 @@ template<usize SD_CONTEXT_SIZE> bool polygon_convex_regular(sd::Context<SD_CONTE
         i_count = ctx->line_buffer.i_count;
         v_idx = v_count;
 #ifdef SD_BOUNDS_CHECK
-        if (v_count + (attribute_stride * count_sides) > SD_CONTEXT_SIZE * attribute_stride || i_count + (2 * count_sides) > SD_CONTEXT_SIZE * 2) {
+        if (v_count + (attribute_stride * count_sides) > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + (2 * count_sides) > SD_RENDER_BATCH_SIZE * 2) {
             SD_LOG_ERR("%s\n", "ERROR: polygon_convex_regular MAX LINES EXCEEDED");
             return false;
         }
@@ -954,22 +975,22 @@ template<usize SD_CONTEXT_SIZE> bool polygon_convex_regular(sd::Context<SD_CONTE
     return true;
 }
 
-template<usize SD_CONTEXT_SIZE> bool polygon_convex_regular(sd::Context<SD_CONTEXT_SIZE>* ctx, GLfloat radius, Vec2 center, const usize count_sides)
+template<usize SD_RENDER_BATCH_SIZE> bool polygon_convex_regular(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, GLfloat radius, Vec2 center, const usize count_sides)
 {
     return sd::polygon_convex_regular(ctx, radius, Vec3(center, 1.0), count_sides);
 }
 
-template<usize SD_CONTEXT_SIZE> bool circle(sd::Context<SD_CONTEXT_SIZE>* ctx, GLfloat radius, Vec3 center, usize detail)
+template<usize SD_RENDER_BATCH_SIZE> bool circle(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, GLfloat radius, Vec3 center, usize detail)
 {
     return sd::polygon_convex_regular(ctx, radius, center, detail);
 }
 
-template<usize SD_CONTEXT_SIZE> bool circle(sd::Context<SD_CONTEXT_SIZE>* ctx, GLfloat radius, Vec2 center, usize detail)
+template<usize SD_RENDER_BATCH_SIZE> bool circle(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, GLfloat radius, Vec2 center, usize detail)
 {
     return sd::polygon_convex_regular(ctx, radius, center, detail);
 }
 
-template<usize SD_CONTEXT_SIZE> bool vertex(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec3 v)
+template<usize SD_RENDER_BATCH_SIZE> bool vertex(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec3 v)
 {
     usize v_count = 0;
     usize i_count = 0;
@@ -985,7 +1006,7 @@ template<usize SD_CONTEXT_SIZE> bool vertex(sd::Context<SD_CONTEXT_SIZE>* ctx, V
         i_count = ctx->triangle_buffer.i_count;
         v_idx = v_count;
 #ifdef SD_BOUNDS_CHECK
-        if (v_count + attribute_stride > SD_CONTEXT_SIZE * attribute_stride || i_count + 1 > SD_CONTEXT_SIZE * 2) {
+        if (v_count + attribute_stride > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + 1 > SD_RENDER_BATCH_SIZE * 2) {
             SD_LOG_ERR("%s\n", "ERROR: vertex MAX TRIANGLES EXCEEDED");
             return false;
         }
@@ -1008,7 +1029,7 @@ template<usize SD_CONTEXT_SIZE> bool vertex(sd::Context<SD_CONTEXT_SIZE>* ctx, V
         i_count = ctx->line_buffer.i_count;
         v_idx = v_count;
 #ifdef SD_BOUNDS_CHECK
-        if (v_count + attribute_stride > SD_CONTEXT_SIZE * attribute_stride || i_count + 1 > SD_CONTEXT_SIZE * 2) {
+        if (v_count + attribute_stride > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + 1 > SD_RENDER_BATCH_SIZE * 2) {
             SD_LOG_ERR("%s\n", "ERROR: vertex MAX LINES EXCEEDED");
             return false;
         }
@@ -1029,17 +1050,17 @@ template<usize SD_CONTEXT_SIZE> bool vertex(sd::Context<SD_CONTEXT_SIZE>* ctx, V
     return true;      
 }
 
-template<usize SD_CONTEXT_SIZE> bool vertex(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec2 v)
+template<usize SD_RENDER_BATCH_SIZE> bool vertex(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec2 v)
 {
     return sd::vertex(ctx, Vec3(v, 1.0));
 }
 
-template<usize SD_CONTEXT_SIZE> inline void color(sd::Context<SD_CONTEXT_SIZE>* ctx, Vec4 color)
+template<usize SD_RENDER_BATCH_SIZE> inline void color(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec4 color)
 {
     ctx->color = color;
 }
 
-template<usize SD_CONTEXT_SIZE> inline void push_context(sd::Context<SD_CONTEXT_SIZE>* ctx)
+template<usize SD_RENDER_BATCH_SIZE> inline void push_context(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx)
 {
     // TODO
 }
@@ -1048,7 +1069,7 @@ template<usize SD_CONTEXT_SIZE> inline void push_context(sd::Context<SD_CONTEXT_
 // #define MAX_IMG_SIZE (128 * 128)
 // static bool draw_lines_from_image_visited[MAX_IMG_SIZE];
 
-// static void draw_lines_from_image_bfs(sd::Context* ctx, std::vector<glm::vec3>& bgr_colors_to_ignore, u8* pixels, u32 w, u32 h, u32 pitch, u32 pixels_per_move)
+// static void draw_lines_from_image_bfs(sd::RenderBatch* ctx, std::vector<glm::vec3>& bgr_colors_to_ignore, u8* pixels, u32 w, u32 h, u32 pitch, u32 pixels_per_move)
 // {
 //     // ((w / pixels_per_move) + 1) * ((h / pixels_per_move) + 1)
 //     bool* const visited = draw_lines_from_image_visited;
@@ -1085,7 +1106,7 @@ template<usize SD_CONTEXT_SIZE> inline void push_context(sd::Context<SD_CONTEXT_
 //     #undef IDX
 // }
 
-// static bool draw_lines_from_image(sd::Context* ctx, std::string path,  std::vector<glm::vec3> bgr_colors_to_ignore)
+// static bool draw_lines_from_image(sd::RenderBatch* ctx, std::string path,  std::vector<glm::vec3> bgr_colors_to_ignore)
 // {
 //     return false;
 //     SDL_RWops *rwop;
@@ -1128,8 +1149,8 @@ template<usize SD_CONTEXT_SIZE> inline void push_context(sd::Context<SD_CONTEXT_
 
 // }
 
-// template<usize SD_CONTEXT_SIZE>
-// inline void sd::Context_ERR_LOG_PRINT__(sd::Context<SD_CONTEXT_SIZE>* ctx, const char *const name, const char *const file, int line)
+// template<usize SD_RENDER_BATCH_SIZE>
+// inline void sd::RenderBatch_ERR_LOG_PRINT__(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, const char *const name, const char *const file, int line)
 // {
 //     if (ctx->status == false) {
 //         fprintf(stderr, "%s, %s, %d\n", name, file, line);
@@ -1137,11 +1158,11 @@ template<usize SD_CONTEXT_SIZE> inline void push_context(sd::Context<SD_CONTEXT_
 //     }
 // }
 // #ifdef SD_DEBUG_LOG_ON
-//     #define sd::Context_ERR_LOG(ctx__, file__, line__) sd::Context_ERR_LOG_PRINT__(& ctx__, STRING(ctx__), file__, line__)
-//     #define sd::Context_PTR_ERR_LOG(ctxptr__, file__, line__) sd::Context_ERR_LOG_PRINT__(ctxptr__, STRING(ctxptr__), file__, line__)
+//     #define sd::RenderBatch_ERR_LOG(ctx__, file__, line__) sd::RenderBatch_ERR_LOG_PRINT__(& ctx__, STRING(ctx__), file__, line__)
+//     #define sd::RenderBatch_PTR_ERR_LOG(ctxptr__, file__, line__) sd::RenderBatch_ERR_LOG_PRINT__(ctxptr__, STRING(ctxptr__), file__, line__)
 // #else
-//     #define sd::Context_ERR_LOG(ctx__, file__, line__)
-//     #define sd::Context_PTR_ERR_LOG(ctxptr__, file__, line__)
+//     #define sd::RenderBatch_ERR_LOG(ctx__, file__, line__)
+//     #define sd::RenderBatch_PTR_ERR_LOG(ctxptr__, file__, line__)
 // #endif
 
 }
