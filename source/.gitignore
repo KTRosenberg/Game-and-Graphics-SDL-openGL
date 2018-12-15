@@ -1,6 +1,8 @@
-*.psd
 *.o
 *.d
-run
+*.DS_Store
 *.wav
+*.psd
+
+run
 

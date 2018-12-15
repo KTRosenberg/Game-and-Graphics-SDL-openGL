@@ -1169,21 +1169,9 @@ bool load_config(AirPhysicsConfig* conf)
 #endif
 
 
-template <typename T>
-auto A_test()
-{
-    if constexpr (std::is_arithmetic_v<T>) {
-        return 5;
-    }
-    return 4;
-}
-
 #include <time.h>
 int main(int argc, char* argv[])
-{  
-    std::cout << A_test<uint32>() << std::endl;
-    auto buf = Buffer<LogicNode*, 5>::make();
-
+{
 /*
         struct {
             LogicNode* out;
@@ -1366,7 +1354,6 @@ int main(int argc, char* argv[])
     glewExperimental = GL_TRUE;
     glewInit();
 
-
     ConfigState_load_runtime();
 
     bool status = false;
@@ -1537,7 +1524,7 @@ int main(int argc, char* argv[])
         1.0f * SCREEN_HEIGHT,
         0.0f,
         0.0f, 
-        1.0f * 10.0f
+        1.0f
     );
     //glm::mat4 mat_projection = glm::perspective(glm::radians(45.0f), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
 

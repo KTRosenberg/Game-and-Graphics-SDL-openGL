@@ -11,7 +11,7 @@ SDLLIBFLAGS = $(shell sdl2-config --libs)
 CFLAGS += -MD -MP
 CXXFLAGS += -MD -MP
 DEPS = $(shell find . -name "*.d") 
--include $(DEPS)
+
 
 SOURCES_C   = c_lib.c
 SOURCES_CPP = run.cpp
@@ -21,6 +21,8 @@ OBJECTS_CPP = $(SOURCES_CPP:.cpp=.o)
 EXECNAME  = run
 
 all: $(EXECNAME)
+
+-include $(DEPS)
 
 $(EXECNAME): $(OBJECTS_C) $(OBJECTS_CPP)  
 	$(CXX) $^ $(SDLLIBFLAGS) $(LDFLAGS) -o $@
