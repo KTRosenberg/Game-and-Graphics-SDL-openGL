@@ -106,7 +106,7 @@ struct Array {
     typedef const T* const_iterator;
     iterator begin(void) { return &this->data[0]; }
     iterator end(void) { return &this->data[N]; }
-    iterator first_free(void) { return &this->data[this->count]; }
+    iterator next_free_slot(void) { return &this->data[this->count]; }
 
 
     static void init(Array<T, N>* array)
@@ -121,13 +121,20 @@ struct Array {
         return array;
     }
 
+    static inline void swap(Array<T, N>* array, usize i, usize j)
+    {
+        T val_at_i = array[i];
+        array[i] = array[j];
+        array[j] = val_at_i;
+    }
+
 }; 
 
 template <typename T>
-struct DynamicArray {
-    usize cap;
-    usize count;
+struct Dynamic_Array {
     T*    data;
+    usize count;
+    usize cap;
 
     operator T*(void) 
     {
@@ -153,7 +160,7 @@ struct DynamicArray {
         return this->data[i];
     }
 
-    inline usize byte_length(DynamicArray<T>* arr) const
+    inline usize byte_length(Dynamic_Array<T>* arr) const
     {
         return sizeof(T) * arr->count;
     }
@@ -216,21 +223,28 @@ struct DynamicArray {
     typedef T* iterator;
     typedef const T* const_iterator;
     iterator begin(void) { return &this->data[0]; }
-    iterator end(void) { return first_free(); }
-    iterator first_free(void) { return &this->data[this->count]; }
+    iterator end(void) { return next_free_slot(); }
+    iterator next_free_slot(void) { return &this->data[this->count]; }
 
 
-    static void init(DynamicArray<T>* array)
+    static void init(Dynamic_Array<T>* array)
     {
         // TODO
         array->count = 0;
         //array->cap = N;
     }
-    static DynamicArray<T> make(void)
+    static Dynamic_Array<T> make(void)
     {
-        DynamicArray<T> array;
+        Dynamic_Array<T> array;
         array.init(&array);
         return array;
+    }
+
+    static inline void swap(Dynamic_Array<T>* array, usize i, usize j)
+    {
+        T val_at_i = array[i];
+        array[i] = array[j];
+        array[j] = val_at_i;
     }
 };
 

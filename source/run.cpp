@@ -887,7 +887,7 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 }
 
 template <usize N>
-void draw_player_collision(Player* you, sd::Render_Layer<N>* ctx)
+void draw_player_collision(Player* you, sd::Render_Batch<N>* ctx)
 {
     const Vec3 off(0.5, 0.5, 0.0);
     BoxComponent* bc = &you->bound;
@@ -931,7 +931,7 @@ void draw_player_collision(Player* you, sd::Render_Layer<N>* ctx)
 }
 
 template <usize N>
-void BoxComponent_draw(BoxComponent* bc, sd::Render_Layer<N>* ctx)
+void BoxComponent_draw(BoxComponent* bc, sd::Render_Batch<N>* ctx)
 {
     const Vec3 off(0.5, 0.5, 0.0);
     Vec3 top_left = bc->position() + off;
@@ -1341,9 +1341,6 @@ int main(int argc, char* argv[])
         SDL_DestroyWindow(window);
         return EXIT_FAILURE;
     }
-
-
-    sd::sys_init();
     
     program_data.context = SDL_GL_CreateContext(window);
 
@@ -1635,7 +1632,7 @@ int main(int argc, char* argv[])
 
 
     #ifdef SD
-    auto drawctx = sd::Render_Layer_make(mat_projection);
+    auto drawctx = sd::Render_Batch_make(mat_projection);
     #endif
 
     Toggle free_cam_toggle = false;
@@ -1658,8 +1655,8 @@ int main(int argc, char* argv[])
     UniformLocation SCALE_LOC_GRID = glGetUniformLocation(shader_grid, "u_scale");
     glUniform1f(SCALE_LOC_GRID, (GLfloat)1.0);
 
-    sd::Render_Layer<> existing;
-    sd::Render_Layer<256> in_prog;
+    sd::Render_Batch<> existing;
+    sd::Render_Batch<256> in_prog;
     Toggle drawing = false;
     Toggle deletion = false;
 
@@ -1743,12 +1740,12 @@ int main(int argc, char* argv[])
 
 
 ////
-    collision_map.first_free()->a = Vec3(0.0, 5 * 128, 0.0);
-    collision_map.first_free()->b = Vec3(SCREEN_WIDTH, 5 * 128, 0.0);
+    collision_map.next_free_slot()->a = Vec3(0.0, 5 * 128, 0.0);
+    collision_map.next_free_slot()->b = Vec3(SCREEN_WIDTH, 5 * 128, 0.0);
     collision_map.count += 1;
 
-    collision_map.first_free()->a = Vec3(512.0, 3 * 128, 0.0);
-    collision_map.first_free()->b = Vec3(768.0, 3 * 128, 0.0);
+    collision_map.next_free_slot()->a = Vec3(512.0, 3 * 128, 0.0);
+    collision_map.next_free_slot()->b = Vec3(768.0, 3 * 128, 0.0);
     collision_map.count += 1;
 
     existing.begin();
@@ -2121,7 +2118,7 @@ int main(int argc, char* argv[])
                 drawctx.begin();
                 drawctx.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
 
-                for (auto it = collision_map.begin(); it != collision_map.first_free(); it += 1)
+                for (auto it = collision_map.begin(); it != collision_map.next_free_slot(); it += 1)
                 {
                     //Collider_print(it);
                     
@@ -2645,7 +2642,7 @@ int main(int argc, char* argv[])
                     usize selection = 0;
                     it += 1;
                     usize idx = 1;
-                    for (; it != collision_map.first_free(); it += 1) {
+                    for (; it != collision_map.next_free_slot(); it += 1) {
                         f64 d2 = dist_to_segment_squared(it->a, it->b, mouse);
                         if (d2 < min_dist) {
                             min_dist = d2;
@@ -2697,16 +2694,16 @@ int main(int argc, char* argv[])
                     in_progress_line[0].y = snap_to_grid(mouse.y, grid_len);
                     in_progress_line[0].z = mouse.z;
 
-                    collision_map.first_free()->a = in_progress_line[0];
-                    collision_map.first_free()->a.z = 0;
+                    collision_map.next_free_slot()->a = in_progress_line[0];
+                    collision_map.next_free_slot()->a.z = 0;
                 case TOGGLE_BRANCH::ON:
                     //printf("\tDRAWING\n");
                     in_progress_line[1].x = snap_to_grid(mouse.x, grid_len);
                     in_progress_line[1].y = snap_to_grid(mouse.y, grid_len);
                     in_progress_line[1].z = mouse.z;
 
-                    collision_map.first_free()->b = in_progress_line[1];
-                    collision_map.first_free()->b.z = 0;
+                    collision_map.next_free_slot()->b = in_progress_line[1];
+                    collision_map.next_free_slot()->b.z = 0;
 
                     in_prog.begin();
                     in_prog.draw_type = sd::LINES;
@@ -2897,7 +2894,7 @@ int main(int argc, char* argv[])
 
             CollisionStatus status;
             CollisionStatus_init(&status);
-            for (auto it = collision_map.begin(); it != collision_map.first_free(); it += 1)
+            for (auto it = collision_map.begin(); it != collision_map.next_free_slot(); it += 1)
             {
                 //Collider_print(it);
                 
@@ -2996,7 +2993,7 @@ int main(int argc, char* argv[])
 
             // if (collision_map.count > 0) {
             //     printf("{");
-            //     for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
+            //     for (auto it = collision_map.begin(); it != collision_map.next_free_slot(); ++it)
             //     {
             //         printf("\n");
             //         Collider_print(it);
