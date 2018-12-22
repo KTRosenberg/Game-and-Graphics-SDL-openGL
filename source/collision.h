@@ -10,7 +10,7 @@
 
 #define COLLIDER_MAX_SELECTION_DISTANCE (81)
 
-//typedef CollisionStatus (*Fn_CollisionHandler)(glm::vec3 incoming);
+//typedef CollisionStatus (*Fn_CollisionHandler)(Vec3 incoming);
 
 struct Collider {
     Vec3 a;

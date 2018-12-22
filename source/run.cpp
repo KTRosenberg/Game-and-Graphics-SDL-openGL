@@ -82,13 +82,13 @@ void* GlobalArenaAlloc_index_data(size_t count)
 struct Room {
     VertexBufferData  geometry;
     Collider* collision_data;
-    glm::mat4 matrix;
+    Mat4 matrix;
 };
 
 struct World {
     Room* rooms;
-    glm::mat4 m_view;
-    glm::mat4 m_projection;
+    Mat4 m_view;
+    Mat4 m_projection;
 };
 
 struct GlobalData {
@@ -966,9 +966,9 @@ bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
         // vec3_pair_print(&ray1.first, &ray1.second);
         // printf("\n-------------------------\n");
 
-    glm::vec3 va(POSITIVE_INFINITY);
-    glm::vec3 vb(POSITIVE_INFINITY);
-    glm::vec3* choice = &va;
+    Vec3 va(POSITIVE_INFINITY);
+    Vec3 vb(POSITIVE_INFINITY);
+    Vec3* choice = &va;
     bool possibly_collided = false;
 
     if (line_segment_intersection(ray0, &collider, &va)) {
@@ -985,7 +985,7 @@ bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
         return false;
     }
 
-    glm::vec3* out = &status->intersection;
+    Vec3* out = &status->intersection;
 
     // TODO FIX BUG: HEIGHT OVERRIDDEN BY SUCCESSIVE COLLIDERS EVEN IF LOWER,
     // MUST COMPARE ALL COLLIDERS BEFORE MODIFYING VALUE
@@ -1024,8 +1024,8 @@ bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
         out->z = 0.0;
         status->collider = c;
 
-        // glm::vec3* a = &c->a;
-        // glm::vec3* b = &c->b;
+        // Vec3* a = &c->a;
+        // Vec3* b = &c->b;
         //std::cout << glm::degrees(atan2pos_64(b->y - a->y, b->x - a->x)) << std::endl;
 
 
@@ -1043,15 +1043,15 @@ char temp_test_collision_sides(Player* you, Collider* c, CollisionStatus* l, Col
 {
     auto sensors = you->side_sensor_rays();
 
-    std::pair<glm::vec3, glm::vec3>* ray0 = &sensors.first;
-    std::pair<glm::vec3, glm::vec3>* ray1 = &sensors.second;
-    std::pair<glm::vec3, glm::vec3> collider = {
+    std::pair<Vec3, Vec3>* ray0 = &sensors.first;
+    std::pair<Vec3, Vec3>* ray1 = &sensors.second;
+    std::pair<Vec3, Vec3> collider = {
         c->a,
         c->b
     };
 
-    glm::vec3 vl(NEGATIVE_INFINITY);
-    glm::vec3 vr(POSITIVE_INFINITY);
+    Vec3 vl(NEGATIVE_INFINITY);
+    Vec3 vr(POSITIVE_INFINITY);
     
     bool collision_l = false;
     bool collision_r = false;
@@ -1067,8 +1067,8 @@ char temp_test_collision_sides(Player* you, Collider* c, CollisionStatus* l, Col
         return 0;
     }
 
-    glm::vec3* out_l = &l->intersection;
-    glm::vec3* out_r = &r->intersection;
+    Vec3* out_l = &l->intersection;
+    Vec3* out_r = &r->intersection;
 
     if (collision_l && collision_r) {
         if (vl.x > out_l->x) {
@@ -1172,8 +1172,6 @@ bool load_config(AirPhysicsConfig* conf)
 #include <time.h>
 int main(int argc, char* argv[])
 {
-    std::cout << sizeof(Vec3) << std::endl;
-    return 0;
 /*
         struct {
             LogicNode* out;
@@ -1402,9 +1400,9 @@ int main(int argc, char* argv[])
     const GLfloat y_off_left = (16.0f / 45.0f);
     const GLfloat x_off_right = (512.0f / 640.0f);
 
-    glm::vec2 tex_res(2048.0f, 1024.0f);
+    Vec2 tex_res(2048.0f, 1024.0f);
 
-    glm::vec3 world_bguv_factor = Vec3(Vec2(1.0f) / tex_res, 1.0f);
+    Vec3 world_bguv_factor = Vec3(Vec2(1.0f) / tex_res, 1.0f);
 
     GLuint layers_per_row = (GLuint)(tex_res.x / SCREEN_WIDTH);
     // GLfloat x_off = (GLfloat)(GLdouble)(SCREEN_WIDTH / tex_res.x);
@@ -1524,11 +1522,11 @@ int main(int argc, char* argv[])
         0.0f, 
         1.0f * 10.0f
     );
-    //glm::mat4 mat_projection = glm::perspective(glm::radians(45.0f), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
+    //Mat4 mat_projection = glm::perspective(glm::radians(45.0f), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
 
 //////////////////
 // TEST INPUT
-    glm::vec3 start_pos(0.0f, 0.0f, 1.0f);
+    Vec3 start_pos(0.0f, 0.0f, 1.0f);
     
     FreeCamera main_cam;
     FreeCamera_init(&main_cam, start_pos);
@@ -1608,7 +1606,7 @@ int main(int argc, char* argv[])
 
     const GLuint UVAL_COUNT_LAYERS = 5;
 
-    //glUniform2fv(RES_LOC, 1, glm::value_ptr(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT)));
+    //glUniform2fv(RES_LOC, 1, glm::value_ptr(Vec2(SCREEN_WIDTH, SCREEN_HEIGHT)));
     //glUniform1i(COUNT_LAYERS_LOC, UVAL_COUNT_LAYERS);
     //glUniform1f(ASPECT_LOC, (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT);
     // TEXTURE 0
@@ -1739,9 +1737,9 @@ int main(int argc, char* argv[])
     Toggle grid_toggle = false;
     Toggle physics_toggle = false;
     Toggle verbose_view_toggle = false;
-    glm::vec3 in_progress_line[2];
-    in_progress_line[0] = glm::vec3(0.0f);
-    in_progress_line[1] = glm::vec3(0.0f);
+    Vec3 in_progress_line[2];
+    in_progress_line[0] = Vec3(0.0f);
+    in_progress_line[1] = Vec3(0.0f);
 
 
 ////
@@ -1787,8 +1785,8 @@ int main(int argc, char* argv[])
     // return 0;
 
 
-    // glm::vec2 a(0, 0);
-    // glm::vec2 b(1, 1);
+    // Vec2 a(0, 0);
+    // Vec2 b(1, 1);
     // std::cout << glm::degrees(atan2pos_64(b.y - a.y, b.x - a.x)) << std::endl;
 
     #define AIR_CONFIG_PATH "./config/air.txt"
@@ -1920,7 +1918,7 @@ int main(int argc, char* argv[])
 
         {
 
-            //main_cam.orientation = glm::quat();
+            //main_cam.orientation = Quat();
 
             if (free_cam_is_on) {
                 if (key_is_held(&input, CONTROL::SHIFT)) {
@@ -2211,7 +2209,7 @@ int main(int argc, char* argv[])
                 //     0.0f
                 // );
                 main_cam.position = start_pos;
-                main_cam.orientation = glm::quat();
+                main_cam.orientation = Quat();
                 main_cam.is_catching_up = false;
                 main_cam.scale = 1.0;
 
@@ -2300,14 +2298,14 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(
             mat_projection
             /**FreeCamera_calc_view_matrix(&main_cam)*/
-            /*glm::translate(mat_ident, glm::vec3(glm::sin(((double)t_now / frequency)), 0.0, 0.0)) * */
-            /*glm::scale(mat_ident, glm::vec3(0.25, 0.25, 1.0))* */
+            /*glm::translate(mat_ident, Vec3(glm::sin(((double)t_now / frequency)), 0.0, 0.0)) * */
+            /*glm::scale(mat_ident, Vec3(0.25, 0.25, 1.0))* */
                         )
         );
 
         glUniform1f(TIME_LOC, t_since_start_s);
 
-        glm::vec3 pos = main_cam.position;
+        Vec3 pos = main_cam.position;
         #ifdef DEBUG_PRINT
 
             if (pos.x != prev_pos.x || pos.y != prev_pos.y || pos.z != prev_pos.z) {
@@ -2317,7 +2315,7 @@ int main(int argc, char* argv[])
             prev_pos.y = pos.y;
             prev_pos.z = pos.z;
         #endif
-        // glm::vec3 VV = pos * world_bguv_factor;
+        // Vec3 VV = pos * world_bguv_factor;
         // vec3_print(&VV);
         // std::cout << std::endl;
         glUniform1f(SCALE_LOC, main_cam.scale);
@@ -2359,12 +2357,12 @@ int main(int argc, char* argv[])
         glClear(GL_DEPTH_BUFFER_BIT);
 
 
-        glm::mat4 cam = FreeCamera_calc_view_matrix(&main_cam);
+        Mat4 cam = FreeCamera_calc_view_matrix(&main_cam);
 
         // drawctx.begin();
 
         //     //drawctx.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
-        //     drawctx.transform_matrix = glm::mat4(1.0f);
+        //     drawctx.transform_matrix = Mat4(1.0f);
 
         //     // drawctx.draw_type = GL_LINES;
         //     // drawctx.color = Color::RED;
@@ -2383,18 +2381,18 @@ int main(int argc, char* argv[])
         //     GLfloat CX = (SCREEN_WIDTH / 2.0f);
         //     GLfloat CY = 384.0f;
 
-        //     drawctx.color = glm::vec4(252.0f / 255.0f, 212.0f / 255.0f, 64.0f / 255.0f, 1.0f);
+        //     drawctx.color = Vec4(252.0f / 255.0f, 212.0f / 255.0f, 64.0f / 255.0f, 1.0f);
 
         //     drawctx.transform_matrix = cam;
 
         //     drawctx.circle(90.0f, {CX, CY, -1.0});
 
-        //     drawctx.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        //     drawctx.transform_matrix = glm::translate(cam, glm::vec3(CX - 27.0f, CY - 25.0f, 0.0f));
+        //     drawctx.color = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        //     drawctx.transform_matrix = glm::translate(cam, Vec3(CX - 27.0f, CY - 25.0f, 0.0f));
         //     drawctx.circle(10.0f, {0.0f, 0.0f, 0.0f});
 
-        //     drawctx.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        //     drawctx.transform_matrix = glm::translate(cam, glm::vec3(CX + 27.0f, CY - 25.0f, 0.0f));
+        //     drawctx.color = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        //     drawctx.transform_matrix = glm::translate(cam, Vec3(CX + 27.0f, CY - 25.0f, 0.0f));
         //     drawctx.circle(10.0f, {0.0f, 0.0f, 0.0f});
 
             
@@ -2406,24 +2404,24 @@ int main(int argc, char* argv[])
         //     CX = 5.0f / TILE_SCALE;
         //     CY = 3.0f / TILE_SCALE;
             
-        //     glm::mat4 model(1.0f);
-        //     model = glm::scale(model, glm::vec3(BASE_TILE_SIZE * TILE_SCALE, BASE_TILE_SIZE * TILE_SCALE, 1.0f));
-        //     model = glm::translate(model, glm::vec3({CX, CY, 0.0}));
-        //     model = glm::rotate(model, (GLfloat)t_since_start, glm::vec3(0.0f, 0.0f, 1.0f));
-        //     model = glm::translate(model, glm::vec3({-CX, -CY, 0.0}));
+        //     Mat4 model(1.0f);
+        //     model = glm::scale(model, Vec3(BASE_TILE_SIZE * TILE_SCALE, BASE_TILE_SIZE * TILE_SCALE, 1.0f));
+        //     model = glm::translate(model, Vec3({CX, CY, 0.0}));
+        //     model = glm::rotate(model, (GLfloat)t_since_start, Vec3(0.0f, 0.0f, 1.0f));
+        //     model = glm::translate(model, Vec3({-CX, -CY, 0.0}));
             
 
         //     drawctx.transform_matrix = cam * model;
 
-        //     drawctx.color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+        //     drawctx.color = Vec4(1.0f, 0.0f, 0.0f, 1.0f);
         //     {
         //         GLfloat off = 1.0f;
         //         // horizontal
-        //         drawctx.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX + off, CY - off, 0.0f));
-        //         drawctx.line(glm::vec3(CX - off, CY + off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
+        //         drawctx.line(Vec3(CX - off, CY - off, 0.0f), Vec3(CX + off, CY - off, 0.0f));
+        //         drawctx.line(Vec3(CX - off, CY + off, 0.0f), Vec3(CX + off, CY + off, 0.0f));
         //         // vertical
-        //         drawctx.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX - off, CY + off, 0.0f));
-        //         drawctx.line(glm::vec3(CX + off, CY - off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
+        //         drawctx.line(Vec3(CX - off, CY - off, 0.0f), Vec3(CX - off, CY + off, 0.0f));
+        //         drawctx.line(Vec3(CX + off, CY - off, 0.0f), Vec3(CX + off, CY + off, 0.0f));
         //     }   
 
 
@@ -2472,9 +2470,9 @@ int main(int argc, char* argv[])
 
             glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, 0);
 
-            //glm::mat4 mat_screen_to_world = FreeCamera_calc_view_matrix_reverse(&main_cam);
+            //Mat4 mat_screen_to_world = FreeCamera_calc_view_matrix_reverse(&main_cam);
 
-            glm::vec4 mouse = Vec4((int)input.mouse_x, (int)input.mouse_y, 0.0f, 1.0f);
+            Vec4 mouse = Vec4((int)input.mouse_x, (int)input.mouse_y, 0.0f, 1.0f);
                       mouse = glm::inverse(cam) * mouse;
 
             i32 grid_len = (tex_res.x / grid_square_pixel_size);
@@ -2549,7 +2547,7 @@ int main(int argc, char* argv[])
             //         mat = glm::translate(mat, Vec3(Vec2(POS), 0));
 
 
-            //         mat4 mat2 = glm::translate(glm::mat4(1.0f), Vec3(Vec2(POS) + Vec2(LEN_TEST / 2), 0)) *
+            //         mat4 mat2 = glm::translate(Mat4(1.0f), Vec3(Vec2(POS) + Vec2(LEN_TEST / 2), 0)) *
             //                     glm::scale(Vec3(1.0 / main_cam.scale, 1.0 / main_cam.scale, 1)) *
             //                     glm::translate(-Vec3(Vec2(POS) + Vec2(LEN_TEST / 2), 0)) *
             //                     glm::translate(Vec3(Vec2(POS), 0));
@@ -2636,7 +2634,7 @@ int main(int argc, char* argv[])
 
 
 
-                    // glm::vec3 M = glm::vec3(mouse);
+                    // Vec3 M = Vec3(mouse);
                     // vec3_print(&M);
                     // std::cout << std::endl;
 
@@ -2723,7 +2721,7 @@ int main(int argc, char* argv[])
                         sd::circle(
                             &in_prog,
                             5.0f * (1.0 / main_cam.scale),
-                            glm::vec3(
+                            Vec3(
                                 snap_to_grid(mouse.x, grid_len), 
                                 snap_to_grid(mouse.y, grid_len),
                                 1.0f
@@ -2782,8 +2780,8 @@ int main(int argc, char* argv[])
                     //     f64 dx = in_progress_line[1].x - in_progress_line[0].x;
                     //     existing.color = Color::BLUE;
 
-                    //     glm::vec3 na(-dy, dx, 0.0);
-                    //     glm::vec3 nb(dy, -dx, 0.0);
+                    //     Vec3 na(-dy, dx, 0.0);
+                    //     Vec3 nb(dy, -dx, 0.0);
 
                     //     //na = glm::normalize(na);
                     //     //nb = glm::normalize(nb);
@@ -2839,7 +2837,7 @@ int main(int argc, char* argv[])
 
             drawctx.transform_matrix = cam;
 
-            //draw_lines_from_image(&drawctx, "./test_paths/C.bmp", {glm::vec3(1.0f), glm::vec3(0.0f)});
+            //draw_lines_from_image(&drawctx, "./test_paths/C.bmp", {Vec3(1.0f), Vec3(0.0f)});
 
 
             // f64 WEE = ((f64)(t_now - you.state_change_time)) / frequency;
@@ -2918,13 +2916,13 @@ int main(int argc, char* argv[])
             }
 
 
-            // glm::vec2 tang = .1 * angular_impulse(glm::pi<double>() / 30.0, glm::vec2(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5), glm::vec2(you.bound.spatial.x, you.bound.spatial.y));
+            // Vec2 tang = .1 * angular_impulse(glm::pi<double>() / 30.0, Vec2(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5), Vec2(you.bound.spatial.x, you.bound.spatial.y));
 
-            // drawctx.circle(glm::distance(glm::vec2(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5), glm::vec2(you.bound.calc_position_center())), glm::vec3(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5, 1.0));
+            // drawctx.circle(glm::distance(Vec2(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5), Vec2(you.bound.calc_position_center())), Vec3(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5, 1.0));
             
-            // drawctx.color = glm::vec4(1.0, 1.0, 0.0, 1.0);
+            // drawctx.color = Vec4(1.0, 1.0, 0.0, 1.0);
 
-            // drawctx.line(glm::vec2(you.bound.calc_position_center()), tang + glm::vec2(you.bound.calc_position_center()));
+            // drawctx.line(Vec2(you.bound.calc_position_center()), tang + Vec2(you.bound.calc_position_center()));
 
             if (!collided) {
                 you.on_ground = false;
@@ -2959,8 +2957,8 @@ int main(int argc, char* argv[])
                 you.bound.spatial.y = status.intersection.y - (1 * you.bound.height);
 
                 Collider* col = status.collider;
-                glm::vec3* a = &col->a;
-                glm::vec3* b = &col->b;
+                Vec3* a = &col->a;
+                Vec3* b = &col->b;
                 you.bound.spatial.w = atan2_64(b->y - a->y, b->x - a->x);
 
                 // draw surface and normals

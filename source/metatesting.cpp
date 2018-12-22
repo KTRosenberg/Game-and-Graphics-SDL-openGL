@@ -41,7 +41,7 @@ struct ArrayMetaData {
 
 struct Wee {
     i32 x;
-    glm::vec3 v;
+    Vec3 v;
 
     static const usize   COUNT;
     static usize         used;

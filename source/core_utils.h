@@ -167,7 +167,7 @@ inline f64 snap_to_grid_f(f64 val_x, f64 len);
 
 
 struct BoxComponent {
-    glm::vec4 spatial;
+    Vec4 spatial;
     f64 width;
     f64 height;
 
@@ -186,9 +186,9 @@ struct BoxComponent {
         return this->spatial.z;
     }
 
-    inline glm::vec3 position(void)
+    inline Vec3 position(void)
     {
-        return glm::vec3(this->spatial);
+        return Vec3(this->spatial);
     }
 
     inline f32 angle(void)
@@ -196,9 +196,9 @@ struct BoxComponent {
         return this->spatial.w;
     }
 
-    inline glm::vec2 calc_position_center(void)
+    inline Vec2 calc_position_center(void)
     {
-        return glm::vec2(this->spatial.x + (this->width / 2.0f), this->spatial.y + (this->height / 2));
+        return Vec2(this->spatial.x + (this->width / 2.0f), this->spatial.y + (this->height / 2));
     }
 
     inline void position_set(f64 x, f64 y)
@@ -238,8 +238,8 @@ void BoxComponent_init(f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height);
 struct Player {
     BoxComponent bound;
     f64 state_change_time;
-    glm::vec2 velocity_ground;
-    glm::vec2 velocity_air;
+    Vec2 velocity_ground;
+    Vec2 velocity_air;
     f64 acceleration_ground;
     f64 acceleration_air;
     f64 initial_jump_velocity;
@@ -255,15 +255,15 @@ struct Player {
 
     // floor sensors
 
-    inline std::pair<glm::vec3, glm::vec3> floor_sensors(void)
+    inline std::pair<Vec3, Vec3> floor_sensors(void)
     {
         return {
-            glm::vec3(
+            Vec3(
                 this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
                 this->bound.spatial.y + (this->bound.height / 2),
                 this->bound.spatial.z
             ), 
-            glm::vec3(
+            Vec3(
                 this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
                 this->bound.spatial.y + (this->bound.height / 2),
                 this->bound.spatial.z
@@ -272,31 +272,31 @@ struct Player {
     }
 
     inline std::pair<
-        std::pair<glm::vec3, glm::vec3>, 
-        std::pair<glm::vec3, glm::vec3>
+        std::pair<Vec3, Vec3>, 
+        std::pair<Vec3, Vec3>
     >
     floor_sensor_rays(void)
     {
         return {
             {
-                glm::vec3(
+                Vec3(
                     (this->bound.spatial.x + (this->bound.width / 2)) - 9.0, 
                     this->bound.spatial.y + (this->bound.height / 2),
                     this->bound.spatial.z 
                 ),
-                glm::vec3(
+                Vec3(
                     (this->bound.spatial.x + (this->bound.width / 2)) - 9.0, 
                     this->bound.spatial.y + this->bound.height + (this->bound.height * 0.4),
                     this->bound.spatial.z
                 )
             },
             {
-                glm::vec3(
+                Vec3(
                     (this->bound.spatial.x + (this->bound.width / 2)) + 9.0, 
                     this->bound.spatial.y + (this->bound.height / 2),
                     this->bound.spatial.z 
                 ),
-                glm::vec3(
+                Vec3(
                     (this->bound.spatial.x + (this->bound.width / 2)) + 9.0, 
                     this->bound.spatial.y + this->bound.height + (this->bound.height * 0.4),
                     this->bound.spatial.z 
@@ -308,15 +308,15 @@ struct Player {
     // side sensors
 
 
-    inline std::pair<glm::vec3, glm::vec3> side_sensors(void)
+    inline std::pair<Vec3, Vec3> side_sensors(void)
     {
         return {
-            glm::vec3(
+            Vec3(
                 this->bound.spatial.x,
                 this->bound.spatial.y + (this->bound.height / 2),
                 this->bound.spatial.z            
             ),
-            glm::vec3(
+            Vec3(
                 this->bound.spatial.x + this->bound.width,
                 this->bound.spatial.y + (this->bound.height / 2),
                 this->bound.spatial.z
@@ -325,31 +325,31 @@ struct Player {
     }
 
     inline std::pair<
-        std::pair<glm::vec3, glm::vec3>, 
-        std::pair<glm::vec3, glm::vec3>
+        std::pair<Vec3, Vec3>, 
+        std::pair<Vec3, Vec3>
     >
     side_sensor_rays(void)
     {
         return {
             {
-                glm::vec3(
+                Vec3(
                     this->bound.spatial.x + (this->bound.width / 2), 
                     this->bound.spatial.y + (this->bound.height / 2),
                     this->bound.spatial.z 
                 ),
-                glm::vec3(
+                Vec3(
                     this->bound.spatial.x,
                     this->bound.spatial.y + (this->bound.height / 2),
                     this->bound.spatial.z            
                 )
             },
             {
-                glm::vec3(
+                Vec3(
                     this->bound.spatial.x + (this->bound.width / 2),
                     this->bound.spatial.y + (this->bound.height / 2),
                     this->bound.spatial.z 
                 ),
-                glm::vec3(
+                Vec3(
                     this->bound.spatial.x + this->bound.width,
                     this->bound.spatial.y + (this->bound.height / 2),
                     this->bound.spatial.z
@@ -358,17 +358,17 @@ struct Player {
         };
     }
 
-    // inline std::pair<std::pair<glm::vec4>> floor_sensor_rays(void)
+    // inline std::pair<std::pair<Vec4>> floor_sensor_rays(void)
     // {
     //     return {
     //         {
-    //             glm::vec4(
+    //             Vec4(
     //                 this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
     //                 this->bound.spatial.y + (this->bound.height),
     //                 this->bound.spatial.z, 
     //                 0.0f
     //             ),
-    //             glm::vec4(
+    //             Vec4(
     //                 this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
     //                 this->bound.spatial.y + (this->bound.height + this->bound + heigh),
     //                 this->bound.spatial.z, 
@@ -377,7 +377,7 @@ struct Player {
 
     //         },
     //         {
-    //             glm::vec4(
+    //             Vec4(
     //                 this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
     //                 this->bound.spatial.y + (this->bound.height),
     //                 this->bound.spatial.z, 
@@ -616,8 +616,8 @@ void Player_init(Player* pl /*, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 h
     // BoxComponent_init(&pl->bound, x, y, z, angle, width, height);
     // pl->on_ground = false;
     // pl->state_change_time = 0.0;
-    // pl->velocity_ground = glm::vec3(0.0);
-    // pl->velocity_air = glm::vec3(0.0);
+    // pl->velocity_ground = Vec3(0.0);
+    // pl->velocity_air = Vec3(0.0);
 
     memset(pl, 0x00, sizeof(Player));
 }
@@ -631,8 +631,8 @@ void Player_init(Player* pl, f64 x, f64 y, f64 z, bool position_at_center, f64 a
 
     pl->on_ground = false;
     pl->state_change_time = 0.0;
-    pl->velocity_ground = glm::vec2(0.0);
-    pl->velocity_air = glm::vec2(0.0);
+    pl->velocity_ground = Vec2(0.0);
+    pl->velocity_air = Vec2(0.0);
     pl->acceleration_air = Player::AIR_ACCELERATION_DEFAULT;
     pl->acceleration_ground = Player::GROUND_ACCELERATION_DEFAULT;
     pl->initial_jump_velocity = Player::JUMP_VELOCITY_DEFAULT;
@@ -643,7 +643,7 @@ void Player_init(Player* pl, f64 x, f64 y, f64 z, bool position_at_center, f64 a
 void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_time)
 {
     const GLfloat velocity = glm::min(PLAYER_BASE_SPEED * delta_time, PLAYER_MAX_SPEED);
-    glm::vec4* p = &you->bound.spatial;
+    Vec4* p = &you->bound.spatial;
 
     //printf("%f\n", velocity);
 

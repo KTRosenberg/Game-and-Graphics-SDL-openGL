@@ -23,9 +23,9 @@
 static const GLfloat ViewCamera_default_speed = 4.0f;
 
 typedef struct ViewCamera {
-    Vec3 position;
+    Vec3      position;
     GLfloat   speed;
-    glm::mat4 matrix;
+    Mat4      matrix;
     GLfloat   min_x;
     GLfloat   max_x;
     GLfloat   min_y;
@@ -47,7 +47,7 @@ void ViewCamera_init(
 );
 
 void ViewCamera_process_directional_movement(ViewCamera* view, MOVEMENT_DIRECTION direction, GLfloat delta_time);
-glm::mat4 ViewCamera_calc_view_matrix(ViewCamera* view);
+Mat4 ViewCamera_calc_view_matrix(ViewCamera* view);
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 enum class Camera_Movement : unsigned char 
@@ -102,7 +102,7 @@ struct Camera {
         GLfloat pitch = camera_defaults::PITCH
     );
     
-    glm::mat4 get_view_matrix(void);
+    Mat4 get_view_matrix(void);
 
     void process_directional_movement(Camera_Movement direction, GLfloat delta_time);
     void process_mouse_movement(GLfloat x_offset, GLfloat y_offset, GLboolean constrain_pitch = GL_TRUE);
@@ -131,12 +131,12 @@ struct FreeCamera {
 	//FreeCamera (void) = default;
 	//FreeCamera (const FreeCamera &) = default;
 
-	//FreeCamera (const glm::vec3 &position) : position(position) { is_catching_up = false; }
-	//FreeCamera (const glm::vec3 &position, const glm::quat &orientation) : position(position), orientation(orientation) {}
+	//FreeCamera (const Vec3 &position) : position(position) { is_catching_up = false; }
+	//FreeCamera (const Vec3 &position, const Quat &orientation) : position(position), orientation(orientation) {}
 
 	//FreeCamera  &operator=(const FreeCamera&) = default;
 
-	//glm::mat4 get_view_matrix(void) const { return glm::translate(glm::mat4_cast(orientation), -position); }
+	//Mat4 get_view_matrix(void) const { return glm::translate(glm::mat4_cast(orientation), -position); }
 
 	void translate(const Vec3 &v) { position += v * orientation; }
 	void translate(float x, float y, float z) { position += Vec3(x, y, z) * orientation; }

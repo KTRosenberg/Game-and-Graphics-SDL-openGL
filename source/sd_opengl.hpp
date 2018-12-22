@@ -401,8 +401,8 @@ struct Render_Layer {
             return false;
         }
 
-        //a = glm::vec2(transform_matrix * glm::vec4(a, 0.0f, 1.0f));
-        //b = glm::vec2(transform_matrix * glm::vec4(b, 0.0f, 1.0f));
+        //a = Vec2(transform_matrix * Vec4(a, 0.0f, 1.0f));
+        //b = Vec2(transform_matrix * Vec4(b, 0.0f, 1.0f));
 
         const usize v_idx = v_count;
 
@@ -552,7 +552,7 @@ struct Render_Layer {
                 return;
             }
 
-            //v = glm::vec3(transform_matrix * glm::vec4(v, 1.0f));
+            //v = Vec3(transform_matrix * Vec4(v, 1.0f));
 
 
             memcpy(&vertices_triangles[v_idx], &v[0], sizeof(v[0]) * 3);
@@ -591,7 +591,7 @@ struct Render_Layer {
                 return;
             }
 
-            //v = glm::vec3(transform_matrix * glm::vec4(v, 1.0f));
+            //v = Vec3(transform_matrix * Vec4(v, 1.0f));
 
 
             memcpy(&vertices_lines[v_idx], &v[0], sizeof(v[0]) * 3);
@@ -1070,7 +1070,7 @@ template<usize SD_RENDER_LAYER_SIZE> inline void push_context(sd::Render_Layer<S
 // #define MAX_IMG_SIZE (128 * 128)
 // static bool draw_lines_from_image_visited[MAX_IMG_SIZE];
 
-// static void draw_lines_from_image_bfs(sd::Render_Layer* ctx, std::vector<glm::vec3>& bgr_colors_to_ignore, u8* pixels, u32 w, u32 h, u32 pitch, u32 pixels_per_move)
+// static void draw_lines_from_image_bfs(sd::Render_Layer* ctx, std::vector<Vec3>& bgr_colors_to_ignore, u8* pixels, u32 w, u32 h, u32 pitch, u32 pixels_per_move)
 // {
 //     // ((w / pixels_per_move) + 1) * ((h / pixels_per_move) + 1)
 //     bool* const visited = draw_lines_from_image_visited;
@@ -1107,7 +1107,7 @@ template<usize SD_RENDER_LAYER_SIZE> inline void push_context(sd::Render_Layer<S
 //     #undef IDX
 // }
 
-// static bool draw_lines_from_image(sd::Render_Layer* ctx, std::string path,  std::vector<glm::vec3> bgr_colors_to_ignore)
+// static bool draw_lines_from_image(sd::Render_Layer* ctx, std::string path,  std::vector<Vec3> bgr_colors_to_ignore)
 // {
 //     return false;
 //     SDL_RWops *rwop;

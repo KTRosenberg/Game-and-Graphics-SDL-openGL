@@ -68,8 +68,8 @@ void ViewCamera_process_directional_movement(ViewCamera* view, MOVEMENT_DIRECTIO
 }
 
 
-static const glm::mat4 m_identity(1.0f);
-glm::mat4 ViewCamera_calc_view_matrix(ViewCamera* view) 
+static const Mat4 m_identity(1.0f);
+Mat4 ViewCamera_calc_view_matrix(ViewCamera* view) 
 {
     return view->matrix = glm::translate(m_identity, -view->position);
 }
@@ -111,7 +111,7 @@ Camera::Camera(GLfloat pos_x, GLfloat pos_y, GLfloat pos_z,
     this->update_camera_vectors();
 }
 
-glm::mat4 Camera::get_view_matrix(void)
+Mat4 Camera::get_view_matrix(void)
 {
 
     return glm::translate(Mat4(1.0f), this->pos);

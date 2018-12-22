@@ -114,15 +114,15 @@ inline T dref_as(void* ptr);
 #define NEGATIVE_INFINITY (-POSITIVE_INFINITY)
 
 #define declare_pair_type(type__, name__) typedef std::pair<type__, type__> name__##_pair
-declare_pair_type(glm::vec3, vec3);
-declare_pair_type(glm::vec4, vec4);
+declare_pair_type(Vec3, vec3);
+declare_pair_type(Vec4, vec4);
 
-inline f64 dist2(glm::vec3 v, glm::vec3 w);
-inline f64 dist_to_segment_squared(glm::vec3 v, glm::vec3 w, glm::vec3 p);
-inline f64 dist_to_segment(glm::vec3 v, glm::vec3 w, glm::vec3 p);
+inline f64 dist2(Vec3 v, Vec3 w);
+inline f64 dist_to_segment_squared(Vec3 v, Vec3 w, Vec3 p);
+inline f64 dist_to_segment(Vec3 v, Vec3 w, Vec3 p);
 
 // http://alienryderflex.com/intersect/
-bool line_segment_intersection(const vec3_pair* s0, const vec3_pair* s1, glm::vec3* out);
+bool line_segment_intersection(const vec3_pair* s0, const vec3_pair* s1, Vec3* out);
 
 inline f32 lerp(f32 a, f32 b, f32 t);
 inline f64 lerp(f64 a, f64 b, f64 t);
@@ -193,24 +193,24 @@ template <typename T, usize N>
 T* RingBuffer_dequeue_pointer(RingBuffer<T, N>* buffer);
 
 
-void vec2_print(glm::vec2* v);
-void vec2_print(glm::vec2 v);
-void vec2_pair_print(glm::vec2* a, glm::vec2* b);
-void vec2_pair_print(glm::vec2 a, glm::vec2 b);
-void vec2_println(glm::vec2* v);
-void vec2_println(glm::vec2 v);
-void vec2_pair_println(glm::vec2* a, glm::vec2* b);
-void vec2_pair_println(glm::vec2 a, glm::vec2 b);
+void vec2_print(Vec2* v);
+void vec2_print(Vec2 v);
+void vec2_pair_print(Vec2* a, Vec2* b);
+void vec2_pair_print(Vec2 a, Vec2 b);
+void vec2_println(Vec2* v);
+void vec2_println(Vec2 v);
+void vec2_pair_println(Vec2* a, Vec2* b);
+void vec2_pair_println(Vec2 a, Vec2 b);
 
-void vec3_print(glm::vec3* v);
-void vec3_print(glm::vec3 v);
-void vec3_pair_print(glm::vec3* a, glm::vec3* b);
-void vec3_pair_print(glm::vec3 a, glm::vec3 b);
+void vec3_print(Vec3* v);
+void vec3_print(Vec3 v);
+void vec3_pair_print(Vec3* a, Vec3* b);
+void vec3_pair_print(Vec3 a, Vec3 b);
 
-void vec4_print(glm::vec4* v);
-void vec4_print(glm::vec4 v);
-void vec4_pair_print(glm::vec4* a, glm::vec4* b);
-void vec4_pair_print(glm::vec4 a, glm::vec4 b);
+void vec4_print(Vec4* v);
+void vec4_print(Vec4 v);
+void vec4_pair_print(Vec4* a, Vec4* b);
+void vec4_pair_print(Vec4 a, Vec4 b);
 
 template<typename T>
 void print_array(T* array, const usize N, const usize M = 1);
@@ -222,7 +222,7 @@ static inline f32 atan2pos_32(f64 y, f64 x);
 static inline f64 atan2pos_64(f64 y, f64 x);
 
 inline float64 angular_velocity(float64 radians, float64 time_delta);
-inline glm::vec2 angular_impulse(float64 angular_velocity, glm::vec2 center, glm::vec2 point);
+inline Vec2 angular_impulse(float64 angular_velocity, Vec2 center, Vec2 point);
 
 bool check_file_status(const char* file_path, struct stat* file_stat);
 
@@ -252,14 +252,14 @@ inline T dref_as(void* ptr)
     return *static_cast<T*>(ptr);
 }
 
-inline f64 dist2(glm::vec3 v, glm::vec3 w)
+inline f64 dist2(Vec3 v, Vec3 w)
 {
     f64 a = v.x - w.x;
     f64 b = v.y - w.y;
     return (a * a) + (b * b);
 }
 
-inline f64 dist_to_segment_squared(glm::vec3 v, glm::vec3 w, glm::vec3 p)
+inline f64 dist_to_segment_squared(Vec3 v, Vec3 w, Vec3 p)
 { 
     const f64 l2 = dist2(v, w);
     if (l2 == 0.0) {
@@ -267,16 +267,16 @@ inline f64 dist_to_segment_squared(glm::vec3 v, glm::vec3 w, glm::vec3 p)
     }
 
     const f64 t = glm::max(0.0, glm::min(1.0, dot(p - v, w - v) / l2));
-    return dist2(p, glm::vec3(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y), 0.0));
+    return dist2(p, Vec3(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y), 0.0));
 }
 
-inline f64 dist_to_segment(glm::vec3 v, glm::vec3 w, glm::vec3 p)
+inline f64 dist_to_segment(Vec3 v, Vec3 w, Vec3 p)
 {
     return glm::sqrt(dist_to_segment_squared(v, w, p));
 }
 
 // http://alienryderflex.com/intersect/
-bool line_segment_intersection(const vec3_pair* s0, const vec3_pair* s1, glm::vec3* out)
+bool line_segment_intersection(const vec3_pair* s0, const vec3_pair* s1, Vec3* out)
 {
     f64 Ax = s0->first.x;
     f64 Ay = s0->first.y;
@@ -429,69 +429,69 @@ T* RingBuffer_dequeue_pointer(RingBuffer<T, N>* buffer)
 }
 
 
-void vec2_print(glm::vec2* v)
+void vec2_print(Vec2* v)
 {
     printf("[%f, %f]", v->x, v->y);      
 }
-void vec2_print(glm::vec2 v)
+void vec2_print(Vec2 v)
 {
     printf("[%f, %f]", v.x, v.y);      
 }
-void vec2_pair_print(glm::vec2* a, glm::vec2* b)
+void vec2_pair_print(Vec2* a, Vec2* b)
 {
     printf("[[%f, %f][%f, %f]]", a->x, a->y, b->x, b->y);  
 }
-void vec2_pair_print(glm::vec2 a, glm::vec2 b)
+void vec2_pair_print(Vec2 a, Vec2 b)
 {
     printf("[[%f, %f][%f, %f]]", a.x, a.y, b.x, b.y);  
 }
-void vec2_println(glm::vec2* v)
+void vec2_println(Vec2* v)
 {
     printf("[%f, %f]\n", v->x, v->y);      
 }
-void vec2_println(glm::vec2 v)
+void vec2_println(Vec2 v)
 {
     printf("[%f, %f]\n", v.x, v.y);      
 }
-void vec2_pair_println(glm::vec2* a, glm::vec2* b)
+void vec2_pair_println(Vec2* a, Vec2* b)
 {
     printf("[[%f, %f][%f, %f]]\n", a->x, a->y, b->x, b->y);  
 }
-void vec2_pair_println(glm::vec2 a, glm::vec2 b)
+void vec2_pair_println(Vec2 a, Vec2 b)
 {
     printf("[[%f, %f][%f, %f]]\n", a.x, a.y, b.x, b.y);  
 }
 
-void vec3_print(glm::vec3* v)
+void vec3_print(Vec3* v)
 {
     printf("[%f, %f, %f]", v->x, v->y, v->z);  
 }
-void vec3_print(glm::vec3 v)
+void vec3_print(Vec3 v)
 {
     printf("[%f, %f, %f]", v.x, v.y, v.z);  
 }
-void vec3_pair_print(glm::vec3* a, glm::vec3* b)
+void vec3_pair_print(Vec3* a, Vec3* b)
 {
     printf("[[%f, %f, %f][%f, %f, %f]]", a->x, a->y, a->z, b->x, b->y, b->z);  
 }
-void vec3_pair_print(glm::vec3 a, glm::vec3 b)
+void vec3_pair_print(Vec3 a, Vec3 b)
 {
     printf("[[%f, %f, %f][%f, %f, %f]]", a.x, a.y, a.z, b.x, b.y, b.z);  
 }
 
-void vec4_print(glm::vec4* v)
+void vec4_print(Vec4* v)
 {
     printf("[%f, %f, %f, %f]", v->x, v->y, v->z, v->w);  
 }
-void vec4_print(glm::vec4 v)
+void vec4_print(Vec4 v)
 {
     printf("[%f, %f, %f, %f]", v.x, v.y, v.z, v.w);  
 }
-void vec4_pair_print(glm::vec4* a, glm::vec4* b)
+void vec4_pair_print(Vec4* a, Vec4* b)
 {
     printf("[[%f, %f, %f, %f][%f, %f, %f, %f]]", a->x, a->y, a->z, a->w, b->x, b->y, b->z, b->w);  
 }
-void vec4_pair_print(glm::vec4 a, glm::vec4 b)
+void vec4_pair_print(Vec4 a, Vec4 b)
 {
     printf("[[%f, %f, %f, %f][%f, %f, %f, %f]]", a.x, a.y, a.z, a.w, b.x, b.y, b.z, b.w);  
 }
@@ -531,9 +531,9 @@ inline float64 angular_velocity(float64 radians, float64 time_delta)
     return radians / time_delta;
 }
 
-inline glm::vec2 angular_impulse(float64 angular_velocity, glm::vec2 center, glm::vec2 point)
+inline Vec2 angular_impulse(float64 angular_velocity, Vec2 center, Vec2 point)
 {
-    return -angular_velocity * glm::vec2(-(point.y - center.y), (point.x - center.x));
+    return -angular_velocity * Vec2(-(point.y - center.y), (point.x - center.x));
 }
 
 bool check_file_status(const char* file_path, struct stat* file_stat)
