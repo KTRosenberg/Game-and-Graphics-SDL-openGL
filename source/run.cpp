@@ -887,7 +887,7 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 }
 
 template <usize N>
-void draw_player_collision(Player* you, sd::RenderBatch<N>* ctx)
+void draw_player_collision(Player* you, sd::Render_Layer<N>* ctx)
 {
     const Vec3 off(0.5, 0.5, 0.0);
     BoxComponent* bc = &you->bound;
@@ -931,7 +931,7 @@ void draw_player_collision(Player* you, sd::RenderBatch<N>* ctx)
 }
 
 template <usize N>
-void BoxComponent_draw(BoxComponent* bc, sd::RenderBatch<N>* ctx)
+void BoxComponent_draw(BoxComponent* bc, sd::Render_Layer<N>* ctx)
 {
     const Vec3 off(0.5, 0.5, 0.0);
     Vec3 top_left = bc->position() + off;
@@ -1172,6 +1172,8 @@ bool load_config(AirPhysicsConfig* conf)
 #include <time.h>
 int main(int argc, char* argv[])
 {
+    std::cout << sizeof(Vec3) << std::endl;
+    return 0;
 /*
         struct {
             LogicNode* out;
@@ -1239,7 +1241,7 @@ int main(int argc, char* argv[])
     delete[] and_gate.and_n.out;
     //return 0;
     // auto b = Buffer<usize, 10>::Buffer_make();
-    // b.elements_used = 0;
+    // b.count = 0;
     // for (usize i = 0; i < 10; i += 1) {
     //     b.push_back(i);
     // }
@@ -1310,13 +1312,6 @@ int main(int argc, char* argv[])
 
     // openGL initialization ///////////////////////////////////////////////////
     
-    // if (argc >= 3) {
-    //     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, atoi(argv[1]));
-    //     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, atoi(argv[2]));
-    // } else {
-        // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-        // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);        
-    // }
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     // SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
@@ -1348,6 +1343,9 @@ int main(int argc, char* argv[])
         SDL_DestroyWindow(window);
         return EXIT_FAILURE;
     }
+
+
+    sd::sys_init();
     
     program_data.context = SDL_GL_CreateContext(window);
 
@@ -1406,7 +1404,7 @@ int main(int argc, char* argv[])
 
     glm::vec2 tex_res(2048.0f, 1024.0f);
 
-    glm::vec3 world_bguv_factor = glm::vec3(glm::vec2(1.0f) / tex_res, 1.0f);
+    glm::vec3 world_bguv_factor = Vec3(Vec2(1.0f) / tex_res, 1.0f);
 
     GLuint layers_per_row = (GLuint)(tex_res.x / SCREEN_WIDTH);
     // GLfloat x_off = (GLfloat)(GLdouble)(SCREEN_WIDTH / tex_res.x);
@@ -1534,10 +1532,10 @@ int main(int argc, char* argv[])
     
     FreeCamera main_cam;
     FreeCamera_init(&main_cam, start_pos);
-    main_cam.orientation = glm::quat();
+    main_cam.orientation = Quat();
     main_cam.speed = PLAYER_BASE_SPEED;
-    main_cam.offset = glm::vec2(SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0);
-    main_cam.target = glm::vec2(0);
+    main_cam.offset = Vec2(SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0);
+    main_cam.target = Vec2(0);
     main_cam.scale = 1.0;
     // ViewCamera_init(
     //     &main_cam,
@@ -1575,7 +1573,7 @@ int main(int argc, char* argv[])
 /////////////////
 // MAIN LOOP
 #ifdef DEBUG_PRINT
-    glm::vec3 prev_pos(0.0);
+    Vec3 prev_pos(0.0);
 #endif
 
     // Texture tex0;
@@ -1639,7 +1637,7 @@ int main(int argc, char* argv[])
 
 
     #ifdef SD
-    auto drawctx = sd::RenderBatch_make(mat_projection);
+    auto drawctx = sd::Render_Layer_make(mat_projection);
     #endif
 
     Toggle free_cam_toggle = false;
@@ -1648,7 +1646,7 @@ int main(int argc, char* argv[])
     glUseProgram(shader_grid);
 
     UniformLocation COLOR_LOC_GRID = glGetUniformLocation(shader_grid, "u_color");
-    glUniform4fv(COLOR_LOC_GRID, 1, glm::value_ptr(glm::vec4(0.25f, 0.25f, 0.25f, 0.5f)));
+    glUniform4fv(COLOR_LOC_GRID, 1, glm::value_ptr(Vec4(0.25f, 0.25f, 0.25f, 0.5f)));
 
     UniformLocation SQUARE_PIXEL_LOC_GRID = glGetUniformLocation(shader_grid, "u_grid_square_pix");
 
@@ -1662,8 +1660,8 @@ int main(int argc, char* argv[])
     UniformLocation SCALE_LOC_GRID = glGetUniformLocation(shader_grid, "u_scale");
     glUniform1f(SCALE_LOC_GRID, (GLfloat)1.0);
 
-    sd::RenderBatch<> existing;
-    sd::RenderBatch<256> in_prog;
+    sd::Render_Layer<> existing;
+    sd::Render_Layer<256> in_prog;
     Toggle drawing = false;
     Toggle deletion = false;
 
@@ -1747,19 +1745,19 @@ int main(int argc, char* argv[])
 
 
 ////
-    collision_map.first_free()->a = glm::vec3(0.0, 5 * 128, 0.0);
-    collision_map.first_free()->b = glm::vec3(SCREEN_WIDTH, 5 * 128, 0.0);
-    collision_map.elements_used += 1;
+    collision_map.first_free()->a = Vec3(0.0, 5 * 128, 0.0);
+    collision_map.first_free()->b = Vec3(SCREEN_WIDTH, 5 * 128, 0.0);
+    collision_map.count += 1;
 
-    collision_map.first_free()->a = glm::vec3(512.0, 3 * 128, 0.0);
-    collision_map.first_free()->b = glm::vec3(768.0, 3 * 128, 0.0);
-    collision_map.elements_used += 1;
+    collision_map.first_free()->a = Vec3(512.0, 3 * 128, 0.0);
+    collision_map.first_free()->b = Vec3(768.0, 3 * 128, 0.0);
+    collision_map.count += 1;
 
     existing.begin();
     existing.draw_type = sd::LINES;
     existing.color = Color::BLACK;
     
-    foreach (i, collision_map.elements_used) {
+    foreach (i, collision_map.count) {
         SD_ASSERT(existing.line(collision_map[i].a, collision_map[i].b));
     }
 
@@ -2115,7 +2113,7 @@ int main(int argc, char* argv[])
                 bool collided_r = false;
 
                 CollisionStatus status_l;
-                CollisionStatus_init(&status_l, glm::vec3(NEGATIVE_INFINITY, NEGATIVE_INFINITY, 0.0));
+                CollisionStatus_init(&status_l, Vec3(NEGATIVE_INFINITY, NEGATIVE_INFINITY, 0.0));
                 CollisionStatus status_r;
                 CollisionStatus_init(&status_r);
 
@@ -2666,8 +2664,8 @@ int main(int argc, char* argv[])
                         in_prog.line(nearest_seg->a, nearest_seg->b);
                         in_prog.end();
 
-                        collision_map[selection] = collision_map[collision_map.elements_used - 1];
-                        collision_map.elements_used -= 1;
+                        collision_map[selection] = collision_map[collision_map.count - 1];
+                        collision_map.count -= 1;
 
                         sd::remove_line_swap_end(&existing, selection);
                     }
@@ -2681,7 +2679,7 @@ int main(int argc, char* argv[])
                         sd::circle(
                             &in_prog,
                             5.0f * (1.0 / main_cam.scale),
-                            glm::vec3(
+                            Vec3(
                                 mouse.x, 
                                 mouse.y,
                                 1.0f
@@ -2749,7 +2747,7 @@ int main(int argc, char* argv[])
 
                     //printf("ENDING DRAWING\n");
 
-                    collision_map.elements_used += 1;
+                    collision_map.count += 1;
 
                     in_prog.begin();
                     {
@@ -2759,7 +2757,7 @@ int main(int argc, char* argv[])
                         sd::circle(
                             &in_prog,
                             10.0f * (1.0 / main_cam.scale),
-                            glm::vec3(
+                            Vec3(
                                 snap_to_grid(mouse.x, grid_len), 
                                 snap_to_grid(mouse.y, grid_len),
                                 1.0f
@@ -2810,7 +2808,7 @@ int main(int argc, char* argv[])
                         sd::circle(
                             &in_prog,
                             5.0f * (1.0 / main_cam.scale),
-                            glm::vec3(
+                            Vec3(
                                 snap_to_grid(mouse.x, grid_len), 
                                 snap_to_grid(mouse.y, grid_len),
                                 1.0f
@@ -2954,7 +2952,7 @@ int main(int argc, char* argv[])
                             fprintf(stderr, "ERROR: OUT OF AUDIO QUEUE SPACE\n");
                         }
                     } else {
-                        you.velocity_air = glm::vec3(0.0);
+                        you.velocity_air = Vec3(0.0);
                     }
                 }
                 //you.bound.spatial.x = out.x - (1 * you.bound.width); <-- ENABLE TO MAKE THE FLOOR A TREADMILL
@@ -2998,7 +2996,7 @@ int main(int argc, char* argv[])
 
             glDisable(GL_BLEND);
 
-            // if (collision_map.elements_used > 0) {
+            // if (collision_map.count > 0) {
             //     printf("{");
             //     for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
             //     {
@@ -3012,12 +3010,12 @@ int main(int argc, char* argv[])
             //existing.render(&existing);
             //in_prog.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
             //in_prog.render(&in_prog);
-            sd::reset(&in_prog);
+            sd::layer_reset(&in_prog);
         }
 
         //drawctx.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
         //drawctx.render(&drawctx);
-        sd::reset(&drawctx);
+        sd::layer_reset(&drawctx);
 
         #endif
 

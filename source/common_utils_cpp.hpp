@@ -11,12 +11,15 @@
 
 //#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 //#define GLM_FORCE_LEFT_HANDED
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+//#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+#define GLM_FORCE_ALIGNED_GENTYPES
+
 #define GLM_ENABLE_EXPERIMENTAL
 //#define GLM_FORCE_INLINE
 #define GLM_FORCE_RADIANS
 
 #include <glm/glm.hpp>
+#include <glm/gtc/type_aligned.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/ext.hpp>
@@ -28,15 +31,15 @@
 #include <string>
 #include <iostream>
 
-typedef glm::vec2  Vector2;
-typedef glm::vec3  Vector3;
-typedef glm::vec4  Vector4;
-typedef glm::ivec2 IntVector2;
-typedef glm::ivec3 IntVector3;
-typedef glm::ivec4 IntVector4;
-typedef glm::mat3  Matrix3;
-typedef glm::mat4  Matrix4;
-typedef glm::quat  Quaternion;
+typedef glm::aligned_vec2  Vector2;
+typedef glm::aligned_vec3  Vector3;
+typedef glm::aligned_vec4  Vector4;
+typedef glm::aligned_ivec2 IntVector2;
+typedef glm::aligned_ivec3 IntVector3;
+typedef glm::aligned_ivec4 IntVector4;
+typedef glm::aligned_mat3  Matrix3;
+typedef glm::aligned_mat4  Matrix4;
+typedef glm::qua<float, glm::aligned_highp> Quaternion;
 
 typedef Vector2    Vec2;
 typedef Vector3    Vec3;
@@ -64,6 +67,45 @@ typedef Vector4    float4;
 typedef IntVector2 int2;
 typedef IntVector3 int3;
 typedef IntVector4 int4;
+
+// unaligned
+
+typedef glm::vec2  Vector2_unaligned;
+typedef glm::vec3  Vector3_unaligned;
+typedef glm::vec4  Vector4_unaligned;
+typedef glm::ivec2 IntVector2_unaligned;
+typedef glm::ivec3 IntVector3_unaligned;
+typedef glm::ivec4 IntVector4_unaligned;
+typedef glm::mat3  Matrix3_unaligned;
+typedef glm::mat4  Matrix4_unaligned;
+typedef glm::qua<float, glm::highp> Quaternion_unaligned;
+
+typedef Vector2_unaligned    Vec2_ua;
+typedef Vector3_unaligned    Vec3_ua;
+typedef Vector4_unaligned    Vec4_ua;
+typedef IntVector2_unaligned iVec2_ua;
+typedef IntVector3_unaligned iVec3_ua;
+typedef IntVector4_unaligned iVec4_ua;
+typedef Matrix3_unaligned    Mat3_ua;
+typedef Matrix4_unaligned    Mat4_ua;
+typedef Quaternion_unaligned Quat_ua;
+
+typedef Vector2_unaligned    vec2_ua;
+typedef Vector3_unaligned    vec3_ua;
+typedef Vector4_unaligned    vec4_ua;
+typedef IntVector2_unaligned ivec2_ua;
+typedef IntVector3_unaligned ivec3_ua;
+typedef IntVector4_unaligned ivec4_ua;
+typedef Matrix3_unaligned    mat3_ua;
+typedef Matrix4_unaligned    mat4_ua;
+typedef Quaternion_unaligned quat_ua;
+
+typedef Vector2_unaligned    float2_ua;
+typedef Vector3_unaligned    float3_ua;
+typedef Vector4_unaligned    float4_ua;
+typedef IntVector2_unaligned int2_ua;
+typedef IntVector3_unaligned int3_ua;
+typedef IntVector4_unaligned int4_ua;
 
 template <typename T>
 inline T dref_as(void* ptr);
@@ -106,165 +148,7 @@ constexpr bool is_powerof2(usize N)
 #define PI (PI64)
 #define TAU (2 * PI)
 
-template <typename T>
-struct ArraySlice {
-    const T* data;
-    const usize count;
-};
-
-template <typename T, usize N>
-struct Array {
-    T data[N];
-    usize elements_used;
-
-    operator ArraySlice<T>(void)
-    {
-        return ArraySlice<T>{this->memory, this->elements_used};
-    }
-
-    inline ArraySlice<T> slice(usize i, usize j)
-    {
-        return ArraySlice<T>{&this->memory[i], j - i};
-    }
-
-    inline T& operator[](usize i)
-    {
-        return this->data[i];
-    }
-
-    inline const T& operator[](usize i) const 
-    {
-        return this->data[i];
-    }
-
-    inline usize byte_length(void) const
-    {
-        return sizeof(T) * N;
-    }
-
-    inline usize element_length(void) const
-    {
-        return N;
-    }
-
-    inline void push_back(T val)
-    {
-        ASSERT(elements_used < N);
-        data[elements_used] = val;
-        elements_used += 1;
-    }
-
-    inline void push_back(T* val)
-    {
-        ASSERT(elements_used < N);
-        data[elements_used] = *val;
-        elements_used += 1;
-    }
-
-    inline void push(T val)
-    {
-        ASSERT(elements_used < N);
-        data[elements_used] = val;
-        elements_used += 1;
-    }
-
-    inline void push(T* val)
-    {
-        ASSERT(elements_used < N);
-        data[elements_used] = *val;
-        elements_used += 1;
-    }
-
-    inline T* peek(void)
-    {
-        if (this->elements_used == 0) {
-            return nullptr;
-        }
-        return &data[elements_used - 1];
-    }
-
-    inline T pop(void)
-    {
-        ASSERT(this->elements_used != 0);
-
-        T* out = &data[elements_used - 1];
-        elements_used -= 1;
-        return *out;
-    }
-
-    inline void reset(void)
-    {
-        this->elements_used = 0;
-    }
-
-    inline bool is_empty(void)
-    {
-        return elements_used == 0;
-    }
-
-    typedef T* iterator;
-    typedef const T* const_iterator;
-    iterator begin(void) { return &this->data[0]; }
-    iterator end(void) { return &this->data[N]; }
-    iterator first_free(void) { return &this->data[this->elements_used]; }
-
-
-    static void init(Array<T, N>* array)
-    {
-        array->elements_used = 0;
-    }
-    static Array<T, N> make(void)
-    {
-        Array<T, N> array;
-        array.init(&array);
-        return array;
-    }
-}; 
-
-
-template <typename T>
-struct DynamicArray {
-    usize cap;
-    usize count;
-    T*    data;
-
-    operator T*(void)
-    {
-        return this->data;
-    }
-
-    T& operator[](usize i)
-    {
-        return this->data[i];
-    }
-     
-    const T& operator[](usize i) const 
-    {
-        return this->data[i];
-    }
-
-    inline usize element_count(void) const
-    {
-        return this->count;
-    }
-
-    inline usize element_size(void) const
-    {
-        return sizeof(T);
-    }
-
-    inline usize size(void) const
-    {
-        return this->cap;
-    }
-
-
-    typedef T* iterator;
-    typedef const T* const_iterator;
-    iterator begin() { return &this->array[0]; }
-    iterator end() { return &this->array[this->cap]; }
-};
-
+#include "array.hpp"
 
 constexpr bool is_pow_2_greater_equal_4(usize N)
 {

@@ -59,6 +59,10 @@ bool Shader_load_from_src(Shader* shader, const std::string& vertex_src, const s
     
 std::string Shader_retrieve_src_from_file(const GLchar* path, bool* is_valid);
 
+struct Shader_Registry {
+    Array<Shader, 10> programs;
+};
+
 #ifdef SHADER_IMPLEMENTATION
 #undef SHADER_IMPLEMENTATION
 #include "shader.cpp"

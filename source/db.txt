@@ -1,0 +1,1014 @@
+g++ -c -O3 -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -std=c++17 -MD -MP -I/usr/local/include/SDL2 -D_THREAD_SAFE run.cpp -o run.o
+In file included from run.cpp:41:
+In file included from ./core_utils.h:410:
+./config/config_state.cpp:98:19: warning: unused variable 'stack_end' [-Wunused-variable]
+            char* stack_end = &stack[16];
+                  ^
+./config/config_state.cpp:249:23: warning: unused variable 'args_begin' [-Wunused-variable]
+                char* args_begin = seek_arg_list_begin(buff, &buff[strlen(buff)]);
+                      ^
+./config/config_state.cpp:239:19: warning: unused variable 'aliases' [-Wunused-variable]
+            char  aliases[512];
+                  ^
+./config/config_state.cpp:240:19: warning: unused variable 'aliases_indices' [-Wunused-variable]
+            char* aliases_indices[512];
+                  ^
+In file included from run.cpp:63:
+In file included from ./camera.hpp:172:
+./camera.cpp:74:27: error: no matching function for call to 'translate'
+    return view->matrix = glm::translate(m_identity, -view->position);
+                          ^~~~~~~~~~~~~~
+/usr/local/include/glm/./ext/matrix_transform.inl:10:37: note: candidate template ignored: deduced conflicting values for parameter 'Q' (0 vs. 3)
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> translate(mat<4, 4, T, Q> const& m, vec<3, T, Q> const& v)
+                                           ^
+/usr/local/include/glm/./gtx/transform.inl:6:37: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> translate(vec<3, T, Q> const& v)
+                                           ^
+In file included from run.cpp:63:
+In file included from ./camera.hpp:172:
+./camera.cpp:81:9: error: out-of-line definition of 'Camera' does not match any declaration in 'Camera'
+Camera::Camera(Vec3 pos, Vec3 up, GLfloat yaw, GLfloat pitch) 
+        ^~~~~~
+./camera.hpp:91:9: note: type of 1st parameter of member declaration does not match definition ('vec<[2 * ...], defaultp aka 0>' vs 'vec<[2 * ...], aligned_highp aka 3>')
+        glm::vec3 pos = Vec3(0.0f, 0.0f, 0.0f),
+        ^
+In file included from run.cpp:63:
+In file included from ./camera.hpp:172:
+./camera.cpp:117:12: error: no matching function for call to 'translate'
+    return glm::translate(Mat4(1.0f), this->pos);
+           ^~~~~~~~~~~~~~
+/usr/local/include/glm/./ext/matrix_transform.inl:10:37: note: candidate template ignored: deduced conflicting values for parameter 'Q' (3 vs. 0)
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> translate(mat<4, 4, T, Q> const& m, vec<3, T, Q> const& v)
+                                           ^
+/usr/local/include/glm/./gtx/transform.inl:6:37: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> translate(vec<3, T, Q> const& v)
+                                           ^
+In file included from run.cpp:63:
+In file included from ./camera.hpp:172:
+./camera.cpp:205:33: error: invalid operands to binary expression ('glm::vec2' (aka 'vec<2, float, defaultp>') and 'Vec2' (aka 'vec<2, float, aligned_highp>'))
+    view->target_diff = (target - view->offset) - view->target;
+                         ~~~~~~ ^ ~~~~~~~~~~~~
+/usr/local/include/glm/detail/type_vec2.inl:517:48: note: candidate template ignored: deduced conflicting types for parameter 'T' ('float' vs. 'glm::vec<2, float, glm::aligned_highp>')
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator-(vec<2, T, Q> const& v, T scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:533:48: note: candidate template ignored: deduced conflicting types for parameter 'T' ('glm::vec<2, float, glm::packed_highp>' vs. 'float')
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator-(T scalar, vec<2, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:549:48: note: candidate template ignored: deduced conflicting values for parameter 'Q' (0 vs. 3)
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator-(vec<2, T, Q> const& v1, vec<2, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:525:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator-(vec<2, T, Q> const& v1, vec<1, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:541:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator-(vec<1, T, Q> const& v1, vec<2, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:625:48: note: candidate template ignored: could not match 3 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator-(vec<3, T, Q> const& v, T scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:634:48: note: candidate template ignored: could not match 3 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator-(vec<3, T, Q> const& v, vec<1, T, Q> const& scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:643:48: note: candidate template ignored: could not match 3 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator-(T scalar, vec<3, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:652:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator-(vec<1, T, Q> const& scalar, vec<3, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:661:48: note: candidate template ignored: could not match 3 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator-(vec<3, T, Q> const& v1, vec<3, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:834:48: note: candidate template ignored: could not match 4 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator-(vec<4, T, Q> const& v, T const & scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:840:48: note: candidate template ignored: could not match 4 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator-(vec<4, T, Q> const& v1, vec<1, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:846:48: note: candidate template ignored: could not match 4 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator-(T scalar, vec<4, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:852:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator-(vec<1, T, Q> const& v1, vec<4, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:858:48: note: candidate template ignored: could not match 4 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator-(vec<4, T, Q> const& v1, vec<4, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x3.inl:367:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 3, T, Q> operator-(mat<2, 3, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x3.inl:375:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 3, T, Q> operator-(mat<2, 3, T, Q> const& m1, mat<2, 3, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x4.inl:369:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 4, T, Q> operator-(mat<2, 4, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x4.inl:377:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 4, T, Q> operator-(mat<2, 4, T, Q> const& m1, mat<2, 4, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x2.inl:398:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 2, T, Q> operator-(mat<3, 2, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x2.inl:407:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 2, T, Q> operator-(mat<3, 2, T, Q> const& m1, mat<3, 2, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:423:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator-(mat<3, 3, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:432:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator-(T scalar, mat<3, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:441:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator-(mat<3, 3, T, Q> const& m1, mat<3, 3, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x4.inl:404:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 4, T, Q> operator-(mat<3, 4, T, Q> const& m,  T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x4.inl:413:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 4, T, Q> operator-(mat<3, 4, T, Q> const& m1, mat<3, 4, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x2.inl:429:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 2, T, Q> operator-(mat<4, 2, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x2.inl:439:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 2, T, Q> operator-(mat<4, 2, T, Q> const& m1, mat<4, 2, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x3.inl:429:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 3, T, Q> operator-(mat<4, 3, T, Q> const& m, T const& s)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x3.inl:439:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 3, T, Q> operator-(mat<4, 3, T, Q> const& m1, mat<4, 3, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:486:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator-(mat<4, 4, T, Q> const& m, T const& s)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:496:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator-(T const& s, mat<4, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:506:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator-(mat<4, 4, T, Q> const& m1, mat<4, 4, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_vec1.inl:329:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator-(vec<1, T, Q> const& v, T scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec1.inl:336:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator-(T scalar, vec<1, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec1.inl:343:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator-(vec<1, T, Q> const& v1, vec<1, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x2.inl:389:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator-(mat<2, 2, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x2.inl:397:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator-(T scalar, mat<2, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x2.inl:405:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator-(mat<2, 2, T, Q> const& m1, mat<2, 2, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_quat.inl:302:31: note: candidate template ignored: could not match 'qua' against 'vec'
+        GLM_FUNC_QUALIFIER qua<T, Q> operator-(qua<T, Q> const& q, qua<T, Q> const& p)
+                                     ^
+/usr/local/include/glm/detail/type_vec2.inl:467:48: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator-(vec<2, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:569:48: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator-(vec<3, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:796:48: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator-(vec<4, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x3.inl:341:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<2, 3, T, Q> operator-(mat<2, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x4.inl:343:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<2, 4, T, Q> operator-(mat<2, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x2.inl:369:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<3, 2, T, Q> operator-(mat<3, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:385:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator-(mat<3, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x4.inl:375:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<3, 4, T, Q> operator-(mat<3, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x2.inl:397:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<4, 2, T, Q> operator-(mat<4, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x3.inl:397:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<4, 3, T, Q> operator-(mat<4, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:444:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator-(mat<4, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_vec1.inl:298:48: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator-(vec<1, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x2.inl:355:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator-(mat<2, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_quat.inl:288:31: note: candidate function template not viable: requires single argument 'q', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER qua<T, Q> operator-(qua<T, Q> const& q)
+                                     ^
+/usr/local/include/glm/./gtx/dual_quaternion.inl:139:37: note: candidate function template not viable: requires single argument 'q', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER tdualquat<T, Q> operator-(tdualquat<T, Q> const& q)
+                                           ^
+In file included from run.cpp:63:
+In file included from ./camera.hpp:172:
+./camera.cpp:206:27: error: invalid operands to binary expression ('glm::vec2' (aka 'vec<2, float, defaultp>') and 'Vec2' (aka 'vec<2, float, aligned_highp>'))
+    view->target = target - view->offset;
+                   ~~~~~~ ^ ~~~~~~~~~~~~
+/usr/local/include/glm/detail/type_vec2.inl:517:48: note: candidate template ignored: deduced conflicting types for parameter 'T' ('float' vs. 'glm::vec<2, float, glm::aligned_highp>')
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator-(vec<2, T, Q> const& v, T scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:533:48: note: candidate template ignored: deduced conflicting types for parameter 'T' ('glm::vec<2, float, glm::packed_highp>' vs. 'float')
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator-(T scalar, vec<2, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:549:48: note: candidate template ignored: deduced conflicting values for parameter 'Q' (0 vs. 3)
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator-(vec<2, T, Q> const& v1, vec<2, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:525:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator-(vec<2, T, Q> const& v1, vec<1, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:541:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator-(vec<1, T, Q> const& v1, vec<2, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:625:48: note: candidate template ignored: could not match 3 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator-(vec<3, T, Q> const& v, T scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:634:48: note: candidate template ignored: could not match 3 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator-(vec<3, T, Q> const& v, vec<1, T, Q> const& scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:643:48: note: candidate template ignored: could not match 3 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator-(T scalar, vec<3, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:652:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator-(vec<1, T, Q> const& scalar, vec<3, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:661:48: note: candidate template ignored: could not match 3 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator-(vec<3, T, Q> const& v1, vec<3, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:834:48: note: candidate template ignored: could not match 4 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator-(vec<4, T, Q> const& v, T const & scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:840:48: note: candidate template ignored: could not match 4 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator-(vec<4, T, Q> const& v1, vec<1, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:846:48: note: candidate template ignored: could not match 4 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator-(T scalar, vec<4, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:852:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator-(vec<1, T, Q> const& v1, vec<4, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:858:48: note: candidate template ignored: could not match 4 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator-(vec<4, T, Q> const& v1, vec<4, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x3.inl:367:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 3, T, Q> operator-(mat<2, 3, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x3.inl:375:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 3, T, Q> operator-(mat<2, 3, T, Q> const& m1, mat<2, 3, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x4.inl:369:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 4, T, Q> operator-(mat<2, 4, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x4.inl:377:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 4, T, Q> operator-(mat<2, 4, T, Q> const& m1, mat<2, 4, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x2.inl:398:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 2, T, Q> operator-(mat<3, 2, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x2.inl:407:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 2, T, Q> operator-(mat<3, 2, T, Q> const& m1, mat<3, 2, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:423:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator-(mat<3, 3, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:432:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator-(T scalar, mat<3, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:441:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator-(mat<3, 3, T, Q> const& m1, mat<3, 3, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x4.inl:404:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 4, T, Q> operator-(mat<3, 4, T, Q> const& m,  T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x4.inl:413:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 4, T, Q> operator-(mat<3, 4, T, Q> const& m1, mat<3, 4, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x2.inl:429:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 2, T, Q> operator-(mat<4, 2, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x2.inl:439:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 2, T, Q> operator-(mat<4, 2, T, Q> const& m1, mat<4, 2, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x3.inl:429:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 3, T, Q> operator-(mat<4, 3, T, Q> const& m, T const& s)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x3.inl:439:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 3, T, Q> operator-(mat<4, 3, T, Q> const& m1, mat<4, 3, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:486:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator-(mat<4, 4, T, Q> const& m, T const& s)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:496:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator-(T const& s, mat<4, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:506:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator-(mat<4, 4, T, Q> const& m1, mat<4, 4, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_vec1.inl:329:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator-(vec<1, T, Q> const& v, T scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec1.inl:336:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator-(T scalar, vec<1, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec1.inl:343:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator-(vec<1, T, Q> const& v1, vec<1, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x2.inl:389:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator-(mat<2, 2, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x2.inl:397:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator-(T scalar, mat<2, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x2.inl:405:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator-(mat<2, 2, T, Q> const& m1, mat<2, 2, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_quat.inl:302:31: note: candidate template ignored: could not match 'qua' against 'vec'
+        GLM_FUNC_QUALIFIER qua<T, Q> operator-(qua<T, Q> const& q, qua<T, Q> const& p)
+                                     ^
+/usr/local/include/glm/detail/type_vec2.inl:467:48: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator-(vec<2, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:569:48: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator-(vec<3, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:796:48: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator-(vec<4, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x3.inl:341:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<2, 3, T, Q> operator-(mat<2, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x4.inl:343:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<2, 4, T, Q> operator-(mat<2, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x2.inl:369:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<3, 2, T, Q> operator-(mat<3, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:385:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator-(mat<3, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x4.inl:375:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<3, 4, T, Q> operator-(mat<3, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x2.inl:397:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<4, 2, T, Q> operator-(mat<4, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x3.inl:397:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<4, 3, T, Q> operator-(mat<4, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:444:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator-(mat<4, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_vec1.inl:298:48: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator-(vec<1, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x2.inl:355:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator-(mat<2, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_quat.inl:288:31: note: candidate function template not viable: requires single argument 'q', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER qua<T, Q> operator-(qua<T, Q> const& q)
+                                     ^
+/usr/local/include/glm/./gtx/dual_quaternion.inl:139:37: note: candidate function template not viable: requires single argument 'q', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER tdualquat<T, Q> operator-(tdualquat<T, Q> const& q)
+                                           ^
+In file included from run.cpp:63:
+In file included from ./camera.hpp:172:
+./camera.cpp:257:16: error: cannot initialize a variable of type 'glm::vec3 *' (aka 'vec<3, float, defaultp> *') with an rvalue of type 'Vec3 *' (aka 'vec<3, float, aligned_highp> *')
+    glm::vec3* p = &view->position;
+               ^   ~~~~~~~~~~~~~~~
+run.cpp:894:36: error: invalid operands to binary expression ('glm::vec3' (aka 'vec<3, float, defaultp>') and 'const Vec3' (aka 'const vec<3, float, aligned_highp>'))
+    Vec3 top_left = bc->position() + off;
+                    ~~~~~~~~~~~~~~ ^ ~~~
+/usr/local/include/glm/detail/type_vec3.inl:580:48: note: candidate template ignored: deduced conflicting types for parameter 'T' ('float' vs. 'glm::vec<3, float, glm::aligned_highp>')
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator+(vec<3, T, Q> const& v, T scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:598:48: note: candidate template ignored: deduced conflicting types for parameter 'T' ('glm::vec<3, float, glm::packed_highp>' vs. 'float')
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator+(T scalar, vec<3, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:616:48: note: candidate template ignored: deduced conflicting values for parameter 'Q' (0 vs. 3)
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator+(vec<3, T, Q> const& v1, vec<3, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:477:48: note: candidate template ignored: could not match 2 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator+(vec<2, T, Q> const& v, T scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:485:48: note: candidate template ignored: could not match 2 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator+(vec<2, T, Q> const& v1, vec<1, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:493:48: note: candidate template ignored: could not match 2 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator+(T scalar, vec<2, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:501:48: note: candidate template ignored: could not match 1 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator+(vec<1, T, Q> const& v1, vec<2, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:509:48: note: candidate template ignored: could not match 2 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator+(vec<2, T, Q> const& v1, vec<2, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:589:48: note: candidate template ignored: could not match 1 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator+(vec<3, T, Q> const& v, vec<1, T, Q> const& scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:607:48: note: candidate template ignored: could not match 1 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator+(vec<1, T, Q> const& scalar, vec<3, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:804:48: note: candidate template ignored: could not match 4 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator+(vec<4, T, Q> const& v, T const & scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:810:48: note: candidate template ignored: could not match 4 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator+(vec<4, T, Q> const& v1, vec<1, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:816:48: note: candidate template ignored: could not match 4 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator+(T scalar, vec<4, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:822:48: note: candidate template ignored: could not match 1 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator+(vec<1, T, Q> const& v1, vec<4, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:828:48: note: candidate template ignored: could not match 4 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator+(vec<4, T, Q> const& v1, vec<4, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x3.inl:351:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 3, T, Q> operator+(mat<2, 3, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x3.inl:359:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 3, T, Q> operator+(mat<2, 3, T, Q> const& m1, mat<2, 3, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x4.inl:353:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 4, T, Q> operator+(mat<2, 4, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x4.inl:361:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 4, T, Q> operator+(mat<2, 4, T, Q> const& m1, mat<2, 4, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x2.inl:380:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 2, T, Q> operator+(mat<3, 2, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x2.inl:389:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 2, T, Q> operator+(mat<3, 2, T, Q> const& m1, mat<3, 2, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:396:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator+(mat<3, 3, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:405:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator+(T scalar, mat<3, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:414:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator+(mat<3, 3, T, Q> const& m1, mat<3, 3, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x4.inl:386:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 4, T, Q> operator+(mat<3, 4, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x4.inl:395:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 4, T, Q> operator+(mat<3, 4, T, Q> const& m1, mat<3, 4, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x2.inl:409:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 2, T, Q> operator+(mat<4, 2, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x2.inl:419:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 2, T, Q> operator+(mat<4, 2, T, Q> const& m1, mat<4, 2, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x3.inl:409:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 3, T, Q> operator+(mat<4, 3, T, Q> const& m, T const& s)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x3.inl:419:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 3, T, Q> operator+(mat<4, 3, T, Q> const& m1, mat<4, 3, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:456:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator+(mat<4, 4, T, Q> const& m, T const& s)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:466:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator+(T const& s, mat<4, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:476:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator+(mat<4, 4, T, Q> const& m1, mat<4, 4, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_vec1.inl:307:48: note: candidate template ignored: could not match 1 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator+(vec<1, T, Q> const& v, T scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec1.inl:314:48: note: candidate template ignored: could not match 1 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator+(T scalar, vec<1, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec1.inl:321:48: note: candidate template ignored: could not match 1 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator+(vec<1, T, Q> const& v1, vec<1, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x2.inl:365:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator+(mat<2, 2, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x2.inl:373:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator+(T scalar, mat<2, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x2.inl:381:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator+(mat<2, 2, T, Q> const& m1, mat<2, 2, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_quat.inl:296:31: note: candidate template ignored: could not match 'qua' against 'vec'
+        GLM_FUNC_QUALIFIER qua<T, Q> operator+(qua<T, Q> const& q, qua<T, Q> const& p)
+                                     ^
+/usr/local/include/glm/./gtx/dual_quaternion.inl:147:37: note: candidate template ignored: could not match 'tdualquat' against 'vec'
+        GLM_FUNC_QUALIFIER tdualquat<T, Q> operator+(tdualquat<T, Q> const& q, tdualquat<T, Q> const& p)
+                                           ^
+/usr/local/include/glm/detail/type_vec2.inl:461:48: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator+(vec<2, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:563:48: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator+(vec<3, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:790:48: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator+(vec<4, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x3.inl:335:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<2, 3, T, Q> operator+(mat<2, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x4.inl:337:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<2, 4, T, Q> operator+(mat<2, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x2.inl:363:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<3, 2, T, Q> operator+(mat<3, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:379:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator+(mat<3, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x4.inl:369:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<3, 4, T, Q> operator+(mat<3, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x2.inl:391:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<4, 2, T, Q> operator+(mat<4, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x3.inl:391:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<4, 3, T, Q> operator+(mat<4, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:438:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator+(mat<4, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_vec1.inl:292:48: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator+(vec<1, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x2.inl:349:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator+(mat<2, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_quat.inl:282:31: note: candidate function template not viable: requires single argument 'q', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER qua<T, Q> operator+(qua<T, Q> const& q)
+                                     ^
+/usr/local/include/glm/./gtx/dual_quaternion.inl:133:37: note: candidate function template not viable: requires single argument 'q', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER tdualquat<T, Q> operator+(tdualquat<T, Q> const& q)
+                                           ^
+run.cpp:937:36: error: invalid operands to binary expression ('glm::vec3' (aka 'vec<3, float, defaultp>') and 'const Vec3' (aka 'const vec<3, float, aligned_highp>'))
+    Vec3 top_left = bc->position() + off;
+                    ~~~~~~~~~~~~~~ ^ ~~~
+/usr/local/include/glm/detail/type_vec3.inl:580:48: note: candidate template ignored: deduced conflicting types for parameter 'T' ('float' vs. 'glm::vec<3, float, glm::aligned_highp>')
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator+(vec<3, T, Q> const& v, T scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:598:48: note: candidate template ignored: deduced conflicting types for parameter 'T' ('glm::vec<3, float, glm::packed_highp>' vs. 'float')
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator+(T scalar, vec<3, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:616:48: note: candidate template ignored: deduced conflicting values for parameter 'Q' (0 vs. 3)
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator+(vec<3, T, Q> const& v1, vec<3, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:477:48: note: candidate template ignored: could not match 2 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator+(vec<2, T, Q> const& v, T scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:485:48: note: candidate template ignored: could not match 2 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator+(vec<2, T, Q> const& v1, vec<1, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:493:48: note: candidate template ignored: could not match 2 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator+(T scalar, vec<2, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:501:48: note: candidate template ignored: could not match 1 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator+(vec<1, T, Q> const& v1, vec<2, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:509:48: note: candidate template ignored: could not match 2 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator+(vec<2, T, Q> const& v1, vec<2, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:589:48: note: candidate template ignored: could not match 1 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator+(vec<3, T, Q> const& v, vec<1, T, Q> const& scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:607:48: note: candidate template ignored: could not match 1 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator+(vec<1, T, Q> const& scalar, vec<3, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:804:48: note: candidate template ignored: could not match 4 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator+(vec<4, T, Q> const& v, T const & scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:810:48: note: candidate template ignored: could not match 4 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator+(vec<4, T, Q> const& v1, vec<1, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:816:48: note: candidate template ignored: could not match 4 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator+(T scalar, vec<4, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:822:48: note: candidate template ignored: could not match 1 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator+(vec<1, T, Q> const& v1, vec<4, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:828:48: note: candidate template ignored: could not match 4 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator+(vec<4, T, Q> const& v1, vec<4, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x3.inl:351:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 3, T, Q> operator+(mat<2, 3, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x3.inl:359:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 3, T, Q> operator+(mat<2, 3, T, Q> const& m1, mat<2, 3, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x4.inl:353:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 4, T, Q> operator+(mat<2, 4, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x4.inl:361:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 4, T, Q> operator+(mat<2, 4, T, Q> const& m1, mat<2, 4, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x2.inl:380:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 2, T, Q> operator+(mat<3, 2, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x2.inl:389:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 2, T, Q> operator+(mat<3, 2, T, Q> const& m1, mat<3, 2, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:396:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator+(mat<3, 3, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:405:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator+(T scalar, mat<3, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:414:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator+(mat<3, 3, T, Q> const& m1, mat<3, 3, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x4.inl:386:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 4, T, Q> operator+(mat<3, 4, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x4.inl:395:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 4, T, Q> operator+(mat<3, 4, T, Q> const& m1, mat<3, 4, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x2.inl:409:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 2, T, Q> operator+(mat<4, 2, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x2.inl:419:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 2, T, Q> operator+(mat<4, 2, T, Q> const& m1, mat<4, 2, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x3.inl:409:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 3, T, Q> operator+(mat<4, 3, T, Q> const& m, T const& s)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x3.inl:419:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 3, T, Q> operator+(mat<4, 3, T, Q> const& m1, mat<4, 3, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:456:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator+(mat<4, 4, T, Q> const& m, T const& s)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:466:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator+(T const& s, mat<4, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:476:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator+(mat<4, 4, T, Q> const& m1, mat<4, 4, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_vec1.inl:307:48: note: candidate template ignored: could not match 1 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator+(vec<1, T, Q> const& v, T scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec1.inl:314:48: note: candidate template ignored: could not match 1 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator+(T scalar, vec<1, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec1.inl:321:48: note: candidate template ignored: could not match 1 against 3
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator+(vec<1, T, Q> const& v1, vec<1, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x2.inl:365:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator+(mat<2, 2, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x2.inl:373:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator+(T scalar, mat<2, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x2.inl:381:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator+(mat<2, 2, T, Q> const& m1, mat<2, 2, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_quat.inl:296:31: note: candidate template ignored: could not match 'qua' against 'vec'
+        GLM_FUNC_QUALIFIER qua<T, Q> operator+(qua<T, Q> const& q, qua<T, Q> const& p)
+                                     ^
+/usr/local/include/glm/./gtx/dual_quaternion.inl:147:37: note: candidate template ignored: could not match 'tdualquat' against 'vec'
+        GLM_FUNC_QUALIFIER tdualquat<T, Q> operator+(tdualquat<T, Q> const& q, tdualquat<T, Q> const& p)
+                                           ^
+/usr/local/include/glm/detail/type_vec2.inl:461:48: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator+(vec<2, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:563:48: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator+(vec<3, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:790:48: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator+(vec<4, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x3.inl:335:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<2, 3, T, Q> operator+(mat<2, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x4.inl:337:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<2, 4, T, Q> operator+(mat<2, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x2.inl:363:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<3, 2, T, Q> operator+(mat<3, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:379:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator+(mat<3, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x4.inl:369:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<3, 4, T, Q> operator+(mat<3, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x2.inl:391:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<4, 2, T, Q> operator+(mat<4, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x3.inl:391:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<4, 3, T, Q> operator+(mat<4, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:438:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator+(mat<4, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_vec1.inl:292:48: note: candidate function template not viable: requires single argument 'v', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator+(vec<1, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x2.inl:349:37: note: candidate function template not viable: requires single argument 'm', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator+(mat<2, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_quat.inl:282:31: note: candidate function template not viable: requires single argument 'q', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER qua<T, Q> operator+(qua<T, Q> const& q)
+                                     ^
+/usr/local/include/glm/./gtx/dual_quaternion.inl:133:37: note: candidate function template not viable: requires single argument 'q', but 2 arguments were provided
+        GLM_FUNC_QUALIFIER tdualquat<T, Q> operator+(tdualquat<T, Q> const& q)
+                                           ^
+run.cpp:974:9: error: no matching function for call to 'line_segment_intersection'
+    if (line_segment_intersection(ray0, &collider, &va)) {
+        ^~~~~~~~~~~~~~~~~~~~~~~~~
+./common_utils_cpp.hpp:279:6: note: candidate function not viable: no known conversion from 'std::pair<Vec3, Vec3> *' (aka 'pair<vec<3, float, aligned_highp>, vec<3, float, aligned_highp> > *') to 'const vec3_pair *' (aka 'const pair<vec<3, float, defaultp>, vec<3, float, defaultp> > *') for 2nd argument
+bool line_segment_intersection(const vec3_pair* s0, const vec3_pair* s1, glm::vec3* out)
+     ^
+run.cpp:979:9: error: no matching function for call to 'line_segment_intersection'
+    if (line_segment_intersection(ray1, &collider, &vb)) {
+        ^~~~~~~~~~~~~~~~~~~~~~~~~
+./common_utils_cpp.hpp:279:6: note: candidate function not viable: no known conversion from 'std::pair<Vec3, Vec3> *' (aka 'pair<vec<3, float, aligned_highp>, vec<3, float, aligned_highp> > *') to 'const vec3_pair *' (aka 'const pair<vec<3, float, defaultp>, vec<3, float, defaultp> > *') for 2nd argument
+bool line_segment_intersection(const vec3_pair* s0, const vec3_pair* s1, glm::vec3* out)
+     ^
+run.cpp:988:16: error: cannot initialize a variable of type 'glm::vec3 *' (aka 'vec<3, float, defaultp> *') with an rvalue of type 'Vec3 *' (aka 'vec<3, float, aligned_highp> *')
+    glm::vec3* out = &status->intersection;
+               ^     ~~~~~~~~~~~~~~~~~~~~~
+run.cpp:1070:16: error: cannot initialize a variable of type 'glm::vec3 *' (aka 'vec<3, float, defaultp> *') with an rvalue of type 'Vec3 *' (aka 'vec<3, float, aligned_highp> *')
+    glm::vec3* out_l = &l->intersection;
+               ^       ~~~~~~~~~~~~~~~~
+run.cpp:1071:16: error: cannot initialize a variable of type 'glm::vec3 *' (aka 'vec<3, float, defaultp> *') with an rvalue of type 'Vec3 *' (aka 'vec<3, float, aligned_highp> *')
+    glm::vec3* out_r = &r->intersection;
+               ^       ~~~~~~~~~~~~~~~~
+run.cpp:1129:14: warning: unused variable 'buff' [-Wunused-variable]
+        char buff[512];
+             ^
+run.cpp:1277:21: warning: 17 enumeration values not handled in switch: 'PROP_i64', 'PROP_u64', 'PROP_usize'... [-Wswitch]
+            switch (config_state[i].type) {
+                    ^
+run.cpp:1287:17: warning: 17 enumeration values not handled in switch: 'PROP_i64', 'PROP_u64', 'PROP_usize'... [-Wswitch]
+        switch (config_state[i].type) {
+                ^
+run.cpp:1407:51: error: invalid operands to binary expression ('Vec2' (aka 'vec<2, float, aligned_highp>') and 'glm::vec2' (aka 'vec<2, float, defaultp>'))
+    glm::vec3 world_bguv_factor = Vec3(Vec2(1.0f) / tex_res, 1.0f);
+                                       ~~~~~~~~~~ ^ ~~~~~~~
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:61:1: note: candidate function template not viable: no known conversion from 'vec<2, [...], aligned_highp aka 3>' to 'vec<3, [...], defaultp aka 0>' for 1st argument
+GLM_IMPLEMENT_SCAL_MULT(vec3)
+^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:56:2: note: expanded from macro 'GLM_IMPLEMENT_SCAL_MULT'
+        operator/(Vec lh, T const& s){ \
+        ^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:62:1: note: candidate function template not viable: no known conversion from 'vec<2, [...], aligned_highp aka 3>' to 'vec<4, [...], defaultp aka 0>' for 1st argument
+GLM_IMPLEMENT_SCAL_MULT(vec4)
+^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:56:2: note: expanded from macro 'GLM_IMPLEMENT_SCAL_MULT'
+        operator/(Vec lh, T const& s){ \
+        ^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:64:1: note: candidate function template not viable: no known conversion from 'Vec2' (aka 'vec<2, float, aligned_highp>') to 'glm::mat2' (aka 'mat<2, 2, float, defaultp>') for 1st argument
+GLM_IMPLEMENT_SCAL_MULT(mat2)
+^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:56:2: note: expanded from macro 'GLM_IMPLEMENT_SCAL_MULT'
+        operator/(Vec lh, T const& s){ \
+        ^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:65:1: note: candidate function template not viable: no known conversion from 'Vec2' (aka 'vec<2, float, aligned_highp>') to 'glm::mat2x3' (aka 'mat<2, 3, float, defaultp>') for 1st argument
+GLM_IMPLEMENT_SCAL_MULT(mat2x3)
+^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:56:2: note: expanded from macro 'GLM_IMPLEMENT_SCAL_MULT'
+        operator/(Vec lh, T const& s){ \
+        ^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:66:1: note: candidate function template not viable: no known conversion from 'Vec2' (aka 'vec<2, float, aligned_highp>') to 'glm::mat2x4' (aka 'mat<2, 4, float, defaultp>') for 1st argument
+GLM_IMPLEMENT_SCAL_MULT(mat2x4)
+^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:56:2: note: expanded from macro 'GLM_IMPLEMENT_SCAL_MULT'
+        operator/(Vec lh, T const& s){ \
+        ^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:67:1: note: candidate function template not viable: no known conversion from 'Vec2' (aka 'vec<2, float, aligned_highp>') to 'glm::mat3x2' (aka 'mat<3, 2, float, defaultp>') for 1st argument
+GLM_IMPLEMENT_SCAL_MULT(mat3x2)
+^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:56:2: note: expanded from macro 'GLM_IMPLEMENT_SCAL_MULT'
+        operator/(Vec lh, T const& s){ \
+        ^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:68:1: note: candidate function template not viable: no known conversion from 'Vec2' (aka 'vec<2, float, aligned_highp>') to 'glm::mat3' (aka 'mat<3, 3, float, defaultp>') for 1st argument
+GLM_IMPLEMENT_SCAL_MULT(mat3)
+^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:56:2: note: expanded from macro 'GLM_IMPLEMENT_SCAL_MULT'
+        operator/(Vec lh, T const& s){ \
+        ^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:69:1: note: candidate function template not viable: no known conversion from 'Vec2' (aka 'vec<2, float, aligned_highp>') to 'glm::mat3x4' (aka 'mat<3, 4, float, defaultp>') for 1st argument
+GLM_IMPLEMENT_SCAL_MULT(mat3x4)
+^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:56:2: note: expanded from macro 'GLM_IMPLEMENT_SCAL_MULT'
+        operator/(Vec lh, T const& s){ \
+        ^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:70:1: note: candidate function template not viable: no known conversion from 'Vec2' (aka 'vec<2, float, aligned_highp>') to 'glm::mat4x2' (aka 'mat<4, 2, float, defaultp>') for 1st argument
+GLM_IMPLEMENT_SCAL_MULT(mat4x2)
+^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:56:2: note: expanded from macro 'GLM_IMPLEMENT_SCAL_MULT'
+        operator/(Vec lh, T const& s){ \
+        ^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:71:1: note: candidate function template not viable: no known conversion from 'Vec2' (aka 'vec<2, float, aligned_highp>') to 'glm::mat4x3' (aka 'mat<4, 3, float, defaultp>') for 1st argument
+GLM_IMPLEMENT_SCAL_MULT(mat4x3)
+^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:56:2: note: expanded from macro 'GLM_IMPLEMENT_SCAL_MULT'
+        operator/(Vec lh, T const& s){ \
+        ^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:72:1: note: candidate function template not viable: no known conversion from 'Vec2' (aka 'vec<2, float, aligned_highp>') to 'glm::mat4' (aka 'mat<4, 4, float, defaultp>') for 1st argument
+GLM_IMPLEMENT_SCAL_MULT(mat4)
+^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:56:2: note: expanded from macro 'GLM_IMPLEMENT_SCAL_MULT'
+        operator/(Vec lh, T const& s){ \
+        ^
+/usr/local/include/glm/detail/type_vec2.inl:597:48: note: candidate template ignored: deduced conflicting types for parameter 'T' ('float' vs. 'glm::vec<2, float, glm::packed_highp>')
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator/(vec<2, T, Q> const& v, T scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:613:48: note: candidate template ignored: deduced conflicting types for parameter 'T' ('glm::vec<2, float, glm::aligned_highp>' vs. 'float')
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator/(T scalar, vec<2, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:629:48: note: candidate template ignored: deduced conflicting values for parameter 'Q' (3 vs. 0)
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator/(vec<2, T, Q> const& v1, vec<2, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:605:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator/(vec<2, T, Q> const& v1, vec<1, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec2.inl:621:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, T, Q> operator/(vec<1, T, Q> const& v1, vec<2, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:715:48: note: candidate template ignored: could not match 3 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator/(vec<3, T, Q> const& v, T scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:724:48: note: candidate template ignored: could not match 3 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator/(vec<3, T, Q> const& v, vec<1, T, Q> const& scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:733:48: note: candidate template ignored: could not match 3 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator/(T scalar, vec<3, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:742:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator/(vec<1, T, Q> const& scalar, vec<3, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec3.inl:751:48: note: candidate template ignored: could not match 3 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<3, T, Q> operator/(vec<3, T, Q> const& v1, vec<3, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:894:48: note: candidate template ignored: could not match 4 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator/(vec<4, T, Q> const& v, T const & scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:900:48: note: candidate template ignored: could not match 4 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator/(vec<4, T, Q> const& v1, vec<1, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:906:48: note: candidate template ignored: could not match 4 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator/(T scalar, vec<4, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:912:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator/(vec<1, T, Q> const& v1, vec<4, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_vec4.inl:918:48: note: candidate template ignored: could not match 4 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, T, Q> operator/(vec<4, T, Q> const& v1, vec<4, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x3.inl:482:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 3, T, Q> operator/(mat<2, 3, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x3.inl:490:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 3, T, Q> operator/(T scalar, mat<2, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x4.inl:492:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 4, T, Q> operator/(mat<2, 4, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x4.inl:500:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 4, T, Q> operator/(T scalar, mat<2, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x2.inl:502:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 2, T, Q> operator/(mat<3, 2, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x2.inl:511:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 2, T, Q> operator/(T scalar, mat<3, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:552:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator/(mat<3, 3, T, Q> const& m,  T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:561:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator/(T scalar, mat<3, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x3.inl:570:56: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER typename mat<3, 3, T, Q>::col_type operator/(mat<3, 3, T, Q> const& m, typename mat<3, 3, T, Q>::row_type const& v)
+                                                              ^
+/usr/local/include/glm/detail/type_mat3x3.inl:576:56: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER typename mat<3, 3, T, Q>::row_type operator/(typename mat<3, 3, T, Q>::col_type const& v, mat<3, 3, T, Q> const& m)
+                                                              ^
+/usr/local/include/glm/detail/type_mat3x3.inl:582:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 3, T, Q> operator/(mat<3, 3, T, Q> const& m1, mat<3, 3, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x4.inl:548:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 4, T, Q> operator/(mat<3, 4, T, Q> const& m,  T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat3x4.inl:557:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<3, 4, T, Q> operator/(T scalar, mat<3, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x2.inl:542:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 2, T, Q> operator/(mat<4, 2, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x2.inl:552:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 2, T, Q> operator/(T scalar, mat<4, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x3.inl:566:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 3, T, Q> operator/(mat<4, 3, T, Q> const& m, T const& s)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x3.inl:576:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 3, T, Q> operator/(T const& s, mat<4, 3, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:651:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator/(mat<4, 4, T, Q> const& m, T const& s)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:661:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator/(T const& s,        mat<4, 4, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat4x4.inl:671:56: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER typename mat<4, 4, T, Q>::col_type operator/(mat<4, 4, T, Q> const& m, typename mat<4, 4, T, Q>::row_type const& v)
+                                                              ^
+/usr/local/include/glm/detail/type_mat4x4.inl:677:56: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER typename mat<4, 4, T, Q>::row_type operator/(typename mat<4, 4, T, Q>::col_type const& v, mat<4, 4, T, Q> const& m)
+                                                              ^
+/usr/local/include/glm/detail/type_mat4x4.inl:683:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<4, 4, T, Q> operator/(mat<4, 4, T, Q> const& m1, mat<4, 4, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_vec1.inl:371:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator/(vec<1, T, Q> const& v, T scalar)
+                                                      ^
+/usr/local/include/glm/detail/type_vec1.inl:378:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator/(T scalar, vec<1, T, Q> const& v)
+                                                      ^
+/usr/local/include/glm/detail/type_vec1.inl:385:48: note: candidate template ignored: could not match 1 against 2
+        GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<1, T, Q> operator/(vec<1, T, Q> const& v1, vec<1, T, Q> const& v2)
+                                                      ^
+/usr/local/include/glm/detail/type_mat2x2.inl:489:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator/(mat<2, 2, T, Q> const& m, T scalar)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x2.inl:497:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator/(T scalar, mat<2, 2, T, Q> const& m)
+                                           ^
+/usr/local/include/glm/detail/type_mat2x2.inl:505:56: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER typename mat<2, 2, T, Q>::col_type operator/(mat<2, 2, T, Q> const& m, typename mat<2, 2, T, Q>::row_type const& v)
+                                                              ^
+/usr/local/include/glm/detail/type_mat2x2.inl:511:56: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER typename mat<2, 2, T, Q>::row_type operator/(typename mat<2, 2, T, Q>::col_type const& v, mat<2, 2, T, Q> const& m)
+                                                              ^
+/usr/local/include/glm/detail/type_mat2x2.inl:517:37: note: candidate template ignored: could not match 'mat' against 'vec'
+        GLM_FUNC_QUALIFIER mat<2, 2, T, Q> operator/(mat<2, 2, T, Q> const& m1, mat<2, 2, T, Q> const& m2)
+                                           ^
+/usr/local/include/glm/detail/type_quat.inl:355:31: note: candidate template ignored: could not match 'qua' against 'vec'
+        GLM_FUNC_QUALIFIER qua<T, Q> operator/(qua<T, Q> const& q, T const& s)
+                                     ^
+/usr/local/include/glm/./gtx/dual_quaternion.inl:197:37: note: candidate template ignored: could not match 'tdualquat' against 'vec'
+        GLM_FUNC_QUALIFIER tdualquat<T, Q> operator/(tdualquat<T, Q> const& q,  T const& s)
+                                           ^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:60:1: note: candidate template ignored: requirement 'std::is_arithmetic<vec<2, float, glm::packed_highp> >::value' was not satisfied [with T = glm::vec<2, float, glm::packed_highp>]
+GLM_IMPLEMENT_SCAL_MULT(vec2)
+^
+/usr/local/include/glm/./gtx/scalar_multiplication.hpp:56:2: note: expanded from macro 'GLM_IMPLEMENT_SCAL_MULT'
+        operator/(Vec lh, T const& s){ \
+        ^
+run.cpp:2717:29: error: call to member function 'line' is ambiguous
+                    in_prog.line(in_progress_line[0], in_progress_line[1]);
+                    ~~~~~~~~^~~~
+./sd_opengl.hpp:343:10: note: candidate function
+    bool line(Vec3 a, Vec3 b)
+         ^
+./sd_opengl.hpp:391:10: note: candidate function
+    bool line(Vec2 a, Vec2 b)
+         ^
+run.cpp:2723:25: error: call to 'circle' is ambiguous
+                        sd::circle(
+                        ^~~~~~~~~~
+./sd_opengl.hpp:984:43: note: candidate function [with SD_RENDER_LAYER_SIZE = 256]
+template<usize SD_RENDER_LAYER_SIZE> bool circle(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, GLfloat radius, Vec3 center, usize detail)
+                                          ^
+./sd_opengl.hpp:989:43: note: candidate function [with SD_RENDER_LAYER_SIZE = 256]
+template<usize SD_RENDER_LAYER_SIZE> bool circle(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, GLfloat radius, Vec2 center, usize detail)
+                                          ^
+run.cpp:2778:30: error: call to member function 'line' is ambiguous
+                    existing.line(in_progress_line[0], in_progress_line[1]);
+                    ~~~~~~~~~^~~~
+./sd_opengl.hpp:343:10: note: candidate function
+    bool line(Vec3 a, Vec3 b)
+         ^
+./sd_opengl.hpp:391:10: note: candidate function
+    bool line(Vec2 a, Vec2 b)
+         ^
+run.cpp:2962:28: error: cannot initialize a variable of type 'glm::vec3 *' (aka 'vec<3, float, defaultp> *') with an rvalue of type 'Vec3 *' (aka 'vec<3, float, aligned_highp> *')
+                glm::vec3* a = &col->a;
+                           ^   ~~~~~~~
+run.cpp:2963:28: error: cannot initialize a variable of type 'glm::vec3 *' (aka 'vec<3, float, defaultp> *') with an rvalue of type 'Vec3 *' (aka 'vec<3, float, aligned_highp> *')
+                glm::vec3* b = &col->b;
+                           ^   ~~~~~~~
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+7 warnings and 20 errors generated.
+make: *** [run.o] Error 1

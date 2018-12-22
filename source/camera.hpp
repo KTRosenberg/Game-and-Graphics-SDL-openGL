@@ -23,7 +23,7 @@
 static const GLfloat ViewCamera_default_speed = 4.0f;
 
 typedef struct ViewCamera {
-    glm::vec3 position;
+    Vec3 position;
     GLfloat   speed;
     glm::mat4 matrix;
     GLfloat   min_x;
@@ -36,14 +36,14 @@ typedef struct ViewCamera {
 
 void ViewCamera_init(
     ViewCamera* view,
-    glm::vec3 position_start,
+    Vec3 position_start,
     GLfloat speed,
-    GLfloat min_z = -std::numeric_limits<double>::infinity(),
-    GLfloat max_z = std::numeric_limits<double>::infinity(),
+    GLfloat min_z = NEGATIVE_INFINITY,
+    GLfloat max_z = POSITIVE_INFINITY,
     GLfloat min_x = 0.0f,
-    GLfloat max_x = std::numeric_limits<double>::infinity(),
+    GLfloat max_x = POSITIVE_INFINITY,
     GLfloat min_y = 0.0f,
-    GLfloat max_y = std::numeric_limits<double>::infinity()
+    GLfloat max_y = POSITIVE_INFINITY
 );
 
 void ViewCamera_process_directional_movement(ViewCamera* view, MOVEMENT_DIRECTION direction, GLfloat delta_time);
@@ -70,11 +70,11 @@ namespace camera_defaults {
 
 struct Camera {
     // attributes
-    glm::vec3 pos;
-    glm::vec3 front;
-    glm::vec3 up;
-    glm::vec3 right;
-    glm::vec3 world_up;
+    Vec3 pos;
+    Vec3 front;
+    Vec3 up;
+    Vec3 right;
+    Vec3 world_up;
     // Euler angles
     GLfloat yaw;
     GLfloat pitch;
@@ -88,8 +88,8 @@ struct Camera {
     
     // constructor (vector values)
     Camera(
-        glm::vec3 pos = glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f),
+        Vec3 pos = Vec3(0.0f, 0.0f, 0.0f),
+        Vec3 up = Vec3(0.0f, 1.0f, 0.0f),
         GLfloat yaw = camera_defaults::YAW,
         GLfloat pitch = camera_defaults::PITCH
     );
@@ -113,16 +113,16 @@ private:
 
 // based on code by Laurie Bradshaw, from comment in https://learnopengl.com/#!Getting-started/Camera
 struct FreeCamera {
-	glm::vec3 position;
-	glm::quat orientation;
-    glm::mat4 matrix;
+	Vec3 position;
+	Quat orientation;
+    Mat4 matrix;
     GLfloat speed;
 
-    glm::vec2 target;
+    Vec2 target;
 
-    glm::vec2 offset;
+    Vec2 offset;
 
-    glm::vec2 target_diff;
+    Vec2 target_diff;
 
     bool is_catching_up;
 
@@ -138,18 +138,18 @@ struct FreeCamera {
 
 	//glm::mat4 get_view_matrix(void) const { return glm::translate(glm::mat4_cast(orientation), -position); }
 
-	void translate(const glm::vec3 &v) { position += v * orientation; }
-	void translate(float x, float y, float z) { position += glm::vec3(x, y, z) * orientation; }
+	void translate(const Vec3 &v) { position += v * orientation; }
+	void translate(float x, float y, float z) { position += Vec3(x, y, z) * orientation; }
 
-	void rotate(float angle, const glm::vec3& axis) { orientation *= glm::angleAxis(angle, axis * orientation); }
-	void rotate(float angle, float x, float y, float z) { orientation *= glm::angleAxis(angle, glm::vec3(x, y, z) * orientation); }
+	void rotate(float angle, const Vec3& axis) { orientation *= glm::angleAxis(angle, axis * orientation); }
+	void rotate(float angle, float x, float y, float z) { orientation *= glm::angleAxis(angle, Vec3(x, y, z) * orientation); }
 
 	void yaw(float angle) { this->rotate(-angle, 0.0f, 1.0f, 0.0f); }
 	void pitch(float angle) { this->rotate(-angle, 1.0f, 0.0f, 0.0f); }
 	void roll(float angle) { this->rotate(-angle, 0.0f, 0.0f, 1.0f); }
 };
 
-void FreeCamera_init(FreeCamera* view, glm::vec3 start_position = glm::vec3(0.0));
+void FreeCamera_init(FreeCamera* view, Vec3 start_position = Vec3(0.0));
 
 
 void FreeCamera_process_directional_movement(FreeCamera* view, MOVEMENT_DIRECTION direction, GLfloat delta_time);
@@ -158,7 +158,7 @@ Mat4 FreeCamera_calc_view_matrix(FreeCamera* view);
 Mat4 FreeCamera_calc_calc_reverse_translation(FreeCamera* view);
 Mat4 FreeCamera_calc_screen_to_world_matrix(FreeCamera* view);
 
-void FreeCamera_target_set(FreeCamera* view, glm::vec2 target);
+void FreeCamera_target_set(FreeCamera* view, Vec2 target);
 void FreeCamera_target_x_set(FreeCamera* view, f64 target);
 void FreeCamera_target_y_set(FreeCamera* view, f64 target);
 

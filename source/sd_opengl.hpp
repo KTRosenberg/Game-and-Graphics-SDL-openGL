@@ -89,23 +89,18 @@ struct Vertex_LineSegment {
 };
 typedef Vertex_LineSegment Vertex_LS;
 
-// TODO
-struct ShaderRegistry {
-    Shader shaders[63];  
-};
-
 static constexpr GLenum TRIANGLES = GL_TRIANGLES;
 static constexpr GLenum LINES     = GL_LINES;
 
-template <usize SD_RENDER_BATCH_SIZE = 2048>
-struct RenderBatch {
+template <usize SD_RENDER_LAYER_SIZE = 2048>
+struct Render_Layer {
     static constexpr GLuint DEFAULT_ATTRIBUTE_STRIDE = 7;
 
-    GLfloat vertices_triangles[SD_RENDER_BATCH_SIZE * DEFAULT_ATTRIBUTE_STRIDE]; 
-    GLuint indices_triangles[SD_RENDER_BATCH_SIZE * 2];
+    GLfloat vertices_triangles[SD_RENDER_LAYER_SIZE * DEFAULT_ATTRIBUTE_STRIDE]; 
+    GLuint indices_triangles[SD_RENDER_LAYER_SIZE * 2];
 
-    GLfloat vertices_lines[SD_RENDER_BATCH_SIZE * DEFAULT_ATTRIBUTE_STRIDE]; 
-    GLuint indices_lines[SD_RENDER_BATCH_SIZE * 2];
+    GLfloat vertices_lines[SD_RENDER_LAYER_SIZE * DEFAULT_ATTRIBUTE_STRIDE]; 
+    GLuint indices_lines[SD_RENDER_LAYER_SIZE * 2];
 
     VertexAttributeArray vao_triangles;
     VertexBufferData triangle_buffer;
@@ -135,13 +130,13 @@ struct RenderBatch {
         //return;
         assert(begun == false);
         
-        transform_matrix = glm::mat4(1.0f);
+        transform_matrix = Mat4(1.0f);
 
         begun = true;
     }
 
-    //template<usize SD_RENDER_BATCH_SIZE>
-    void render(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx)
+    //template<usize SD_RENDER_LAYER_SIZE>
+    void render(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx)
     {
         glUseProgram(ctx->shader);
 
@@ -237,7 +232,7 @@ struct RenderBatch {
         begun = false;        
     }
 
-    void reset(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx)
+    void reset(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx)
     {
         ctx->triangle_buffer.v_count = 0;
         ctx->triangle_buffer.i_count = 0;
@@ -271,11 +266,11 @@ struct RenderBatch {
             SHADER_VERTEX_PATH,
             SHADER_FRAGMENT_PATH
         )) {
-            SD_LOG_ERR("%s\n", "ERROR: sd::RenderBatch initialization failed");
+            SD_LOG_ERR("%s\n", "ERROR: sd::Render_Layer initialization failed");
             return false;
         }
 
-        const usize attribute_stride = sd::RenderBatch<SD_RENDER_BATCH_SIZE>::DEFAULT_ATTRIBUTE_STRIDE;
+        const usize attribute_stride = sd::Render_Layer<SD_RENDER_LAYER_SIZE>::DEFAULT_ATTRIBUTE_STRIDE;
 
         glUseProgram(shader);
         MAT_LOC = glGetUniformLocation(shader, "u_matrix");
@@ -287,9 +282,9 @@ struct RenderBatch {
 
             VertexBufferData_init_inplace(
                 &triangle_buffer, 
-                SD_RENDER_BATCH_SIZE * attribute_stride,
+                SD_RENDER_LAYER_SIZE * attribute_stride,
                 vertices_triangles,
-                SD_RENDER_BATCH_SIZE,
+                SD_RENDER_LAYER_SIZE,
                 indices_triangles
             );
             triangle_buffer.v_count = 0;
@@ -308,9 +303,9 @@ struct RenderBatch {
         glBindVertexArray(vao_lines);
             VertexBufferData_init_inplace(
                 &line_buffer, 
-                SD_RENDER_BATCH_SIZE * attribute_stride,
+                SD_RENDER_LAYER_SIZE * attribute_stride,
                 vertices_lines,
-                SD_RENDER_BATCH_SIZE,
+                SD_RENDER_LAYER_SIZE,
                 indices_lines
             );
             line_buffer.v_count = 0;
@@ -352,7 +347,7 @@ struct RenderBatch {
 
         const usize attribute_stride = this->vao_lines.stride;
 
-        if (v_count + (2 * attribute_stride) > (SD_RENDER_BATCH_SIZE * attribute_stride) || (i_count + 2 > SD_RENDER_BATCH_SIZE * 2)) {
+        if (v_count + (2 * attribute_stride) > (SD_RENDER_LAYER_SIZE * attribute_stride) || (i_count + 2 > SD_RENDER_LAYER_SIZE * 2)) {
             SD_LOG_ERR("%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
             return false;
         }
@@ -401,7 +396,7 @@ struct RenderBatch {
         const usize attribute_stride = this->vao_lines.stride;
 
 
-        if (v_count + (2 * attribute_stride) > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + 2 > SD_RENDER_BATCH_SIZE * 2) {
+        if (v_count + (2 * attribute_stride) > SD_RENDER_LAYER_SIZE * attribute_stride || i_count + 2 > SD_RENDER_LAYER_SIZE * 2) {
             SD_LOG_ERR("%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
             return false;
         }
@@ -409,7 +404,7 @@ struct RenderBatch {
         //a = glm::vec2(transform_matrix * glm::vec4(a, 0.0f, 1.0f));
         //b = glm::vec2(transform_matrix * glm::vec4(b, 0.0f, 1.0f));
 
-        const size_t v_idx = v_count;
+        const usize v_idx = v_count;
 
         memcpy(&vertices_lines[v_idx], &a[0], sizeof(a[0]) * 2);
         vertices_lines[v_idx + 2] = 0.0f;
@@ -430,16 +425,16 @@ struct RenderBatch {
         return true;
     }
 
-    void polygon_convex_regular(GLfloat radius, glm::vec3 center, const size_t count_sides)
+    void polygon_convex_regular(GLfloat radius, Vec3 center, const usize count_sides)
     {
-        size_t count_tris = count_sides - 2;
+        usize count_tris = count_sides - 2;
 
         usize attribute_stride;
-        size_t inc;
+        usize inc;
 
-        size_t v_count = 0;
-        size_t i_count = 0;
-        size_t v_idx = 0;
+        usize v_count = 0;
+        usize i_count = 0;
+        usize v_idx = 0;
         GLdouble angle_turn = -(2 * PI) / count_sides;
 
         switch (draw_type) {
@@ -451,7 +446,7 @@ struct RenderBatch {
             i_count = triangle_buffer.i_count;
             v_idx = v_count;
 
-            if (v_count + (attribute_stride * count_sides) > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + (3 * count_tris) > SD_RENDER_BATCH_SIZE * 2) {
+            if (v_count + (attribute_stride * count_sides) > SD_RENDER_LAYER_SIZE * attribute_stride || i_count + (3 * count_tris) > SD_RENDER_LAYER_SIZE * 2) {
                 SD_LOG_ERR("%s\n", "ERROR: polygon_convex_regular MAX TRIANGLES EXCEEDED");
                 return;
             }
@@ -465,8 +460,8 @@ struct RenderBatch {
 
 
             for (usize p = 0, off = 0; p < count_sides; ++p, off += inc) {
-                Vec3 point = glm::vec3(Mat4(1.0f) * 
-                    glm::vec4(
+                Vec3 point = Vec3(Mat4(1.0f) * 
+                    Vec4(
                         (radius * glm::cos(p * angle_turn)) + center.x,
                         (radius * glm::sin(p * angle_turn)) + center.y,
                         center.z,
@@ -494,7 +489,7 @@ struct RenderBatch {
             i_count = line_buffer.i_count;
             v_idx = v_count;
 
-            if (v_count + (attribute_stride * count_sides) > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + (2 * count_sides) > SD_RENDER_BATCH_SIZE * 2) {
+            if (v_count + (attribute_stride * count_sides) > SD_RENDER_LAYER_SIZE * attribute_stride || i_count + (2 * count_sides) > SD_RENDER_LAYER_SIZE * 2) {
                 SD_LOG_ERR("%s\n", "ERROR: polygon_convex_regular MAX LINES EXCEEDED");
                 return;
             }
@@ -552,7 +547,7 @@ struct RenderBatch {
             i_count = triangle_buffer.i_count;
             v_idx = v_count;
 
-            if (v_count + attribute_stride > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + 1 > SD_RENDER_BATCH_SIZE * 2) {
+            if (v_count + attribute_stride > SD_RENDER_LAYER_SIZE * attribute_stride || i_count + 1 > SD_RENDER_LAYER_SIZE * 2) {
                 SD_LOG_ERR("%s\n", "ERROR: vertex MAX TRIANGLES EXCEEDED");
                 return;
             }
@@ -591,7 +586,7 @@ struct RenderBatch {
             i_count = line_buffer.i_count;
             v_idx = v_count;
 
-            if (v_count + attribute_stride > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + 1 > SD_RENDER_BATCH_SIZE * 2) {
+            if (v_count + attribute_stride > SD_RENDER_LAYER_SIZE * attribute_stride || i_count + 1 > SD_RENDER_LAYER_SIZE * 2) {
                 SD_LOG_ERR("%s\n", "ERROR: vertex MAX LINES EXCEEDED");
                 return;
             }
@@ -613,39 +608,39 @@ struct RenderBatch {
     }
 };
 
-template<usize SD_RENDER_BATCH_SIZE> void begin(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx);
-template<usize SD_RENDER_BATCH_SIZE> void render(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx);
-template<usize SD_RENDER_BATCH_SIZE> void end(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx);
-template<usize SD_RENDER_BATCH_SIZE> void end_no_reset(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx);
-template<usize SD_RENDER_BATCH_SIZE> void reset(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx);
+template<usize SD_RENDER_LAYER_SIZE> void begin(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx);
+template<usize SD_RENDER_LAYER_SIZE> void render(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx);
+template<usize SD_RENDER_LAYER_SIZE> void end(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx);
+template<usize SD_RENDER_LAYER_SIZE> void end_no_reset(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx);
+template<usize SD_RENDER_LAYER_SIZE> void layer_reset(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx);
 
-template<usize SD_RENDER_BATCH_SIZE> bool sys_init(void);
-template<usize SD_RENDER_BATCH_SIZE> inline bool init(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Mat4 projection_matrix);
-template<usize SD_RENDER_BATCH_SIZE> sd::RenderBatch<SD_RENDER_BATCH_SIZE> RenderBatch_make(Mat4 projection_matrix);
-template<usize SD_RENDER_BATCH_SIZE> void free(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx);
+inline bool sys_init(void);
+template<usize SD_RENDER_LAYER_SIZE> inline bool layer_init(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Mat4 projection_matrix);
+template<usize SD_RENDER_LAYER_SIZE> sd::Render_Layer<SD_RENDER_LAYER_SIZE> Render_Layer_make(Mat4 projection_matrix);
+template<usize SD_RENDER_LAYER_SIZE> void free(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx);
 
-template<usize SD_RENDER_BATCH_SIZE> bool line(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec3 a, Vec3 b);
-template<usize SD_RENDER_BATCH_SIZE> bool line(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec2 a, Vec2 b);
-template<usize SD_RENDER_BATCH_SIZE> bool remove_line_swap_end(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, usize idx);
-template<usize SD_RENDER_BATCH_SIZE> bool quad(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec3, Vec3, Vec3, Vec3);
-template<usize SD_RENDER_BATCH_SIZE> bool quad(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec2, Vec2, Vec2, Vec2);
-template<usize SD_RENDER_BATCH_SIZE> bool polygon_convex_regular(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, GLfloat radius, Vec3 center, const usize count_sides);
-template<usize SD_RENDER_BATCH_SIZE> bool polygon_convex_regular(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, GLfloat radius, Vec2 center, const usize count_sides);
-template<usize SD_RENDER_BATCH_SIZE> bool circle(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, GLfloat radius, Vec3 center, usize detail = 37);
-template<usize SD_RENDER_BATCH_SIZE> bool circle(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, GLfloat radius, Vec2 center, usize detail = 37);
-template<usize SD_RENDER_BATCH_SIZE> bool vertex(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec3 v);
-template<usize SD_RENDER_BATCH_SIZE> bool vertex(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec2 v);
-// template<usize SD_RENDER_BATCH_SIZE, usize N> bool polygon(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Buffer<Vec3, N>* vs);
-// template<usize SD_RENDER_BATCH_SIZE, usize N> bool polygon(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Buffer<Vec2, N>* vs);
-// template<usize SD_RENDER_BATCH_SIZE> bool polygon(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, DynamicBuffer<Vec3>* vs);
-// template<usize SD_RENDER_BATCH_SIZE> bool polygon(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, DynamicBuffer<Vec2>* vs);
-template<usize SD_RENDER_BATCH_SIZE> bool polygon(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec3* vs, const usize count);
-template<usize SD_RENDER_BATCH_SIZE> bool polygon(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec2* vs, const usize count);
-template<usize SD_RENDER_BATCH_SIZE> bool polygon(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, ArraySlice<Vec3> slice);
-template<usize SD_RENDER_BATCH_SIZE> bool polygon(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, ArraySlice<Vec2>* slice);
+template<usize SD_RENDER_LAYER_SIZE> bool line(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Vec3 a, Vec3 b);
+template<usize SD_RENDER_LAYER_SIZE> bool line(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Vec2 a, Vec2 b);
+template<usize SD_RENDER_LAYER_SIZE> bool remove_line_swap_end(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, usize idx);
+template<usize SD_RENDER_LAYER_SIZE> bool quad(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Vec3, Vec3, Vec3, Vec3);
+template<usize SD_RENDER_LAYER_SIZE> bool quad(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Vec2, Vec2, Vec2, Vec2);
+template<usize SD_RENDER_LAYER_SIZE> bool polygon_convex_regular(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, GLfloat radius, Vec3 center, const usize count_sides);
+template<usize SD_RENDER_LAYER_SIZE> bool polygon_convex_regular(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, GLfloat radius, Vec2 center, const usize count_sides);
+template<usize SD_RENDER_LAYER_SIZE> bool circle(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, GLfloat radius, Vec3 center, usize detail = 37);
+template<usize SD_RENDER_LAYER_SIZE> bool circle(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, GLfloat radius, Vec2 center, usize detail = 37);
+template<usize SD_RENDER_LAYER_SIZE> bool vertex(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Vec3 v);
+template<usize SD_RENDER_LAYER_SIZE> bool vertex(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Vec2 v);
+// template<usize SD_RENDER_LAYER_SIZE, usize N> bool polygon(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Buffer<Vec3, N>* vs);
+// template<usize SD_RENDER_LAYER_SIZE, usize N> bool polygon(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Buffer<Vec2, N>* vs);
+// template<usize SD_RENDER_LAYER_SIZE> bool polygon(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, DynamicBuffer<Vec3>* vs);
+// template<usize SD_RENDER_LAYER_SIZE> bool polygon(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, DynamicBuffer<Vec2>* vs);
+template<usize SD_RENDER_LAYER_SIZE> bool polygon(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Vec3* vs, const usize count);
+template<usize SD_RENDER_LAYER_SIZE> bool polygon(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Vec2* vs, const usize count);
+template<usize SD_RENDER_LAYER_SIZE> bool polygon(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Array_Slice<Vec3> slice);
+template<usize SD_RENDER_LAYER_SIZE> bool polygon(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Array_Slice<Vec2>* slice);
 
-template<usize SD_RENDER_BATCH_SIZE> inline void color(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec4 color);
-template<usize SD_RENDER_BATCH_SIZE> inline void push_context(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx);
+template<usize SD_RENDER_LAYER_SIZE> inline void color(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Vec4 color);
+template<usize SD_RENDER_LAYER_SIZE> inline void push_context(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx);
 
 
 }
@@ -657,7 +652,13 @@ template<usize SD_RENDER_BATCH_SIZE> inline void push_context(sd::RenderBatch<SD
 
 namespace sd {
 
-template<usize SD_RENDER_BATCH_SIZE> inline bool init(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Mat4 projection_matrix)
+inline bool sys_init(void)
+{
+ 
+    return true;
+}
+
+template<usize SD_RENDER_LAYER_SIZE> inline bool layer_init(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Mat4 projection_matrix)
 {
     ctx->projection_matrix = projection_matrix;
     ctx->update_projection_matrix = false;
@@ -670,19 +671,19 @@ template<usize SD_RENDER_BATCH_SIZE> inline bool init(sd::RenderBatch<SD_RENDER_
 
     ctx->color = Vec4{0.0f, 0.0f, 0.0f, 1.0f};
 
-    const char *const SHADER_VERTEX_PATH = sd::RenderBatch<SD_RENDER_BATCH_SIZE>::SHADER_VERTEX_PATH;
-    const char *const SHADER_FRAGMENT_PATH = sd::RenderBatch<SD_RENDER_BATCH_SIZE>::SHADER_FRAGMENT_PATH;
+    const char *const SHADER_VERTEX_PATH = sd::Render_Layer<SD_RENDER_LAYER_SIZE>::SHADER_VERTEX_PATH;
+    const char *const SHADER_FRAGMENT_PATH = sd::Render_Layer<SD_RENDER_LAYER_SIZE>::SHADER_FRAGMENT_PATH;
 
     if (false == Shader_load_from_file(
         &ctx->shader,
         SHADER_VERTEX_PATH,
         SHADER_FRAGMENT_PATH
     )) {
-        SD_LOG_ERR("%s\n", "ERROR: sd::RenderBatch initialization failed");
+        SD_LOG_ERR("%s\n", "ERROR: sd::Render_Layer initialization failed");
         return false;
     }
 
-    const usize attribute_stride = sd::RenderBatch<SD_RENDER_BATCH_SIZE>::DEFAULT_ATTRIBUTE_STRIDE;
+    const usize attribute_stride = sd::Render_Layer<SD_RENDER_LAYER_SIZE>::DEFAULT_ATTRIBUTE_STRIDE;
 
     glUseProgram(ctx->shader);
     ctx->MAT_LOC = glGetUniformLocation(ctx->shader, "u_matrix");
@@ -694,9 +695,9 @@ template<usize SD_RENDER_BATCH_SIZE> inline bool init(sd::RenderBatch<SD_RENDER_
 
         VertexBufferData_init_inplace(
             &ctx->triangle_buffer, 
-            SD_RENDER_BATCH_SIZE * attribute_stride,
+            SD_RENDER_LAYER_SIZE * attribute_stride,
             ctx->vertices_triangles,
-            SD_RENDER_BATCH_SIZE,
+            SD_RENDER_LAYER_SIZE,
             ctx->indices_triangles
         );
         ctx->triangle_buffer.v_count = 0;
@@ -715,9 +716,9 @@ template<usize SD_RENDER_BATCH_SIZE> inline bool init(sd::RenderBatch<SD_RENDER_
     glBindVertexArray(ctx->vao_lines);
         VertexBufferData_init_inplace(
             &ctx->line_buffer, 
-            SD_RENDER_BATCH_SIZE * attribute_stride,
+            SD_RENDER_LAYER_SIZE * attribute_stride,
             ctx->vertices_lines,
-            SD_RENDER_BATCH_SIZE,
+            SD_RENDER_LAYER_SIZE,
             ctx->indices_lines
         );
         ctx->line_buffer.v_count = 0;
@@ -738,16 +739,16 @@ template<usize SD_RENDER_BATCH_SIZE> inline bool init(sd::RenderBatch<SD_RENDER_
     return true;
 }
 
-template<usize SD_RENDER_BATCH_SIZE = 2048> sd::RenderBatch<SD_RENDER_BATCH_SIZE> RenderBatch_make(Mat4 projection_matrix)
+template<usize SD_RENDER_LAYER_SIZE = 2048> sd::Render_Layer<SD_RENDER_LAYER_SIZE> Render_Layer_make(Mat4 projection_matrix)
 {
-    sd::RenderBatch<SD_RENDER_BATCH_SIZE> ctx;
-    if (sd::init(&ctx, projection_matrix) == false) {
+    sd::Render_Layer<SD_RENDER_LAYER_SIZE> ctx;
+    if (sd::layer_init(&ctx, projection_matrix) == false) {
         SD_LOG_ERR("%s\n", "ERROR: Context creation failed");
     }
     return ctx;
 }
 
-template<usize N> void render(sd::RenderBatch<N>* ctx)
+template<usize N> void render(sd::Render_Layer<N>* ctx)
 {
     glUseProgram(ctx->shader);
 
@@ -770,7 +771,7 @@ template<usize N> void render(sd::RenderBatch<N>* ctx)
     glUseProgram(0);
 }
 
-template<usize N> void free(sd::RenderBatch<N>* ctx)
+template<usize N> void free(sd::Render_Layer<N>* ctx)
 {
     VertexAttributeArray_delete(&ctx->vao_triangles);
     VertexAttributeArray_delete(&ctx->vao_lines);
@@ -779,7 +780,7 @@ template<usize N> void free(sd::RenderBatch<N>* ctx)
     glDeleteProgram(ctx->shader);
 }
 
-template<usize SD_RENDER_BATCH_SIZE> void reset(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx)
+template<usize SD_RENDER_LAYER_SIZE> void layer_reset(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx)
 {
     ctx->triangle_buffer.v_count = 0;
     ctx->triangle_buffer.i_count = 0;
@@ -792,14 +793,14 @@ template<usize SD_RENDER_BATCH_SIZE> void reset(sd::RenderBatch<SD_RENDER_BATCH_
 }
 
 
-template<usize SD_RENDER_BATCH_SIZE> bool line(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec3 a, Vec3 b)
+template<usize SD_RENDER_LAYER_SIZE> bool line(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Vec3 a, Vec3 b)
 {
     const usize v_count = ctx->line_buffer.v_count;
     const usize i_count = ctx->line_buffer.i_count;
 
     const usize attribute_stride = ctx->vao_lines.stride;
 
-    if (v_count + (2 * attribute_stride) > (SD_RENDER_BATCH_SIZE * attribute_stride) || (i_count + 2 > SD_RENDER_BATCH_SIZE * 2)) {
+    if (v_count + (2 * attribute_stride) > (SD_RENDER_LAYER_SIZE * attribute_stride) || (i_count + 2 > SD_RENDER_LAYER_SIZE * 2)) {
         SD_LOG_ERR("%s\n", "ERROR: add_line_segment MAX LINES EXCEEDED");
         return false;
     }
@@ -841,17 +842,17 @@ template<usize SD_RENDER_BATCH_SIZE> bool line(sd::RenderBatch<SD_RENDER_BATCH_S
     return true;
 }
 
-template<usize SD_RENDER_BATCH_SIZE> bool line(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec2 a, Vec2 b)
+template<usize SD_RENDER_LAYER_SIZE> bool line(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Vec2 a, Vec2 b)
 {
     return sd::line(ctx, Vec3(a, 1), Vec3(b, 1));
 }
 
-template<usize SD_RENDER_BATCH_SIZE> bool remove_line_swap_end(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, usize idx)
+template<usize SD_RENDER_LAYER_SIZE> bool remove_line_swap_end(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, usize idx)
 {
     const usize attribute_stride = ctx->vao_lines.stride;
 
 #ifdef SD_BOUNDS_CHECK
-    if ((idx * (2 * attribute_stride) > (SD_RENDER_BATCH_SIZE * attribute_stride)) || (idx * 2 > SD_RENDER_BATCH_SIZE * 2)) {
+    if ((idx * (2 * attribute_stride) > (SD_RENDER_LAYER_SIZE * attribute_stride)) || (idx * 2 > SD_RENDER_LAYER_SIZE * 2)) {
         SD_LOG_ERR("%s\n", "ERROR: remove_line INDEX OUT-OF-BOUNDS");
         return false;           
     }
@@ -870,7 +871,7 @@ template<usize SD_RENDER_BATCH_SIZE> bool remove_line_swap_end(sd::RenderBatch<S
     return true;
 }
 
-template<usize SD_RENDER_BATCH_SIZE> bool polygon_convex_regular(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, GLfloat radius, Vec3 center, const usize count_sides)
+template<usize SD_RENDER_LAYER_SIZE> bool polygon_convex_regular(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, GLfloat radius, Vec3 center, const usize count_sides)
 {
     usize count_tris = count_sides - 2;
 
@@ -891,7 +892,7 @@ template<usize SD_RENDER_BATCH_SIZE> bool polygon_convex_regular(sd::RenderBatch
         i_count = ctx->triangle_buffer.i_count;
         v_idx = v_count;
 #ifdef SD_BOUNDS_CHECK
-        if (v_count + (attribute_stride * count_sides) > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + (3 * count_tris) > SD_RENDER_BATCH_SIZE * 2) {
+        if (v_count + (attribute_stride * count_sides) > SD_RENDER_LAYER_SIZE * attribute_stride || i_count + (3 * count_tris) > SD_RENDER_LAYER_SIZE * 2) {
             SD_LOG_ERR("%s\n", "ERROR: polygon_convex_regular MAX TRIANGLES EXCEEDED");
             return false;
         }
@@ -906,8 +907,8 @@ template<usize SD_RENDER_BATCH_SIZE> bool polygon_convex_regular(sd::RenderBatch
 
 
         for (usize p = 0, off = 0; p < count_sides; ++p, off += inc) {
-            Vec3 point = glm::vec3(Mat4(1.0f) * 
-                glm::vec4(
+            Vec3 point = Vec3(Mat4(1.0f) * 
+                Vec4(
                     (radius * glm::cos(p * angle_turn)) + center.x,
                     (radius * glm::sin(p * angle_turn)) + center.y,
                     center.z,
@@ -935,7 +936,7 @@ template<usize SD_RENDER_BATCH_SIZE> bool polygon_convex_regular(sd::RenderBatch
         i_count = ctx->line_buffer.i_count;
         v_idx = v_count;
 #ifdef SD_BOUNDS_CHECK
-        if (v_count + (attribute_stride * count_sides) > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + (2 * count_sides) > SD_RENDER_BATCH_SIZE * 2) {
+        if (v_count + (attribute_stride * count_sides) > SD_RENDER_LAYER_SIZE * attribute_stride || i_count + (2 * count_sides) > SD_RENDER_LAYER_SIZE * 2) {
             SD_LOG_ERR("%s\n", "ERROR: polygon_convex_regular MAX LINES EXCEEDED");
             return false;
         }
@@ -975,22 +976,22 @@ template<usize SD_RENDER_BATCH_SIZE> bool polygon_convex_regular(sd::RenderBatch
     return true;
 }
 
-template<usize SD_RENDER_BATCH_SIZE> bool polygon_convex_regular(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, GLfloat radius, Vec2 center, const usize count_sides)
+template<usize SD_RENDER_LAYER_SIZE> bool polygon_convex_regular(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, GLfloat radius, Vec2 center, const usize count_sides)
 {
     return sd::polygon_convex_regular(ctx, radius, Vec3(center, 1.0), count_sides);
 }
 
-template<usize SD_RENDER_BATCH_SIZE> bool circle(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, GLfloat radius, Vec3 center, usize detail)
+template<usize SD_RENDER_LAYER_SIZE> bool circle(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, GLfloat radius, Vec3 center, usize detail)
 {
     return sd::polygon_convex_regular(ctx, radius, center, detail);
 }
 
-template<usize SD_RENDER_BATCH_SIZE> bool circle(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, GLfloat radius, Vec2 center, usize detail)
+template<usize SD_RENDER_LAYER_SIZE> bool circle(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, GLfloat radius, Vec2 center, usize detail)
 {
     return sd::polygon_convex_regular(ctx, radius, center, detail);
 }
 
-template<usize SD_RENDER_BATCH_SIZE> bool vertex(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec3 v)
+template<usize SD_RENDER_LAYER_SIZE> bool vertex(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Vec3 v)
 {
     usize v_count = 0;
     usize i_count = 0;
@@ -1006,7 +1007,7 @@ template<usize SD_RENDER_BATCH_SIZE> bool vertex(sd::RenderBatch<SD_RENDER_BATCH
         i_count = ctx->triangle_buffer.i_count;
         v_idx = v_count;
 #ifdef SD_BOUNDS_CHECK
-        if (v_count + attribute_stride > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + 1 > SD_RENDER_BATCH_SIZE * 2) {
+        if (v_count + attribute_stride > SD_RENDER_LAYER_SIZE * attribute_stride || i_count + 1 > SD_RENDER_LAYER_SIZE * 2) {
             SD_LOG_ERR("%s\n", "ERROR: vertex MAX TRIANGLES EXCEEDED");
             return false;
         }
@@ -1029,7 +1030,7 @@ template<usize SD_RENDER_BATCH_SIZE> bool vertex(sd::RenderBatch<SD_RENDER_BATCH
         i_count = ctx->line_buffer.i_count;
         v_idx = v_count;
 #ifdef SD_BOUNDS_CHECK
-        if (v_count + attribute_stride > SD_RENDER_BATCH_SIZE * attribute_stride || i_count + 1 > SD_RENDER_BATCH_SIZE * 2) {
+        if (v_count + attribute_stride > SD_RENDER_LAYER_SIZE * attribute_stride || i_count + 1 > SD_RENDER_LAYER_SIZE * 2) {
             SD_LOG_ERR("%s\n", "ERROR: vertex MAX LINES EXCEEDED");
             return false;
         }
@@ -1050,17 +1051,17 @@ template<usize SD_RENDER_BATCH_SIZE> bool vertex(sd::RenderBatch<SD_RENDER_BATCH
     return true;      
 }
 
-template<usize SD_RENDER_BATCH_SIZE> bool vertex(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec2 v)
+template<usize SD_RENDER_LAYER_SIZE> bool vertex(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Vec2 v)
 {
     return sd::vertex(ctx, Vec3(v, 1.0));
 }
 
-template<usize SD_RENDER_BATCH_SIZE> inline void color(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, Vec4 color)
+template<usize SD_RENDER_LAYER_SIZE> inline void color(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, Vec4 color)
 {
     ctx->color = color;
 }
 
-template<usize SD_RENDER_BATCH_SIZE> inline void push_context(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx)
+template<usize SD_RENDER_LAYER_SIZE> inline void push_context(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx)
 {
     // TODO
 }
@@ -1069,7 +1070,7 @@ template<usize SD_RENDER_BATCH_SIZE> inline void push_context(sd::RenderBatch<SD
 // #define MAX_IMG_SIZE (128 * 128)
 // static bool draw_lines_from_image_visited[MAX_IMG_SIZE];
 
-// static void draw_lines_from_image_bfs(sd::RenderBatch* ctx, std::vector<glm::vec3>& bgr_colors_to_ignore, u8* pixels, u32 w, u32 h, u32 pitch, u32 pixels_per_move)
+// static void draw_lines_from_image_bfs(sd::Render_Layer* ctx, std::vector<glm::vec3>& bgr_colors_to_ignore, u8* pixels, u32 w, u32 h, u32 pitch, u32 pixels_per_move)
 // {
 //     // ((w / pixels_per_move) + 1) * ((h / pixels_per_move) + 1)
 //     bool* const visited = draw_lines_from_image_visited;
@@ -1106,7 +1107,7 @@ template<usize SD_RENDER_BATCH_SIZE> inline void push_context(sd::RenderBatch<SD
 //     #undef IDX
 // }
 
-// static bool draw_lines_from_image(sd::RenderBatch* ctx, std::string path,  std::vector<glm::vec3> bgr_colors_to_ignore)
+// static bool draw_lines_from_image(sd::Render_Layer* ctx, std::string path,  std::vector<glm::vec3> bgr_colors_to_ignore)
 // {
 //     return false;
 //     SDL_RWops *rwop;
@@ -1149,8 +1150,8 @@ template<usize SD_RENDER_BATCH_SIZE> inline void push_context(sd::RenderBatch<SD
 
 // }
 
-// template<usize SD_RENDER_BATCH_SIZE>
-// inline void sd::RenderBatch_ERR_LOG_PRINT__(sd::RenderBatch<SD_RENDER_BATCH_SIZE>* ctx, const char *const name, const char *const file, int line)
+// template<usize SD_RENDER_LAYER_SIZE>
+// inline void sd::Render_Layer_ERR_LOG_PRINT__(sd::Render_Layer<SD_RENDER_LAYER_SIZE>* ctx, const char *const name, const char *const file, int line)
 // {
 //     if (ctx->status == false) {
 //         fprintf(stderr, "%s, %s, %d\n", name, file, line);
@@ -1158,11 +1159,11 @@ template<usize SD_RENDER_BATCH_SIZE> inline void push_context(sd::RenderBatch<SD
 //     }
 // }
 // #ifdef SD_DEBUG_LOG_ON
-//     #define sd::RenderBatch_ERR_LOG(ctx__, file__, line__) sd::RenderBatch_ERR_LOG_PRINT__(& ctx__, STRING(ctx__), file__, line__)
-//     #define sd::RenderBatch_PTR_ERR_LOG(ctxptr__, file__, line__) sd::RenderBatch_ERR_LOG_PRINT__(ctxptr__, STRING(ctxptr__), file__, line__)
+//     #define sd::Render_Layer_ERR_LOG(ctx__, file__, line__) sd::Render_Layer_ERR_LOG_PRINT__(& ctx__, STRING(ctx__), file__, line__)
+//     #define sd::Render_Layer_PTR_ERR_LOG(ctxptr__, file__, line__) sd::Render_Layer_ERR_LOG_PRINT__(ctxptr__, STRING(ctxptr__), file__, line__)
 // #else
-//     #define sd::RenderBatch_ERR_LOG(ctx__, file__, line__)
-//     #define sd::RenderBatch_PTR_ERR_LOG(ctxptr__, file__, line__)
+//     #define sd::Render_Layer_ERR_LOG(ctx__, file__, line__)
+//     #define sd::Render_Layer_PTR_ERR_LOG(ctxptr__, file__, line__)
 // #endif
 
 }
