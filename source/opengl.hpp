@@ -143,7 +143,7 @@ void GLData_delete_inplace(GLData* gl_data);
 // TEXTURES
 void TextureData_init(TextureData* t, const size_t id_count) 
 {
-    t->ids = (Texture*)xmalloc(id_count * sizeof(t->ids));
+    t->ids = (Texture*)mem_alloc(id_count * sizeof(t->ids));
     t->count = id_count;
     glGenTextures(t->count, t->ids);
 }
@@ -287,8 +287,8 @@ void VertexBufferData_delete(VertexBufferData* g)
 {
     glDeleteBuffers(1, (GLBuffer*)&g->vbo);
     glDeleteBuffers(1, (GLBuffer*)&g->ebo);
-    free(g->vertices);
-    free(g->indices);
+    mem_free(g->vertices);
+    mem_free(g->indices);
 }
 void VertexBufferData_delete_inplace(VertexBufferData* g)
 {

@@ -602,7 +602,7 @@ void metatesting(void)
 
     //char* code = "X[i].field[5 + (y / PI)]=5.0 ";
     char* code = "if selected.field sameas X[i].field do swap(self.field, X[i].field pow 2) else do self.field = 5.0 end ";
-    char* c = (char*)xmalloc(strlen(code) + 1);
+    char* c = (char*)allocate(strlen(code) + 1);
     memcpy(c, code, strlen(code) + 1);
     std::cout << "[" << c << "]" << std::endl;
     std::vector<Token> tokens = tokenize_script(c);

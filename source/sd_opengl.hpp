@@ -92,6 +92,12 @@ typedef Vertex_LineSegment Vertex_LS;
 static constexpr GLenum TRIANGLES = GL_TRIANGLES;
 static constexpr GLenum LINES     = GL_LINES;
 
+struct Shader_Vertex {
+    Vec3_ua position;
+    Vec4_ua color;
+    Vec2_ua uv;
+};
+
 
 struct Render_Batch_Base {
 

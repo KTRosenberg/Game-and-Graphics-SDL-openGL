@@ -240,6 +240,9 @@ struct ConcurrentFIFO_SingleProducerSingleConsumer {
     const usize capacity = N;
 };
 
+void* mem_alloc(usize num_bytes);
+void mem_free(void* bytes);
+
 // }
 #endif
 
@@ -545,6 +548,16 @@ template <typename T>
 inline void zero_mem(T* ptr)
 {
     memset(ptr, 0, sizeof(T));
+}
+
+void* mem_alloc(usize num_bytes)
+{
+    return (void*)xmalloc(num_bytes);
+}
+
+void mem_free(void* bytes)
+{
+    free(bytes);
 }
 
 

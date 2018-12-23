@@ -401,10 +401,12 @@ void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_t
 // #ifdef __cplusplus
 // }
 // #endif
+
 #endif
 
 
 #ifdef CORE_UTILS_IMPLEMENTATION
+#undef CORE_UTILS_IMPLEMENTATION
 
 #define WORLD_STATE_CONFIG_IMPLEMENTATION
 #include "config/config_state.cpp"
@@ -695,9 +697,6 @@ void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_t
     //p->y = glm::clamp(p->y, 0.0f, 480.0f);  
     p->z = glm::clamp(p->z, -1.0f, 1.0f);
 }
-
-
-#undef CORE_UTILS_IMPLEMENTATION
 
 // #ifdef __cplusplus
 // }
