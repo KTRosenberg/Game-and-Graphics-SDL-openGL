@@ -6,11 +6,15 @@
     #include "sd.hpp"
 #endif
 
-struct Rendering_Context {
+namespace sd {
+
+struct Render_Context {
     // TODO
-    //Dynamic_Array<sd::Render_Batch> render_layers;
-    Shader_Registry shaders;
+    Array<sd::Render_Batch<0>, 128> render_batches;
+    //Shader_Registry shaders;
 };
+
+}
 
 #endif
 

@@ -39,6 +39,16 @@ namespace Color {
     static const Vec4 BLUE    = {0.0, 0.0, 1.0, 1.0};
 }
 
+namespace sd {
+
+enum struct BATCH_TYPE {
+    POLYGON_TEXTURED = (1 << 0),
+    POLYGON_COLORED  = (1 << 1),
+    LINE_DEBUG       = (1 << 2),
+};
+
+}
+
 #if defined(SD_RENDERER_VULKAN)
     #error VULKAN RENDERER NOT IMPLEMENTED
 #elif defined(SD_RENDERER_OPENGL)

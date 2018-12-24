@@ -107,8 +107,25 @@ typedef IntVector2_unaligned int2_ua;
 typedef IntVector3_unaligned int3_ua;
 typedef IntVector4_unaligned int4_ua;
 
+typedef glm::tvec4<u8> U8Vector4;
+typedef U8Vector4 u8Vec4;
+typedef U8Vector4 u8vec4;
+
+typedef glm::tvec2<u16> U16Vector2;
+typedef U16Vector2 u16Vec2;
+typedef U16Vector2 u8vec2;
+
+
+
+#define TYPE_T template <typename T>
+#define TYPE_T_SIZE_N template <typename T, usize N>
+#define TYPE_KV template <typename K, typename V>
+
 template <typename T>
 inline T dref_as(void* ptr);
+
+TYPE_T
+T make(void);
 
 #define POSITIVE_INFINITY (std::numeric_limits<f64>::infinity())
 #define NEGATIVE_INFINITY (-POSITIVE_INFINITY)
@@ -148,6 +165,16 @@ constexpr bool is_powerof2(usize N)
 #define PI (PI64)
 #define TAU (2 * PI)
 
+TYPE_T
+T make(void)
+{
+    T structure;
+    init(&structure);
+    return structure;
+}
+
+#define MEMORY_IMPLEMENTATION
+#include "memory.hpp"
 #include "array.hpp"
 
 constexpr bool is_pow_2_greater_equal_4(usize N)
@@ -226,8 +253,7 @@ inline Vec2 angular_impulse(float64 angular_velocity, Vec2 center, Vec2 point);
 
 bool check_file_status(const char* file_path, struct stat* file_stat);
 
-template <typename T>
-inline void zero_mem(T* ptr);
+
 
 #include <ck_ring.h>
 
@@ -239,6 +265,7 @@ struct ConcurrentFIFO_SingleProducerSingleConsumer {
     ck_ring_buffer_t buffer[N];
     const usize capacity = N;
 };
+
 
 void* mem_alloc(usize num_bytes);
 void mem_free(void* bytes);
@@ -542,12 +569,6 @@ inline Vec2 angular_impulse(float64 angular_velocity, Vec2 center, Vec2 point)
 bool check_file_status(const char* file_path, struct stat* file_stat)
 {
     return stat(file_path, file_stat) == 0;
-}
-
-template <typename T>
-inline void zero_mem(T* ptr)
-{
-    memset(ptr, 0, sizeof(T));
 }
 
 void* mem_alloc(usize num_bytes)

@@ -112,6 +112,8 @@ GlobalData program_data;
 #define SD_IMPLEMENTATION
 #include "sd.hpp"
 
+#include "rotologic_renderer.hpp"
+
 
 #define LOGIC_NODE_TYPE_LIST \
     LOGIC_NODE_ENTRY(VALUE, STRING(VALUE)) \
@@ -2921,6 +2923,7 @@ int main(int argc, char* argv[])
 
             // drawctx.line(Vec2(you.bound.calc_position_center()), tang + Vec2(you.bound.calc_position_center()));
 
+            drawctx.draw_type = sd::LINES;
             if (!collided) {
                 you.on_ground = false;
             } else {

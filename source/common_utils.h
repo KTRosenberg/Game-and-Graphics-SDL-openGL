@@ -150,7 +150,8 @@ void debug_print(const char* const in);
 
 #endif
 
-typedef void* (*Fn_MemoryAllocator)(size_t bytes);
+typedef void* (*Fn_Memory_Allocator)(usize bytes);
+typedef void (*Fn_Memory_Deallocator)(void* memory);
 
 #define PROGRAM_ARGS_COUNT (2)
 extern struct option program_args[PROGRAM_ARGS_COUNT + 1];
