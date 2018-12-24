@@ -1,7 +1,8 @@
 namespace mem {
 
 TYPE_T
-T* alloc(void) {
+T* alloc(void) 
+{
     return (T*)xmalloc(sizeof(T));
 }
 

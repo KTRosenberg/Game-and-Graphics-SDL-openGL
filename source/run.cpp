@@ -2923,7 +2923,6 @@ int main(int argc, char* argv[])
 
             // drawctx.line(Vec2(you.bound.calc_position_center()), tang + Vec2(you.bound.calc_position_center()));
 
-            drawctx.draw_type = sd::LINES;
             if (!collided) {
                 you.on_ground = false;
             } else {
@@ -3008,12 +3007,12 @@ int main(int argc, char* argv[])
             //existing.render(&existing);
             //in_prog.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
             //in_prog.render(&in_prog);
-            sd::layer_reset(&in_prog);
+            sd::batch_render(&in_prog);
         }
 
         //drawctx.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
         //drawctx.render(&drawctx);
-        sd::layer_reset(&drawctx);
+        sd::batch_render(&drawctx);
 
         #endif
 

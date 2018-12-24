@@ -99,9 +99,6 @@ struct Shader_Vertex {
 };
 
 
-struct Render_Batch_Base {
-
-};
 
 template <usize SD_RENDER_BATCH_SIZE = 2048>
 struct Render_Batch {
@@ -628,7 +625,7 @@ template<usize SD_RENDER_BATCH_SIZE> void begin(sd::Render_Batch<SD_RENDER_BATCH
 template<usize SD_RENDER_BATCH_SIZE> void render(sd::Render_Batch<SD_RENDER_BATCH_SIZE>* ctx);
 template<usize SD_RENDER_BATCH_SIZE> void end(sd::Render_Batch<SD_RENDER_BATCH_SIZE>* ctx);
 template<usize SD_RENDER_BATCH_SIZE> void end_no_reset(sd::Render_Batch<SD_RENDER_BATCH_SIZE>* ctx);
-template<usize SD_RENDER_BATCH_SIZE> void layer_reset(sd::Render_Batch<SD_RENDER_BATCH_SIZE>* ctx);
+template<usize SD_RENDER_BATCH_SIZE> void batch_render(sd::Render_Batch<SD_RENDER_BATCH_SIZE>* ctx);
 
 template<usize SD_RENDER_BATCH_SIZE> inline bool layer_init(sd::Render_Batch<SD_RENDER_BATCH_SIZE>* ctx, Mat4 projection_matrix);
 template<usize SD_RENDER_BATCH_SIZE> sd::Render_Batch<SD_RENDER_BATCH_SIZE> Render_Batch_make(Mat4 projection_matrix);
@@ -789,7 +786,7 @@ template<usize N> void free(sd::Render_Batch<N>* ctx)
     glDeleteProgram(ctx->shader);
 }
 
-template<usize SD_RENDER_BATCH_SIZE> void layer_reset(sd::Render_Batch<SD_RENDER_BATCH_SIZE>* ctx)
+template<usize SD_RENDER_BATCH_SIZE> void batch_render(sd::Render_Batch<SD_RENDER_BATCH_SIZE>* ctx)
 {
     ctx->triangle_buffer.v_count = 0;
     ctx->triangle_buffer.i_count = 0;
