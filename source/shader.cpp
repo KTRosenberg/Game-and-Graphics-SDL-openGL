@@ -1,4 +1,6 @@
-#include "shader.hpp"
+#if !(UNITY_BUILD)
+    #include "shader.hpp"
+#endif
 
 using namespace file_io;
 

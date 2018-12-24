@@ -6,13 +6,16 @@
 // {
 // #endif
 
+#if !(UNITY_BUILD)
+
 #include <ostream>
 
-#include "sdl.h"
-#include "common_utils.h"
-#include "common_utils_cpp.h"
+#include "sdl.hpp"
+#define COMMON_UTILS_CPP_IMPLEMENTATION
+#include "common_utils_cpp.hpp"
 #include "opengl.hpp"
-//#include "gl_draw2d.h"
+
+#endif
 
 enum struct MOVEMENT_DIRECTION : unsigned char 
 {
@@ -24,8 +27,10 @@ enum struct MOVEMENT_DIRECTION : unsigned char
     DOWNWARDS
 };
 
-#define DELTA_TIME_FACTOR(t_delta_s, refresh_rate) ((1 / (t_delta_s * refresh_rate)))
-
+//#define DELTA_TIME_FACTOR(t_delta_s, refresh_rate) ((1 / (t_delta_s * refresh_rate)))
+//#define DELTA_TIME_FACTOR(t_delta_s, refresh_rate) (1.0)
+#define UNIT (60.0)
+#define DELTA_TIME_FACTOR(t_step_s, temp) (UNIT * (t_step_s))
 namespace input_sys {
 
 enum struct CONTROL {
@@ -38,10 +43,15 @@ enum struct CONTROL {
     EDIT_VERBOSE,
     ZOOM_IN,
     ZOOM_OUT,
+    SHIFT,
     RESET_POSITION,
     PHYSICS,
     LOAD_CONFIG,
     FREE_CAM,
+    ROTATE_CLOCKWISE,
+    ROTATE_ANTICLOCKWISE,
+    
+    TEMP,
 
     COUNT
 };
@@ -153,10 +163,11 @@ struct WindowState {
 
 
 inline i32 snap_to_grid(i32 val_x, i32 len);
+inline f64 snap_to_grid_f(f64 val_x, f64 len);
 
 
 struct BoxComponent {
-    glm::vec4 spatial;
+    Vec4 spatial;
     f64 width;
     f64 height;
 
@@ -175,9 +186,9 @@ struct BoxComponent {
         return this->spatial.z;
     }
 
-    inline glm::vec3 position(void)
+    inline Vec3 position(void)
     {
-        return glm::vec3(this->spatial);
+        return Vec3(this->spatial);
     }
 
     inline f32 angle(void)
@@ -185,9 +196,9 @@ struct BoxComponent {
         return this->spatial.w;
     }
 
-    inline glm::vec2 calc_position_center(void)
+    inline Vec2 calc_position_center(void)
     {
-        return glm::vec2(this->spatial.x + (this->width / 2.0f), this->spatial.y + (this->height / 2));
+        return Vec2(this->spatial.x + (this->width / 2.0f), this->spatial.y + (this->height / 2));
     }
 
     inline void position_set(f64 x, f64 y)
@@ -224,72 +235,68 @@ void BoxComponent_init(f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height);
 #define PLAYER_BASE_SPEED (0.01 * 360.0f)
 #define PLAYER_MAX_SPEED (32.0)
 
-namespace physics {
-    extern f64 GRAVITY_DEFAULT;
-    extern const f64 GRAVITY_TERRESTRIAL;
-    extern const f64 GRAVITY_OUTER_SPACE;
-    extern f64 gravity;
-}
-
 struct Player {
     BoxComponent bound;
     f64 state_change_time;
-    glm::vec2 velocity_ground;
-    glm::vec2 velocity_air;
+    Vec2 velocity_ground;
+    Vec2 velocity_air;
     f64 acceleration_ground;
     f64 acceleration_air;
     f64 initial_jump_velocity;
     f64 initial_jump_velocity_short;
+    f64 max_speed;
 
     static constexpr f64 JUMP_VELOCITY_DEFAULT = -6.5;
     static constexpr f64 JUMP_VELOCITY_SHORT_DEFAULT = -4.0;
+    static constexpr f64 GROUND_ACCELERATION_DEFAULT = 0.046875 * 4;
+    static constexpr f64 GROUND_NEGATIVE_ACCELERATIION_DEFAULT = 2.5;
+    static constexpr f64 AIR_ACCELERATION_DEFAULT = 0.09375 * 4;
     bool on_ground;
 
-    inline std::pair<glm::vec4, glm::vec4> floor_sensors(void)
+    // floor sensors
+
+    inline std::pair<Vec3, Vec3> floor_sensors(void)
     {
         return {
-            // TODO each might have angle for w component
-            glm::vec4(
+            Vec3(
                 this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
                 this->bound.spatial.y + (this->bound.height / 2),
-                this->bound.spatial.z, 
-                0.0f
+                this->bound.spatial.z
             ), 
-            glm::vec4(
+            Vec3(
                 this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
                 this->bound.spatial.y + (this->bound.height / 2),
-                this->bound.spatial.z, 
-                0.0f
+                this->bound.spatial.z
             )
         };
     }
 
     inline std::pair<
-        std::pair<glm::vec3, glm::vec3>, 
-        std::pair<glm::vec3, glm::vec3>
+        std::pair<Vec3, Vec3>, 
+        std::pair<Vec3, Vec3>
     >
     floor_sensor_rays(void)
     {
         return {
             {
-                glm::vec3(
+                Vec3(
                     (this->bound.spatial.x + (this->bound.width / 2)) - 9.0, 
                     this->bound.spatial.y + (this->bound.height / 2),
                     this->bound.spatial.z 
                 ),
-                glm::vec3(
+                Vec3(
                     (this->bound.spatial.x + (this->bound.width / 2)) - 9.0, 
                     this->bound.spatial.y + this->bound.height + (this->bound.height * 0.4),
                     this->bound.spatial.z
                 )
             },
             {
-                glm::vec3(
+                Vec3(
                     (this->bound.spatial.x + (this->bound.width / 2)) + 9.0, 
                     this->bound.spatial.y + (this->bound.height / 2),
                     this->bound.spatial.z 
                 ),
-                glm::vec3(
+                Vec3(
                     (this->bound.spatial.x + (this->bound.width / 2)) + 9.0, 
                     this->bound.spatial.y + this->bound.height + (this->bound.height * 0.4),
                     this->bound.spatial.z 
@@ -298,17 +305,70 @@ struct Player {
         };
     }
 
-    // inline std::pair<std::pair<glm::vec4>> floor_sensor_rays(void)
+    // side sensors
+
+
+    inline std::pair<Vec3, Vec3> side_sensors(void)
+    {
+        return {
+            Vec3(
+                this->bound.spatial.x,
+                this->bound.spatial.y + (this->bound.height / 2),
+                this->bound.spatial.z            
+            ),
+            Vec3(
+                this->bound.spatial.x + this->bound.width,
+                this->bound.spatial.y + (this->bound.height / 2),
+                this->bound.spatial.z
+            )
+        };
+    }
+
+    inline std::pair<
+        std::pair<Vec3, Vec3>, 
+        std::pair<Vec3, Vec3>
+    >
+    side_sensor_rays(void)
+    {
+        return {
+            {
+                Vec3(
+                    this->bound.spatial.x + (this->bound.width / 2), 
+                    this->bound.spatial.y + (this->bound.height / 2),
+                    this->bound.spatial.z 
+                ),
+                Vec3(
+                    this->bound.spatial.x,
+                    this->bound.spatial.y + (this->bound.height / 2),
+                    this->bound.spatial.z            
+                )
+            },
+            {
+                Vec3(
+                    this->bound.spatial.x + (this->bound.width / 2),
+                    this->bound.spatial.y + (this->bound.height / 2),
+                    this->bound.spatial.z 
+                ),
+                Vec3(
+                    this->bound.spatial.x + this->bound.width,
+                    this->bound.spatial.y + (this->bound.height / 2),
+                    this->bound.spatial.z
+                )
+            }            
+        };
+    }
+
+    // inline std::pair<std::pair<Vec4>> floor_sensor_rays(void)
     // {
     //     return {
     //         {
-    //             glm::vec4(
+    //             Vec4(
     //                 this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
     //                 this->bound.spatial.y + (this->bound.height),
     //                 this->bound.spatial.z, 
     //                 0.0f
     //             ),
-    //             glm::vec4(
+    //             Vec4(
     //                 this->bound.spatial.x + (this->bound.width / 2) - 8.0, 
     //                 this->bound.spatial.y + (this->bound.height + this->bound + heigh),
     //                 this->bound.spatial.z, 
@@ -317,7 +377,7 @@ struct Player {
 
     //         },
     //         {
-    //             glm::vec4(
+    //             Vec4(
     //                 this->bound.spatial.x + (this->bound.width / 2) + 8.0, 
     //                 this->bound.spatial.y + (this->bound.height),
     //                 this->bound.spatial.z, 
@@ -337,13 +397,19 @@ void Player_init(Player* pl, f64 x, f64 y, f64 z, bool position_at_center, f64 a
 
 void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_time);
 
+#include "config/config_state.cpp"
 // #ifdef __cplusplus
 // }
 // #endif
+
 #endif
 
 
 #ifdef CORE_UTILS_IMPLEMENTATION
+#undef CORE_UTILS_IMPLEMENTATION
+
+#define WORLD_STATE_CONFIG_IMPLEMENTATION
+#include "config/config_state.cpp"
 
 // #ifdef __cplusplus
 // extern "C" 
@@ -532,6 +598,10 @@ inline i32 snap_to_grid(i32 val_x, i32 len)
     return glm::round((f64)val_x / (f64)len) * len;
 }
 
+inline f64 snap_to_grid_f(f64 val_x, f64 len)
+{
+    return glm::round(val_x / len) * len;
+}
 
 void BoxComponent_init(BoxComponent* bc, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height)
 {
@@ -543,20 +613,13 @@ void BoxComponent_init(BoxComponent* bc, f64 x, f64 y, f64 z, f64 angle, f64 wid
     bc->height = height;
 }
 
-namespace physics {
-    f64 GRAVITY_DEFAULT = 0.21875;
-    const f64 GRAVITY_TERRESTRIAL = GRAVITY_DEFAULT;
-    const f64 GRAVITY_OUTER_SPACE = GRAVITY_DEFAULT / 2;
-    f64 gravity = GRAVITY_DEFAULT;
-}
-
 void Player_init(Player* pl /*, f64 x, f64 y, f64 z, f64 angle, f64 width, f64 height*/)
 {
     // BoxComponent_init(&pl->bound, x, y, z, angle, width, height);
     // pl->on_ground = false;
     // pl->state_change_time = 0.0;
-    // pl->velocity_ground = glm::vec3(0.0);
-    // pl->velocity_air = glm::vec3(0.0);
+    // pl->velocity_ground = Vec3(0.0);
+    // pl->velocity_air = Vec3(0.0);
 
     memset(pl, 0x00, sizeof(Player));
 }
@@ -570,18 +633,19 @@ void Player_init(Player* pl, f64 x, f64 y, f64 z, bool position_at_center, f64 a
 
     pl->on_ground = false;
     pl->state_change_time = 0.0;
-    pl->velocity_ground = glm::vec2(0.0);
-    pl->velocity_air = glm::vec2(0.0);
-    pl->acceleration_air = 0.0;
-    pl->acceleration_ground = 0.0;
+    pl->velocity_ground = Vec2(0.0);
+    pl->velocity_air = Vec2(0.0);
+    pl->acceleration_air = Player::AIR_ACCELERATION_DEFAULT;
+    pl->acceleration_ground = Player::GROUND_ACCELERATION_DEFAULT;
     pl->initial_jump_velocity = Player::JUMP_VELOCITY_DEFAULT;
     pl->initial_jump_velocity_short = Player::JUMP_VELOCITY_SHORT_DEFAULT;
+    pl->max_speed = 16.0;
 }
 
 void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_time)
 {
     const GLfloat velocity = glm::min(PLAYER_BASE_SPEED * delta_time, PLAYER_MAX_SPEED);
-    glm::vec4* p = &you->bound.spatial;
+    Vec4* p = &you->bound.spatial;
 
     //printf("%f\n", velocity);
 
@@ -633,9 +697,6 @@ void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_t
     //p->y = glm::clamp(p->y, 0.0f, 480.0f);  
     p->z = glm::clamp(p->z, -1.0f, 1.0f);
 }
-
-
-#undef CORE_UTILS_IMPLEMENTATION
 
 // #ifdef __cplusplus
 // }

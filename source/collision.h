@@ -1,16 +1,20 @@
 #ifndef COLLISION_H
 #define COLLISION_H
 
-#include "common_utils.h"
-#include "common_utils_cpp.h"
-#include "core_utils.h"
-#include "opengl.hpp"
+#if !(UNITY_BUILD)
+    #define COMMON_UTILS_CPP_IMPLEMENTATION
+    #include "common_utils_cpp.hpp"
+    #include "core_utils.h"
+    #include "opengl.hpp"
+#endif
 
-//typedef CollisionStatus (*Fn_CollisionHandler)(glm::vec3 incoming);
+#define COLLIDER_MAX_SELECTION_DISTANCE (81)
+
+//typedef CollisionStatus (*Fn_CollisionHandler)(Vec3 incoming);
 
 struct Collider {
-    glm::vec3 a;
-    glm::vec3 b;
+    Vec3 a;
+    Vec3 b;
     //Fn_CollisionHandler handler;
 };
 
@@ -20,7 +24,7 @@ void Collider_print(Collider* c);
 struct CollisionStatus {
     Collider* collider;
 
-    glm::vec3 intersection;
+    Vec3 intersection;
 
     inline bool collided(void)
     {
@@ -28,26 +32,25 @@ struct CollisionStatus {
     }
 };
 
-void CollisionStatus_init(CollisionStatus* out);
+void CollisionStatus_init(CollisionStatus* out, Vec3 init_val = Vec3(POSITIVE_INFINITY, POSITIVE_INFINITY, 0.0));
 
 #define MAX_COLLIDERS (2048)
-extern Buffer<Collider, MAX_COLLIDERS> collision_map; 
+extern Array<Collider, MAX_COLLIDERS> collision_map; 
 
-
-
-glm::vec3 temp_test_collision(Player* you, Collider* c);
+Vec3 temp_test_collision(Player* you, Collider* c);
 
 #endif
 
 #ifdef COLLISION_IMPLEMENTATION
+#undef COLLISION_IMPLEMENTATION
 
-void CollisionStatus_init(CollisionStatus* out)
+void CollisionStatus_init(CollisionStatus* out, Vec3 init_val)
 {
     out->collider = nullptr;
-    out->intersection = glm::vec3(POSITIVE_INFINITY);
+    out->intersection = init_val;
 }
 
-Buffer<Collider, MAX_COLLIDERS> collision_map;
+Array<Collider, MAX_COLLIDERS> collision_map;
 
 
 void Collider_print(Collider* c)
@@ -56,5 +59,4 @@ void Collider_print(Collider* c)
 }
 
 
-#undef COLLISION_IMPLEMENTATION
 #endif

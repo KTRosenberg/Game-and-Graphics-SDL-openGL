@@ -1,7 +1,8 @@
 #ifndef CAMERA_HPP
 #define CAMERA_HPP
 
-#include <GL/glew.h>
+#if !(UNITY_BUILD)
+#include "opengl.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -12,6 +13,7 @@
 #include <limits>
 
 #include "core_utils.h"
+#endif
 
 #define MAX_BOUND 89.0f
 #define MIN_BOUND -89.0f
@@ -21,9 +23,9 @@
 static const GLfloat ViewCamera_default_speed = 4.0f;
 
 typedef struct ViewCamera {
-    glm::vec3 position;
+    Vec3      position;
     GLfloat   speed;
-    glm::mat4 matrix;
+    Mat4      matrix;
     GLfloat   min_x;
     GLfloat   max_x;
     GLfloat   min_y;
@@ -34,18 +36,18 @@ typedef struct ViewCamera {
 
 void ViewCamera_init(
     ViewCamera* view,
-    glm::vec3 position_start,
+    Vec3 position_start,
     GLfloat speed,
-    GLfloat min_z = -std::numeric_limits<double>::infinity(),
-    GLfloat max_z = std::numeric_limits<double>::infinity(),
+    GLfloat min_z = NEGATIVE_INFINITY,
+    GLfloat max_z = POSITIVE_INFINITY,
     GLfloat min_x = 0.0f,
-    GLfloat max_x = std::numeric_limits<double>::infinity(),
+    GLfloat max_x = POSITIVE_INFINITY,
     GLfloat min_y = 0.0f,
-    GLfloat max_y = std::numeric_limits<double>::infinity()
+    GLfloat max_y = POSITIVE_INFINITY
 );
 
 void ViewCamera_process_directional_movement(ViewCamera* view, MOVEMENT_DIRECTION direction, GLfloat delta_time);
-glm::mat4 ViewCamera_calc_view_matrix(ViewCamera* view);
+Mat4 ViewCamera_calc_view_matrix(ViewCamera* view);
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 enum class Camera_Movement : unsigned char 
@@ -68,11 +70,11 @@ namespace camera_defaults {
 
 struct Camera {
     // attributes
-    glm::vec3 pos;
-    glm::vec3 front;
-    glm::vec3 up;
-    glm::vec3 right;
-    glm::vec3 world_up;
+    Vec3 pos;
+    Vec3 front;
+    Vec3 up;
+    Vec3 right;
+    Vec3 world_up;
     // Euler angles
     GLfloat yaw;
     GLfloat pitch;
@@ -86,8 +88,8 @@ struct Camera {
     
     // constructor (vector values)
     Camera(
-        glm::vec3 pos = glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f),
+        Vec3 pos = Vec3(0.0f, 0.0f, 0.0f),
+        Vec3 up = Vec3(0.0f, 1.0f, 0.0f),
         GLfloat yaw = camera_defaults::YAW,
         GLfloat pitch = camera_defaults::PITCH
     );
@@ -100,7 +102,7 @@ struct Camera {
         GLfloat pitch = camera_defaults::PITCH
     );
     
-    glm::mat4 get_view_matrix(void);
+    Mat4 get_view_matrix(void);
 
     void process_directional_movement(Camera_Movement direction, GLfloat delta_time);
     void process_mouse_movement(GLfloat x_offset, GLfloat y_offset, GLboolean constrain_pitch = GL_TRUE);
@@ -109,51 +111,54 @@ private:
     void update_camera_vectors(void);
 };
 
-// by Laurie Bradshaw, from comment in https://learnopengl.com/#!Getting-started/Camera
+// based on code by Laurie Bradshaw, from comment in https://learnopengl.com/#!Getting-started/Camera
 struct FreeCamera {
-	glm::vec3 position;
-	glm::quat orientation;
-    glm::mat4 matrix;
+	Vec3 position;
+	Quat orientation;
+    Mat4 matrix;
     GLfloat speed;
 
-    glm::vec2 target;
+    Vec2 target;
 
-    glm::vec2 offset;
+    Vec2 offset;
 
-    glm::vec2 target_diff;
+    Vec2 target_diff;
 
     bool is_catching_up;
 
+    float32 scale;
+
 	//FreeCamera (void) = default;
-	FreeCamera (const FreeCamera &) = default;
+	//FreeCamera (const FreeCamera &) = default;
 
-	FreeCamera (const glm::vec3 &position) : position(position) { is_catching_up = false; }
-	FreeCamera (const glm::vec3 &position, const glm::quat &orientation) : position(position), orientation(orientation) {}
+	//FreeCamera (const Vec3 &position) : position(position) { is_catching_up = false; }
+	//FreeCamera (const Vec3 &position, const Quat &orientation) : position(position), orientation(orientation) {}
 
-	FreeCamera  &operator=(const FreeCamera&) = default;
+	//FreeCamera  &operator=(const FreeCamera&) = default;
 
-	glm::mat4 get_view_matrix(void) const { return glm::translate(glm::mat4_cast(orientation), -position); }
+	//Mat4 get_view_matrix(void) const { return glm::translate(glm::mat4_cast(orientation), -position); }
 
-	void translate(const glm::vec3 &v) { position += v * orientation; }
-	void translate(float x, float y, float z) { position += glm::vec3(x, y, z) * orientation; }
+	void translate(const Vec3 &v) { position += v * orientation; }
+	void translate(float x, float y, float z) { position += Vec3(x, y, z) * orientation; }
 
-	void rotate(float angle, const glm::vec3& axis) { orientation *= glm::angleAxis(angle, axis * orientation); }
-	void rotate(float angle, float x, float y, float z) { orientation *= glm::angleAxis(angle, glm::vec3(x, y, z) * orientation); }
+	void rotate(float angle, const Vec3& axis) { orientation *= glm::angleAxis(angle, axis * orientation); }
+	void rotate(float angle, float x, float y, float z) { orientation *= glm::angleAxis(angle, Vec3(x, y, z) * orientation); }
 
 	void yaw(float angle) { this->rotate(-angle, 0.0f, 1.0f, 0.0f); }
 	void pitch(float angle) { this->rotate(-angle, 1.0f, 0.0f, 0.0f); }
 	void roll(float angle) { this->rotate(-angle, 0.0f, 0.0f, 1.0f); }
 };
 
-void FreeCamera_init(FreeCamera* view, glm::vec3 start_position = glm::vec3(0.0));
+void FreeCamera_init(FreeCamera* view, Vec3 start_position = Vec3(0.0));
 
 
 void FreeCamera_process_directional_movement(FreeCamera* view, MOVEMENT_DIRECTION direction, GLfloat delta_time);
 
-glm::mat4 FreeCamera_calc_view_matrix(FreeCamera* view);
-glm::mat4 FreeCamera_calc_view_matrix_reverse(FreeCamera* view);
+Mat4 FreeCamera_calc_view_matrix(FreeCamera* view);
+Mat4 FreeCamera_calc_calc_reverse_translation(FreeCamera* view);
+Mat4 FreeCamera_calc_screen_to_world_matrix(FreeCamera* view);
 
-void FreeCamera_target_set(FreeCamera* view, glm::vec2 target);
+void FreeCamera_target_set(FreeCamera* view, Vec2 target);
 void FreeCamera_target_x_set(FreeCamera* view, f64 target);
 void FreeCamera_target_y_set(FreeCamera* view, f64 target);
 
@@ -162,11 +167,9 @@ void FreeCamera_target_follow_x(FreeCamera* view, f64 t_delta_s);
 void FreeCamera_target_follow_y(FreeCamera* view, f64 t_delta_s);
 
 
-
-
-
-
-
-
+#ifdef CAMERA_IMPLEMENTATION
+#undef CAMERA_IMPLEMENTATION
+#include "camera.cpp"
+#endif
 
 #endif // CAMERA_HPP

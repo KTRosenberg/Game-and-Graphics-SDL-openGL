@@ -1,11 +1,11 @@
 #include "camera.hpp"
 
 
-void ViewCamera_init(ViewCamera* view, glm::vec3 position_start, GLfloat speed, GLfloat min_z, GLfloat max_z, GLfloat min_x, GLfloat max_x, GLfloat min_y, GLfloat max_y)
+void ViewCamera_init(ViewCamera* view, Vec3 position_start, GLfloat speed, GLfloat min_z, GLfloat max_z, GLfloat min_x, GLfloat max_x, GLfloat min_y, GLfloat max_y)
 {
     view->position = -position_start; 
     view->speed   = speed;
-    view->matrix  = glm::mat4(1.0f);
+    view->matrix  = Mat4(1.0f);
 
     view->min_x = min_x;
     view->max_x = max_x;
@@ -18,7 +18,7 @@ void ViewCamera_init(ViewCamera* view, glm::vec3 position_start, GLfloat speed, 
 void ViewCamera_process_directional_movement(ViewCamera* view, MOVEMENT_DIRECTION direction, GLfloat delta_time)
 {
     const GLfloat velocity = view->speed * delta_time;
-    glm::vec3* p = &view->position;
+    Vec3* p = &view->position;
 
     #define DB
     switch (direction) {
@@ -68,8 +68,8 @@ void ViewCamera_process_directional_movement(ViewCamera* view, MOVEMENT_DIRECTIO
 }
 
 
-static const glm::mat4 m_identity(1.0f);
-glm::mat4 ViewCamera_calc_view_matrix(ViewCamera* view) 
+static const Mat4 m_identity(1.0f);
+Mat4 ViewCamera_calc_view_matrix(ViewCamera* view) 
 {
     return view->matrix = glm::translate(m_identity, -view->position);
 }
@@ -78,9 +78,9 @@ glm::mat4 ViewCamera_calc_view_matrix(ViewCamera* view)
 ///////////////////////////////////////////////////////////////////////
 
 // constructor (vector values)
-Camera::Camera(glm::vec3 pos, glm::vec3 up, GLfloat yaw, GLfloat pitch) 
+Camera::Camera(Vec3 pos, Vec3 up, GLfloat yaw, GLfloat pitch) 
 :   pos(pos),
-    front(glm::vec3(0.0f, 0.0f, -1.0f)),
+    front(Vec3(0.0f, 0.0f, -1.0f)),
     up(up),
     world_up(up),
     yaw(yaw),
@@ -96,10 +96,10 @@ Camera::Camera(glm::vec3 pos, glm::vec3 up, GLfloat yaw, GLfloat pitch)
 Camera::Camera(GLfloat pos_x, GLfloat pos_y, GLfloat pos_z,
                 GLfloat up_x, GLfloat up_y, GLfloat up_z,
                 GLfloat yaw, GLfloat pitch)
-:   pos(glm::vec3(pos_x, pos_y, pos_z)),
-    front(glm::vec3(0.0f, 0.0f, -1.0f)),
-    up(glm::vec3(up_x, up_y, up_z)),
-    world_up(glm::vec3(up_x, up_y, up_z)),
+:   pos(Vec3(pos_x, pos_y, pos_z)),
+    front(Vec3(0.0f, 0.0f, -1.0f)),
+    up(Vec3(up_x, up_y, up_z)),
+    world_up(Vec3(up_x, up_y, up_z)),
     yaw(yaw),
     pitch(pitch),
     movement_speed(camera_defaults::SPEED),
@@ -111,10 +111,10 @@ Camera::Camera(GLfloat pos_x, GLfloat pos_y, GLfloat pos_z,
     this->update_camera_vectors();
 }
 
-glm::mat4 Camera::get_view_matrix(void)
+Mat4 Camera::get_view_matrix(void)
 {
 
-    return glm::translate(glm::mat4(1.0f), this->pos);
+    return glm::translate(Mat4(1.0f), this->pos);
 }
 
 void Camera::process_directional_movement(Camera_Movement direction, GLfloat delta_time)
@@ -177,7 +177,7 @@ void Camera::process_mouse_scroll(GLfloat y_offset)
 void Camera::update_camera_vectors(void)
 {
     // new front vector calculation
-    glm::vec3 front(
+    Vec3 front(
         cos(glm::radians(this->yaw)) * cos(glm::radians(this->pitch)),
         sin(glm::radians(this->pitch)),
         sin(glm::radians(this->yaw)) * cos(glm::radians(this->pitch))
@@ -191,15 +191,16 @@ void Camera::update_camera_vectors(void)
 
 
 
-void FreeCamera_init(FreeCamera* view, glm::vec3 start_position)
+void FreeCamera_init(FreeCamera* view, Vec3 start_position)
 {
     view->position = start_position;
-    view->orientation = glm::quat();
-    view->matrix = glm::mat4(1.0);
+    view->orientation = Quat();
+    view->matrix = Mat4(1.0);
+    view->is_catching_up = false;
 }
 
 
-void FreeCamera_target_set(FreeCamera* view, glm::vec2 target)
+void FreeCamera_target_set(FreeCamera* view, Vec2 target)
 {
     view->target_diff = (target - view->offset) - view->target;
     view->target = target - view->offset;
@@ -207,13 +208,13 @@ void FreeCamera_target_set(FreeCamera* view, glm::vec2 target)
 
 void FreeCamera_target_x_set(FreeCamera* view, f64 target)
 {
-    view->target_diff = glm::vec2((target - view->offset.x) - view->target.x, 0.0);
+    view->target_diff = Vec2((target - view->offset.x) - view->target.x, 0.0);
     view->target.x = target;
 }
 
 void FreeCamera_target_y_set(FreeCamera* view, f64 target)
 {
-    view->target_diff = glm::vec2(0.0, (target - view->offset.y) - view->target.y);
+    view->target_diff = Vec2(0.0, (target - view->offset.y) - view->target.y);
     view->target.y = target;    
 }
 
@@ -252,8 +253,8 @@ void FreeCamera_target_follow_y(FreeCamera* view, f64 t_delta_s)
 
 void FreeCamera_process_directional_movement(FreeCamera* view, MOVEMENT_DIRECTION direction, GLfloat delta_time)
 {
-    const GLfloat velocity = glm::min(PLAYER_BASE_SPEED * delta_time, PLAYER_MAX_SPEED);
-    glm::vec3* p = &view->position;
+    const GLfloat velocity = glm::min(PLAYER_BASE_SPEED * delta_time, 36.0);
+    Vec3* p = &view->position;
 
     //#define DB
     switch (direction) {
@@ -304,14 +305,26 @@ void FreeCamera_process_directional_movement(FreeCamera* view, MOVEMENT_DIRECTIO
     p->z = glm::clamp(p->z, -1.0f, 1.0f);
 }
 
-glm::mat4 FreeCamera_calc_view_matrix(FreeCamera* view)
+Mat4 FreeCamera_calc_view_matrix(FreeCamera* view)
 {
-    return glm::translate(glm::mat4_cast(view->orientation), -view->position);    
+    //return glm::translate(glm::mat4_cast(view->orientation), -view->position);
+    return glm::inverse(glm::translate(glm::mat4_cast(view->orientation), Vec3(view->position + Vec3(view->offset, 0.0))) *
+                        glm::scale(Vec3(1.0 / view->scale, 1.0 / view->scale, 1.0)) *
+                        glm::translate(-Vec3(Vec2(view->position) + view->offset, 0.0)) *
+                        glm::translate(Vec3(Vec2(view->position), 0.0)));
 }
 
-glm::mat4 FreeCamera_calc_view_matrix_reverse(FreeCamera* view)
+Mat4 FreeCamera_calc_reverse_translation(FreeCamera* view)
 {
     return glm::translate(glm::mat4_cast(view->orientation), view->position);    
+}
+
+Mat4 FreeCamera_calc_screen_to_world_matrix(FreeCamera* view)
+{
+    return glm::translate(glm::mat4_cast(view->orientation), Vec3(Vec2(view->position) + view->offset, 0.0)) *
+           glm::scale(Vec3(1.0 / view->scale, 1.0 / view->scale, 1.0)) *
+           glm::translate(-Vec3(Vec2(view->position) + view->offset, 0.0)) *
+           glm::translate(Vec3(Vec2(view->position), 0.0));   
 }
 
         

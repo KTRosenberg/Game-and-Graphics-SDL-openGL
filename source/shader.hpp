@@ -1,14 +1,18 @@
 #ifndef SHADER_HPP
 #define SHADER_HPP
 
+#if !(UNITY_BUILD)
 #include "opengl.hpp"
 
 #include <string>
 #include <iostream>
-#include <vector>
+//#include <vector>
 #include <stdbool.h>
 
 #include "file_io.hpp"
+#endif
+
+
 
 // #ifdef __cplusplus 
 // extern "C" {
@@ -36,7 +40,7 @@
 
 struct Shader {
     GLuint program;
-        
+
     operator GLuint() 
     {
         return this->program;
@@ -55,5 +59,9 @@ bool Shader_load_from_src(Shader* shader, const std::string& vertex_src, const s
     
 std::string Shader_retrieve_src_from_file(const GLchar* path, bool* is_valid);
 
+#ifdef SHADER_IMPLEMENTATION
+#undef SHADER_IMPLEMENTATION
+#include "shader.cpp"
+#endif
 
 #endif // SHADER_HPP

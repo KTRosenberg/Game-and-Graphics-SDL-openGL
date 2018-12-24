@@ -1,4 +1,10 @@
-*.psd
 *.o
+*.d
+*.DS_Store
+*.wav
+*.psd
+
 run
+
+/external_libraries/deprecated
 

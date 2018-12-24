@@ -8,252 +8,66 @@
 #define EDITOR
 
 //#define DEBUG_PRINT
-//#define FPS_COUNT
+#define FPS_COUNT
+
+#define RELEASE_MODE (false)
+
+#if !(RELEASE_MODE)
+    #define USE_ASSERTS
+#endif
 
 
-#include "test.h"
+#define UNITY_BUILD (true)
 
+//#define METATESTING
 
-#define COMMON_UTILS_IMPLEMENTATION
-#include "common_utils.h"
+// audio
+#define AUDIO_SYS_IMPLEMENTATION
+#include "audio_sys.hpp"
+
+#define FILE_IO_IMPLEMENTATION
+#include "file_io.hpp"
+
 #define COMMON_UTILS_CPP_IMPLEMENTATION
-#include "common_utils_cpp.h"
+#include "common_utils_cpp.hpp"
+
+#include "types.h"
+#include "config/config_state.cpp"
+
+#define OPEN_GL_IMPLEMENTATION
+#include "opengl.hpp"
+
 #define CORE_UTILS_IMPLEMENTATION
 #include "core_utils.h"
+
+#define ENTITY_IMPLEMENTATION
+#include "entity.h"
 
 #define COLLISION_IMPLEMENTATION
 #include "collision.h"
 
 
 
-#include "opengl.hpp"
-
 #include "sdl.hpp"
 
 #include <iostream>
 #include <string>
-//#include <array>
-#include <vector>
 
+#define SHADER_IMPLEMENTATION
 #include "shader.hpp"
+
+#define TEXTURE_IMPLEMENTATION
 #include "texture.hpp"
+
+#define CAMERA_IMPLEMENTATION
 #include "camera.hpp"
-
-#include "collision.h"
-
-#include "file_io.hpp"
-
 
 int ignore_mouse_movement(void* unused, SDL_Event* event)
 {
     return (event->type == SDL_MOUSEMOTION) ? 0 : 1;
 }
 
-
 SDL_Window* window = NULL;
-
-typedef void* (*Fn_MemoryAllocator)(size_t bytes);
-
-
-// TEXTURES, GEOMETRY
-typedef struct TextureData {
-    Texture* ids;
-    size_t count;
-} TextureData;
-
-void TextureData_init(TextureData* t, const size_t id_count) 
-{
-    t->ids = (Texture*)xmalloc(id_count * sizeof(t->ids));
-    t->count = id_count;
-    glGenTextures(t->count, t->ids);
-}
-
-void TextureData_init_inplace(TextureData* t, const size_t id_count, Texture* buffer)
-{
-    t->ids = buffer;
-    t->count = id_count;
-    glGenTextures(id_count, t->ids);
-}
-
-void TextureData_delete(TextureData* t)
-{
-    glDeleteTextures(t->count, t->ids);
-    free(t);
-}
-void TextureData_delete_inplace(TextureData* t)
-{
-    glDeleteTextures(t->count, t->ids);
-}
-
-struct sceneData {
-    glm::mat4 m_model;
-    glm::mat4 m_view;
-    glm::mat4 m_projection;
-} scene;
-
-
-// ATTRIBUTES AND VERTEX ARRAYS
-
-typedef struct AttributeData {
-    GLuint    index;
-    GLint     size;
-    GLenum    type;
-    GLboolean normalized;
-    GLsizei   stride;
-    GLvoid*   pointer;
-    GLchar*   name;
-} AttributeData;
-
-void AttributeData_init(
-    AttributeData* a,
-    GLuint index,
-    GLint size,
-    GLenum type,
-    GLboolean normalized,
-    GLsizei stride,
-    GLvoid* pointer,
-    GLchar* name    
-) {
-    a->index = index;
-    a->size = size;
-    a->type = type;
-    a->normalized = normalized;
-    a->stride = stride;
-    a->pointer = pointer;
-    a->name = name;
-}
-
-// #define VAO_ATTRIBUTE_MAIN_TEST_COUNT 3
-// typedef struct _VertexArrayData {
-//     VertexArray vao;
-//     size_t attribute_count;
-//     AttributeData attributes[VAO_ATTRIBUTE_MAIN_TEST_COUNT];
-// } VertexArrayData;
-
-// #define VAO_ATTRIBUTE_LIGHT_DAT_COUNT 3
-// typedef struct _VertexArrayData {
-//     VertexArray vao;
-//     size_t attribute_count;
-//     AttributeData attributes[VAO_ATTRIBUTE_MAIN_TEST_COUNT];
-// } VertexArrayData;
-
-// VERTEX BUFFERS
-
-
-// struct MemoryAllocator {
-//     void* type;
-//     Fn_MemoryAllocator fn_alloc;
-    
-//     void* alloc(size_t bytes)
-//     {
-//         return Fn_MemoryAllocator(type, bytes);
-//     }
-// };
-
-// void MemoryAllocator_init(MemoryAllocator* ma, void* type, Fn_MemoryAllocator* fn_alloc, Fn_MemoryAllocatorType_init fn_init, void* args)
-// {
-//     ma->fn_alloc = fn_alloc;
-//     ma->type = alloc;
-//     fn_init(fn_alloc, args);
-// }
-
-struct VertexBufferData {
-    VertexBuffer vbo;
-    ElementBuffer ebo;
-    size_t    v_cap;
-    size_t    v_count;
-    size_t    i_cap;
-    size_t    i_count;
-    GLfloat*  vertices;
-    GLuint*   indices;
-};
-
-struct Open_GL_Data {
-    VertexBuffer vbo;
-    ElementBuffer ebo;
-    DynamicBuffer<GLfloat> vertices;
-    DynamicBuffer<GLuint> indices;
-};
-
-struct Entity {
-    glm::vec3 position;
-    GLfloat rotation;
-};
-
-// struct VertexBufferDataAlt {
-//     VertexBuffer vbo;
-//     ElementBuffer ebo;
-//     Buffer<GLfloat> vertices_lines;
-//     Buffer<GLuint>  indices;
-// } VertexBufferDataAlt;
-
-// typedef VertexBufferData VBData;
-
-
-
-void VertexBufferData_init(
-    VertexBufferData* g,
-    const size_t v_cap,
-    const size_t i_cap,
-    Fn_MemoryAllocator alloc_v,
-    Fn_MemoryAllocator alloc_i
-) {
-    glGenBuffers(1, (GLBuffer*)&g->vbo);
-    glGenBuffers(1, (GLBuffer*)&g->ebo);
-
-    g->v_cap = v_cap;
-    g->i_cap = i_cap;
-
-    g->vertices = (GLfloat*)alloc_v(sizeof(GLfloat) * g->v_cap);
-    g->indices  = (GLuint*)alloc_i(sizeof(GLuint) * g->i_cap);
-
-    g->v_count = v_cap;
-    g->i_count = i_cap;
-}
-
-void VertexBufferData_init_inplace(
-    VertexBufferData* g,
-    const size_t v_cap,
-    GLfloat* vertices,
-    const size_t i_cap,
-    GLuint* indices
-) {
-    glGenBuffers(1, (GLBuffer*)&g->vbo);
-    glGenBuffers(1, (GLBuffer*)&g->ebo);
-
-    g->v_cap = v_cap;
-    g->i_cap = i_cap;
-
-    g->vertices = vertices;
-    g->indices  = indices;
-
-    g->v_count = v_cap;
-    g->i_count = i_cap;
-}
-
-void VertexBufferData_delete(VertexBufferData* g)
-{
-    glDeleteBuffers(1, (GLBuffer*)&g->vbo);
-    glDeleteBuffers(1, (GLBuffer*)&g->ebo);
-    free(g->vertices);
-    free(g->indices);
-}
-void VertexBufferData_delete_inplace(VertexBufferData* g)
-{
-    glDeleteBuffers(1, (GLBuffer*)&g->vbo);
-    glDeleteBuffers(1, (GLBuffer*)&g->ebo);
-}
-
-void VertexBufferData_init_with_arenas(ArenaAllocator* v_arena, ArenaAllocator* i_arena, VertexBufferData* vbd, size_t v_count_elements, size_t i_count_elements) 
-{
-    VertexBufferData_init_inplace(
-        vbd, 
-        v_count_elements,
-        (GLfloat*)ArenaAllocator_allocate(v_arena, v_count_elements * sizeof(GLfloat)),
-        i_count_elements,
-        (GLuint*)ArenaAllocator_allocate(i_arena, i_count_elements * sizeof(GLuint))
-    );
-}
 
 void* GlobalArenaAlloc_vertex_attribute_data(size_t count) 
 {
@@ -264,128 +78,17 @@ void* GlobalArenaAlloc_index_data(size_t count)
     return xmalloc(count * sizeof(GLuint));    
 }
 
-
-typedef struct VertexAttributeArray {
-    VertexArray vao;
-    size_t stride;
-
-    operator GLuint() { return vao; }
-
-} VertexAttributeArray;
-
-typedef VertexAttributeArray VAttribArr;
-
-void VertexAttributeArray_init(VertexAttributeArray* vao, size_t stride) 
-{
-    glGenVertexArrays(1, &vao->vao);
-    vao->stride = stride;
-}
-void VertexAttributeArray_delete(VertexAttributeArray* vao) 
-{
-    glDeleteVertexArrays(1, &vao->vao);
-}
-
-#define attribute_offsetof(offset) (GLvoid*)(offset * sizeof(GLfloat))
-
-#define attribute_sizeof(vao) vao->stride * sizeof(GLfloat)
-
-void gl_set_and_enable_vertex_attrib_ptr(GLuint index, GLint size, GLenum type, GLboolean normalized, size_t offset, VertexAttributeArray* va)
-{
-    glVertexAttribPointer(index, size, type, normalized, attribute_sizeof(va), attribute_offsetof(offset));            
-    glEnableVertexAttribArray(index);
-}
-
-void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, GLenum usage, size_t v_cap, size_t i_cap, GLintptr v_begin_offset = 0, GLintptr i_begin_offset = 0)
-{
-    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
-    glBufferData(GL_ARRAY_BUFFER, v_cap * sizeof(GLfloat), vbd->vertices + v_begin_offset, usage);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbd->ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, i_cap * sizeof(GLuint), vbd->indices + i_begin_offset, usage);            
-}
-
-void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, GLenum usage, GLintptr v_begin_offset = 0, GLintptr i_begin_offset = 0)
-{
-    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
-    glBufferData(GL_ARRAY_BUFFER, vbd->v_cap * sizeof(GLfloat), vbd->vertices + v_begin_offset, usage);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbd->ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, vbd->i_cap * sizeof(GLuint), vbd->indices + i_begin_offset, usage);           
-}
-
-void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd)
-{
-    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, vbd->v_count * sizeof(GLfloat), vbd->vertices);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, vbd->ebo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, vbd->i_count * sizeof(GLuint), vbd->indices);
-}
-
-void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset)
-{
-    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, v_dest_offset * sizeof(GLfloat), v_sub_count * sizeof(GLfloat), vbd->vertices + v_begin_offset);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, vbd->ebo);
-    glBufferSubData(GL_ARRAY_BUFFER, i_dest_offset * sizeof(GLuint), i_sub_count * sizeof(GLuint), vbd->indices + i_begin_offset);
-}
-
-void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset, GLfloat* vertices, GLuint* indices)
-{
-    glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, v_dest_offset * sizeof(GLfloat), v_sub_count * sizeof(GLfloat), vertices + v_begin_offset);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, vbd->ebo);
-    glBufferSubData(GL_ARRAY_BUFFER, i_dest_offset * sizeof(GLuint), i_sub_count * sizeof(GLuint), indices + i_begin_offset);
-}
-
-struct GLData {
-    VertexAttributeArray vao;
-    VertexBufferData vbd;
-};
-
-void GLData_init(GLData* gl_data, size_t attribute_stride, const size_t v_cap, const size_t i_cap, Fn_MemoryAllocator alloc_v, Fn_MemoryAllocator alloc_i) 
-{
-    VertexAttributeArray_init(&gl_data->vao, attribute_stride);
-    VertexBufferData_init(&gl_data->vbd, v_cap, i_cap, alloc_v, alloc_i);
-}
-
-void GLData_init_inplace(GLData* gl_data, size_t attribute_stride, const size_t v_cap, GLfloat* vertices, const size_t i_cap, GLuint* indices) 
-{
-    VertexAttributeArray_init(&gl_data->vao, attribute_stride);
-    VertexBufferData_init_inplace(&gl_data->vbd, v_cap, vertices, i_cap, indices);    
-}
-
-inline void GLData_advance(GLData* const gl_data, const size_t i)
-{
-    gl_data->vbd.v_count += (i * gl_data->vao.stride);
-    gl_data->vbd.i_count += i;
-}
-
-void GLData_delete(GLData* gl_data)
-{
-    VertexAttributeArray_delete(&gl_data->vao);
-    VertexBufferData_delete(&gl_data->vbd);
-}
-
-void GLData_delete_inplace(GLData* gl_data)
-{
-    VertexAttributeArray_delete(&gl_data->vao);
-    VertexBufferData_delete_inplace(&gl_data->vbd);    
-}
-
 // WORLD STATE
 struct Room {
     VertexBufferData  geometry;
     Collider* collision_data;
-    glm::mat4 matrix;
+    Mat4 matrix;
 };
 
 struct World {
     Room* rooms;
-    glm::mat4 m_view;
-    glm::mat4 m_projection;
+    Mat4 m_view;
+    Mat4 m_projection;
 };
 
 struct GlobalData {
@@ -395,8 +98,347 @@ struct GlobalData {
 
 GlobalData program_data;
 
-#define GL_DRAW2D
-#include "gl_draw2d.h"
+#define SD
+#define SD_DEBUG_LOG_ON
+#ifdef VULKAN_HPP
+    #define SD_RENDERER_VULKAN
+#elif defined(OPEN_GL_HPP)
+    #define SD_RENDERER_OPENGL
+#endif
+#if !(RELEASE_MODE)
+    #define SD_BOUNDS_CHECK
+#endif
+
+#define SD_IMPLEMENTATION
+#include "sd.hpp"
+
+#include "rotologic_renderer.hpp"
+
+
+#define LOGIC_NODE_TYPE_LIST \
+    LOGIC_NODE_ENTRY(VALUE, STRING(VALUE)) \
+    LOGIC_NODE_ENTRY(NONE, STRING(NONE)) \
+    LOGIC_NODE_ENTRY(AND, STRING(AND)) \
+    LOGIC_NODE_ENTRY(OR, STRING(OR)) \
+    LOGIC_NODE_ENTRY(XOR, STRING(XOR)) \
+    LOGIC_NODE_ENTRY(NOT, STRING(NOT)) \
+    LOGIC_NODE_ENTRY(LESS_THAN, STRING(LESS_THAN)) \
+    LOGIC_NODE_ENTRY(LESS_EQ, STRING(LESS_EQ)) \
+    LOGIC_NODE_ENTRY(GREATER_THAN, STRING(GREATER_THAN)) \
+    LOGIC_NODE_ENTRY(GREATER_EQ, STRING(GREATER_EQ)) \
+    LOGIC_NODE_ENTRY(EQUAL, STRING(EQUAL)) \
+    LOGIC_NODE_ENTRY(WHILE, STRING(WHILE)) \
+    LOGIC_NODE_ENTRY(ADD, STRING(ADD)) \
+    LOGIC_NODE_ENTRY(SUBTRACT, STRING(SUBTRACT)) \
+    LOGIC_NODE_ENTRY(MULTIPLY, STRING(MULTIPLY)) \
+    LOGIC_NODE_ENTRY(DIVIDE, STRING(DIVIDE))
+
+// for visual linking gameplay
+enum struct LOGIC_NODE_TYPE {
+    #define LOGIC_NODE_ENTRY(a, b) a,
+    LOGIC_NODE_TYPE_LIST
+    #undef LOGIC_NODE_ENTRY
+    ENUM_COUNT
+};
+const char* const logic_node_type_strings[] = {
+    #define LOGIC_NODE_ENTRY(a, b) b,
+    LOGIC_NODE_TYPE_LIST
+    #undef LOGIC_NODE_ENTRY
+};
+
+struct LogicInput {
+    float64 value;
+
+    operator float64(void)
+    {
+        return this->value;
+    }
+};
+
+struct LogicNode {
+    Vec3 position;
+    LOGIC_NODE_TYPE type;
+    
+    LogicInput* in;
+    usize in_count;
+    usize in_received;
+
+    LogicNode** out;
+    usize out_count;
+    
+    bool is_negated;
+
+    union {
+        struct {
+            LogicNode* out;
+            usize out_count;
+            float64* value_ptr;
+        } value_n;
+        struct {
+            LogicNode* out;
+            usize out_count;
+        } none_n;
+
+        struct {
+            LogicNode** out;
+            usize out_count;
+            float64* in;
+            usize in_received;
+            usize in_count; 
+            bool negated;
+        } and_n;
+        
+        struct {
+            LogicNode* out;
+            usize out_count;
+            bool negated;
+        } or_n;
+        
+        struct {
+            LogicNode* out;
+            usize out_count;
+            bool negated;
+        } xor_n;
+
+        struct {
+            LogicNode* out;
+            usize out_count;
+            bool negated;
+        } not_n;
+        
+        struct {
+            LogicNode* out;
+            usize out_count;
+            bool negated;
+        } less_than_n;
+        struct {
+            LogicNode* out;
+            usize out_count;
+            bool negated;
+        } less_eq_n;
+        struct {
+            LogicNode* out;
+            usize out_count;
+            bool negated;
+        } greater_than_n;
+        struct {
+            LogicNode* out;
+            usize out_count;
+            bool negated;
+        } greater_eq_n;
+        struct {
+            LogicNode* out;
+            usize out_count;
+            bool negated;
+        } equal_n;
+
+        struct {
+            LogicNode* out_true; // multiple out or use a separate node to feed multiple outputs? TODO
+            LogicNode* out_false;
+            usize out_count_true;
+            usize out_count_false;
+        } while_n;
+
+        struct {
+            LogicNode* out;
+            usize out_count;
+            float64 value;
+        } add_n;
+        struct {
+            LogicNode* out;
+            usize out_count;
+            float64 value;
+        } subtract_n;
+        struct {
+            LogicNode* out;
+            usize out_count;
+            float64 value;
+        } multiply_n;
+        struct {
+            LogicNode* out;
+            usize out_count;
+            float64 value;
+        } divide_n;
+        
+        // struct {
+
+        // } for_n;
+    };
+};
+
+// TODO set input of child node in parent node, must move data outside the union
+
+#define LOGIC_NODE_PRINT
+void LogicNode_traverse(LogicNode* v, float64 value, std::string tabs);
+
+void LogicNode_handle_value(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << *(v->value_n.value_ptr) << std::endl;
+    #endif
+    // TODO multiple outs
+    LogicNode_traverse(v->value_n.out, *(v->value_n.value_ptr), tabs + "  ");
+}
+void LogicNode_handle_none(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << " : " << value << std::endl;
+    #endif
+}
+void LogicNode_handle_and(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;    
+    #endif
+    
+    v->and_n.in[v->and_n.in_received] = value;
+    v->and_n.in_received += 1;
+    if (v->and_n.in_received == v->and_n.in_count) {
+        v->and_n.in_received = 0;
+        bool out_val = true;
+        for (usize i = 0; i < v->and_n.in_count && out_val == true; i += 1) {
+            out_val &= (bool)v->and_n.in[i];
+        }
+        for (usize i = 0; i < v->and_n.out_count; i += 1) {
+            LogicNode_traverse(v->and_n.out[i], out_val, tabs + "  ");
+        }
+    }
+}
+void LogicNode_handle_or(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_xor(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_not(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_less_than(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_less_eq(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_greater_than(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_greater_eq(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_equal(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_while(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_add(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_subtract(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_multiply(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+void LogicNode_handle_divide(LogicNode* v, float64 value, std::string tabs)
+{
+    #ifdef LOGIC_NODE_PRINT
+    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    #endif
+}
+
+void LogicNode_traverse(LogicNode* v, float64 value, std::string tabs)
+{
+    using T = LOGIC_NODE_TYPE;
+    switch (v->type) {
+    case T::VALUE:
+        LogicNode_handle_value(v, value, tabs);
+        break;
+    case T::NONE:
+        LogicNode_handle_none(v, value, tabs);
+        break;
+    case T::AND:
+        LogicNode_handle_and(v, value, tabs);
+        break;
+    case T::OR:
+        LogicNode_handle_or(v, value, tabs);
+        break;
+    case T::XOR:
+        LogicNode_handle_xor(v, value, tabs);
+        break;
+    case T::NOT:
+        LogicNode_handle_not(v, value, tabs);
+        break;
+    case T::LESS_THAN:
+        LogicNode_handle_less_than(v, value, tabs);
+        break;
+    case T::LESS_EQ:
+        LogicNode_handle_less_eq(v, value, tabs);
+        break;
+    case T::GREATER_THAN:
+        LogicNode_handle_greater_than(v, value, tabs);
+        break;
+    case T::GREATER_EQ:
+        LogicNode_handle_greater_eq(v, value, tabs);
+        break;
+    case T::EQUAL:
+        LogicNode_handle_equal(v, value, tabs);
+        break;
+    case T::WHILE:
+        LogicNode_handle_while(v, value, tabs);
+        break;
+    case T::ADD:
+        LogicNode_handle_add(v, value, tabs);
+        break;
+    case T::SUBTRACT:
+        LogicNode_handle_subtract(v, value, tabs);
+        break;
+    case T::MULTIPLY:
+        LogicNode_handle_multiply(v, value, tabs);
+        break;
+    case T::DIVIDE:
+        LogicNode_handle_divide(v, value, tabs);
+        break;
+    default:
+        break;
+    }
+}
 
 WindowState window_state;
 
@@ -526,6 +568,7 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
         case SDL_CONTROLLERBUTTONDOWN:
             switch (event->cbutton.button) {
             case SDL_CONTROLLER_BUTTON_A:
+                std::cout << "DOWN_BUTTON_A" << std::endl;
                 key_set_down(input, CONTROL::JUMP);
                 break;
             case SDL_CONTROLLER_BUTTON_B:
@@ -579,7 +622,7 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 key_set_down(input, CONTROL::RIGHT);
                 break;
             default:
-                //std::cout << "UNKNOWN" << std::endl;
+                std::cout << "UNKNOWN" << std::endl;
                 break;
             }
             break;
@@ -642,7 +685,7 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 key_set_up(input, CONTROL::RIGHT);
                 break;
             default:
-                //std::cout << "UNKNOWN" << std::endl;
+                std::cout << "UNKNOWN" << std::endl;
                 break;
             }
             break;
@@ -721,6 +764,18 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
             case SDL_SCANCODE_GRAVE:
                 key_set_down(input, CONTROL::LOAD_CONFIG);
                 break;
+            case SDL_SCANCODE_T:
+                key_set_down(input, CONTROL::TEMP);
+                break;
+            case SDL_SCANCODE_N:
+                key_set_down(input, CONTROL::ROTATE_ANTICLOCKWISE);
+                break;
+            case SDL_SCANCODE_M:
+                key_set_down(input, CONTROL::ROTATE_CLOCKWISE);
+                break;
+            case SDL_SCANCODE_LSHIFT:
+                key_set_down(input, CONTROL::SHIFT);
+                break;
 #endif
             case SDL_SCANCODE_UP:
                 key_set_down(input, CONTROL::ZOOM_IN);
@@ -769,6 +824,18 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 break;
             case SDL_SCANCODE_GRAVE:
                 key_set_up(input, CONTROL::LOAD_CONFIG);
+                break;
+            case SDL_SCANCODE_T:
+                key_set_up(input, CONTROL::TEMP);
+                break;
+            case SDL_SCANCODE_N:
+                key_set_up(input, CONTROL::ROTATE_ANTICLOCKWISE);
+                break;
+            case SDL_SCANCODE_M:
+                key_set_up(input, CONTROL::ROTATE_CLOCKWISE);
+                break;
+            case SDL_SCANCODE_LSHIFT:
+                key_set_up(input, CONTROL::SHIFT);
                 break;
 #endif
             case SDL_SCANCODE_UP:
@@ -822,55 +889,72 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
 }
 
 template <usize N>
-void draw_player_collision(Player* you, GLDraw2D<N>* ctx)
+void draw_player_collision(Player* you, sd::Render_Batch<N>* ctx)
 {
-    const glm::vec3 off(0.5, 0.5, 0.0);
+    const Vec3 off(0.5, 0.5, 0.0);
     BoxComponent* bc = &you->bound;
-    glm::vec3 top_left = bc->position() + off;
-    glm::vec3 top_right = top_left + glm::vec3(bc->width, 0.0, 0.0);
-    glm::vec3 bottom_right = top_left + glm::vec3(bc->width, bc->height, 0.0);
-    glm::vec3 bottom_left = top_left + glm::vec3(0.0, bc->height, 0.0);
+    Vec3 top_left = bc->position() + off;
+    Vec3 top_right = top_left + Vec3(bc->width, 0.0, 0.0);
+    Vec3 bottom_right = top_left + Vec3(bc->width, bc->height, 0.0);
+    Vec3 bottom_left = top_left + Vec3(0.0, bc->height, 0.0);
 
-    ctx->draw_type = GL_LINES;
-    ctx->line(top_left, top_right);
-    ctx->line(top_right, bottom_right);
-    ctx->line(bottom_right, bottom_left);
-    ctx->line(bottom_left, top_left);
+    { // bound
+        ctx->draw_type = sd::LINES;
+        sd::line(ctx, top_left, top_right);
+        sd::line(ctx, top_right, bottom_right);
+        sd::line(ctx, bottom_right, bottom_left);
+        sd::line(ctx, bottom_left, top_left);
+    }
 
-    ctx->color = Color::RED;
-    auto floor_sensor_rays = you->floor_sensor_rays();
-    floor_sensor_rays.first.first += off;
-    floor_sensor_rays.first.second += off;
-    floor_sensor_rays.second.first += off;
-    floor_sensor_rays.second.second += off;
+    { // floor sensors
+        ctx->color = Color::RED;
+        auto floor_sensor_rays = you->floor_sensor_rays();
+        floor_sensor_rays.first.first   += off;
+        floor_sensor_rays.first.second  += off;
+        floor_sensor_rays.second.first  += off;
+        floor_sensor_rays.second.second += off;
 
-    ctx->line(floor_sensor_rays.first.first, floor_sensor_rays.first.second);
-    ctx->line(floor_sensor_rays.second.first, floor_sensor_rays.second.second);
+        sd::line(ctx, floor_sensor_rays.first.first, floor_sensor_rays.first.second);
+        sd::line(ctx, floor_sensor_rays.second.first, floor_sensor_rays.second.second);
+    }
+
+    { // side sensors
+        auto side_sensor_rays = you->side_sensor_rays();
+        side_sensor_rays.first.first   += off;
+        side_sensor_rays.first.second  += off;
+        side_sensor_rays.second.first  += off;
+        side_sensor_rays.second.second += off;
+
+        ctx->color = Vec4(1.0, 165.0 / 255, 0.0, 1.0);
+        sd::line(ctx, side_sensor_rays.first.first, side_sensor_rays.first.second);
+        ctx->color = Vec4(148.0 / 255, 0.0, 211.0 / 255, 1.0);
+        sd::line(ctx, side_sensor_rays.second.first, side_sensor_rays.second.second);
+    }
 }
 
 template <usize N>
-void BoxComponent_draw(BoxComponent* bc, GLDraw2D<N>* ctx)
+void BoxComponent_draw(BoxComponent* bc, sd::Render_Batch<N>* ctx)
 {
-    const glm::vec3 off(0.5, 0.5, 0.0);
-    glm::vec3 top_left = bc->position() + off;
-    glm::vec3 top_right = top_left + glm::vec3(bc->width, 0.0, 0.0);
-    glm::vec3 bottom_right = top_left + glm::vec3(bc->width, bc->height, 0.0);
-    glm::vec3 bottom_left = top_left + glm::vec3(0.0, bc->height, 0.0);
+    const Vec3 off(0.5, 0.5, 0.0);
+    Vec3 top_left = bc->position() + off;
+    Vec3 top_right = top_left + Vec3(bc->width, 0.0, 0.0);
+    Vec3 bottom_right = top_left + Vec3(bc->width, bc->height, 0.0);
+    Vec3 bottom_left = top_left + Vec3(0.0, bc->height, 0.0);
 
-    ctx->draw_type = GL_LINES;
-    ctx->line(top_left, top_right);
-    ctx->line(top_right, bottom_right);
-    ctx->line(bottom_right, bottom_left);
-    ctx->line(bottom_left, top_left);    
+    ctx->draw_type = sd::LINES;
+    sd::line(ctx, top_left, top_right);
+    sd::line(ctx, top_right, bottom_right);
+    sd::line(ctx, bottom_right, bottom_left);
+    sd::line(ctx, bottom_left, top_left);
 }
 
 bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
 {
     auto sensors = you->floor_sensor_rays();
 
-    std::pair<glm::vec3, glm::vec3>* ray0 = &sensors.first;
-    std::pair<glm::vec3, glm::vec3>* ray1 = &sensors.second;
-    std::pair<glm::vec3, glm::vec3> collider = {
+    vec3_pair* ray0 = &sensors.first;
+    vec3_pair* ray1 = &sensors.second;
+    std::pair<Vec3, Vec3> collider = {
         c->a,
         c->b
     };
@@ -884,9 +968,9 @@ bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
         // vec3_pair_print(&ray1.first, &ray1.second);
         // printf("\n-------------------------\n");
 
-    glm::vec3 va(POSITIVE_INFINITY);
-    glm::vec3 vb(POSITIVE_INFINITY);
-    glm::vec3* choice = &va;
+    Vec3 va(POSITIVE_INFINITY);
+    Vec3 vb(POSITIVE_INFINITY);
+    Vec3* choice = &va;
     bool possibly_collided = false;
 
     if (line_segment_intersection(ray0, &collider, &va)) {
@@ -903,7 +987,7 @@ bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
         return false;
     }
 
-    glm::vec3* out = &status->intersection;
+    Vec3* out = &status->intersection;
 
     // TODO FIX BUG: HEIGHT OVERRIDDEN BY SUCCESSIVE COLLIDERS EVEN IF LOWER,
     // MUST COMPARE ALL COLLIDERS BEFORE MODIFYING VALUE
@@ -942,8 +1026,8 @@ bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
         out->z = 0.0;
         status->collider = c;
 
-        // glm::vec3* a = &c->a;
-        // glm::vec3* b = &c->b;
+        // Vec3* a = &c->a;
+        // Vec3* b = &c->b;
         //std::cout << glm::degrees(atan2pos_64(b->y - a->y, b->x - a->x)) << std::endl;
 
 
@@ -955,6 +1039,75 @@ bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
 
     return false;
 
+}
+
+char temp_test_collision_sides(Player* you, Collider* c, CollisionStatus* l, CollisionStatus* r)
+{
+    auto sensors = you->side_sensor_rays();
+
+    std::pair<Vec3, Vec3>* ray0 = &sensors.first;
+    std::pair<Vec3, Vec3>* ray1 = &sensors.second;
+    std::pair<Vec3, Vec3> collider = {
+        c->a,
+        c->b
+    };
+
+    Vec3 vl(NEGATIVE_INFINITY);
+    Vec3 vr(POSITIVE_INFINITY);
+    
+    bool collision_l = false;
+    bool collision_r = false;
+
+    if (line_segment_intersection(ray0, &collider, &vl)) {
+        collision_l = true;
+    }
+    if (line_segment_intersection(ray1, &collider, &vr)) {
+        collision_r = true;
+    }
+
+    if (!(collision_l || collision_r)) {
+        return 0;
+    }
+
+    Vec3* out_l = &l->intersection;
+    Vec3* out_r = &r->intersection;
+
+    if (collision_l && collision_r) {
+        if (vl.x > out_l->x) {
+            out_l->x = vl.x;
+            out_l->y = vl.y;
+            out_l->z = 0.0;
+
+            l->collider = c;
+        }
+        if (vr.x < out_r->x) {
+            out_r->x = vr.x;
+            out_r->y = vr.y;
+            out_r->z = 0.0;
+
+            r->collider = c;
+        }
+
+        return 'b';
+    } else if (collision_l) {
+        if (vl.x > out_l->x) {
+            out_l->x = vl.x;
+            out_l->y = vl.y;
+            out_l->z = 0.0;
+
+            l->collider = c;
+        }
+        return 'l';
+    } else { // if (collision_r)
+        if (vr.x < out_r->x) {
+            out_r->x = vr.x;
+            out_r->y = vr.y;
+            out_r->z = 0.0;
+
+            r->collider = c;
+        }
+        return 'r';
+    }
 }
 
 struct AirPhysicsConfig {
@@ -1013,9 +1166,129 @@ bool load_config(AirPhysicsConfig* conf)
     return false;
 }
 
+#ifdef METATESTING
+#include "metatesting.cpp"
+#endif
+
+
+#include <time.h>
 int main(int argc, char* argv[])
 {
+/*
+        struct {
+            LogicNode* out;
+            usize count;
+            float64* value_ptr;
+        } value_n;
+        struct {
+            LogicNode* out;
+            usize count;
+        } none_n;
+
+        struct {
+            LogicNode** out;
+            usize count;
+            float64* in;
+            usize input_received;
+            usize input_count; 
+            bool negated;
+        } and_n;
+        */
+
+    srand(time(NULL));
+
+    float64 avals[] = {(float64)(rand() % 2), (float64)(rand() % 2), (float64)(rand() % 2)};
+    float64 bvals[] = {(float64)(rand() % 2), (float64)(rand() % 2), (float64)(rand() % 2)};
+
+    float64 root_a_val = 0.0;
+    float64 root_b_val = 0.0;
+
+    LogicNode root_a;
+    root_a.type = LOGIC_NODE_TYPE::VALUE;
+    root_a.value_n.out_count = 1;
+    root_a.value_n.value_ptr = &root_a_val;
+    LogicNode root_b;
+    root_b.type = LOGIC_NODE_TYPE::VALUE;
+    root_b.value_n.out_count = 1;
+    root_b.value_n.value_ptr = &root_b_val;
+
+
+    LogicNode and_gate;
+    and_gate.type = LOGIC_NODE_TYPE::AND;
+    and_gate.and_n.in = new float64[2];
+    and_gate.and_n.in_received = 0;
+    and_gate.and_n.in_count = 2;
+    and_gate.and_n.out = new LogicNode*[1];
+    and_gate.and_n.out_count = 1;
+    
+    LogicNode leaf;
+    leaf.type = LOGIC_NODE_TYPE::NONE;
+
+    root_a.value_n.out = &and_gate;
+    root_b.value_n.out = &and_gate;
+    and_gate.and_n.out[0] = &leaf;
+
+    foreach (i, 3) {
+        root_a_val = avals[i];
+        root_b_val = bvals[i];
+        LogicNode_traverse(&root_a, 0.0, "");
+        LogicNode_traverse(&root_b, 0.0, "");
+        std::cout << "------------------------" << std::endl;
+
+    }
+
+    delete[] and_gate.and_n.in;
+    delete[] and_gate.and_n.out;
+    //return 0;
+    // auto b = Buffer<usize, 10>::Buffer_make();
+    // b.count = 0;
+    // for (usize i = 0; i < 10; i += 1) {
+    //     b.push_back(i);
+    // }
+    // WEE(b);
+    // WEE(b.slice(1, 3));
+
+    // return 0; 
+    #ifdef METATESTING
+    puts("metatesting, main program disabled");
+    metatesting();
+    return EXIT_SUCCESS;
+    #endif
     using namespace input_sys;
+    int control_lock_time = 0;
+    bool control_lock = false;
+    //RingBuffer_init(&buff);
+
+    // Thing_array[0].speed = 1.0f;
+    
+    // TEST change Thing[4].speed to 2.0f
+    // ucharptr ptr = (ucharptr)&Thing_array[0];
+    // ptr += (4 * meta_arrays[0].element_size); 
+    // ptr += Thing_meta_data[1].offset;
+    // *((f32*)ptr) = 2.0f;
+
+    // std::cout << Thing_array[4].speed << std::endl;
+
+    std::cout << StaticArrayCount(config_state) << std::endl;
+    // modify
+    for (usize k = 0; k < 2; k += 1) {
+        for (usize i = 0; i < StaticArrayCount(config_state); i += 1) {
+            using pt = PROPERTY_TYPE;
+            switch (config_state[i].type) {
+            case pt::PROP_f64:
+                std::cout << *cast(f64*, config_state[i].ptr) << std::endl;
+                *cast(f64*, config_state[i].ptr) *= 2.0;
+            }
+        }
+    }
+    // reset to defaults
+    for (usize i = 0; i < StaticArrayCount(config_state); i += 1) {
+        using pt = PROPERTY_TYPE;
+        switch (config_state[i].type) {
+        case pt::PROP_f64:
+            *cast(f64*, config_state[i].ptr) = config_state[i].f_f64;
+        }
+    }
 
     CommandLineArgs cmd;
     if (!parse_command_line_args(&cmd, argc, argv)) {
@@ -1023,7 +1296,7 @@ int main(int argc, char* argv[])
     }
 
     // initialize SDL
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) < 0) {
         fprintf(stderr, "%s\n", "SDL could not initialize");
         return EXIT_FAILURE;
     }
@@ -1039,13 +1312,6 @@ int main(int argc, char* argv[])
 
     // openGL initialization ///////////////////////////////////////////////////
     
-    // if (argc >= 3) {
-    //     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, atoi(argv[1]));
-    //     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, atoi(argv[2]));
-    // } else {
-        // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-        // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);        
-    // }
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     // SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
@@ -1060,7 +1326,7 @@ int main(int argc, char* argv[])
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
         SCREEN_WIDTH, SCREEN_HEIGHT,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI)))
+        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN)))
     {
         fprintf(stderr, "Window could not be created\n");
         return EXIT_FAILURE;
@@ -1083,12 +1349,13 @@ int main(int argc, char* argv[])
     glewExperimental = GL_TRUE;
     glewInit();
 
+    ConfigState_load_runtime();
 
     bool status = false;
     std::string glsl_perlin_noise = Shader_retrieve_src_from_file("shaders/perlin_noise.glsl", &status);
     if (!status) {
         fprintf(stderr, "ERROR: failed to load shader addon source");
-        return false;
+        return EXIT_FAILURE;
     } 
 
     // SHADERS
@@ -1132,9 +1399,9 @@ int main(int argc, char* argv[])
     const GLfloat y_off_left = (16.0f / 45.0f);
     const GLfloat x_off_right = (512.0f / 640.0f);
 
-    glm::vec2 tex_res(2048.0f, 1024.0f);
+    Vec2 tex_res(2048.0f, 1024.0f);
 
-    glm::vec3 world_bguv_factor = glm::vec3(glm::vec2(1.0f) / tex_res, 1.0f);
+    Vec3 world_bguv_factor = Vec3(Vec2(1.0f) / tex_res, 1.0f);
 
     GLuint layers_per_row = (GLuint)(tex_res.x / SCREEN_WIDTH);
     // GLfloat x_off = (GLfloat)(GLdouble)(SCREEN_WIDTH / tex_res.x);
@@ -1245,8 +1512,8 @@ int main(int argc, char* argv[])
 
     printf("USING GL VERSION: %s\n", glGetString(GL_VERSION));
 
-    glm::mat4 mat_ident(1.0f);
-    glm::mat4 mat_projection = glm::ortho(
+    mat4 mat_ident(1.0f);
+    mat4 mat_projection = glm::ortho(
         0.0f, 
         1.0f * SCREEN_WIDTH, 
         1.0f * SCREEN_HEIGHT,
@@ -1254,17 +1521,19 @@ int main(int argc, char* argv[])
         0.0f, 
         1.0f * 10.0f
     );
-    //glm::mat4 mat_projection = glm::perspective(glm::radians(45.0f), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
+    //Mat4 mat_projection = glm::perspective(glm::radians(45.0f), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
 
 //////////////////
 // TEST INPUT
-    glm::vec3 start_pos(0.0f, 0.0f, 1.0f);
+    Vec3 start_pos(0.0f, 0.0f, 1.0f);
     
-    FreeCamera main_cam(start_pos);
-    main_cam.orientation = glm::quat();
+    FreeCamera main_cam;
+    FreeCamera_init(&main_cam, start_pos);
+    main_cam.orientation = Quat();
     main_cam.speed = PLAYER_BASE_SPEED;
-    main_cam.offset = glm::vec2(SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0);
-    main_cam.target = glm::vec2(0);
+    main_cam.offset = Vec2(SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0);
+    main_cam.target = Vec2(0);
+    main_cam.scale = 1.0;
     // ViewCamera_init(
     //     &main_cam,
     //     start_pos,
@@ -1301,7 +1570,7 @@ int main(int argc, char* argv[])
 /////////////////
 // MAIN LOOP
 #ifdef DEBUG_PRINT
-    glm::vec3 prev_pos(0.0);
+    Vec3 prev_pos(0.0);
 #endif
 
     // Texture tex0;
@@ -1328,13 +1597,15 @@ int main(int argc, char* argv[])
     //UniformLocation RES_LOC = glGetUniformLocation(shader_2d, "u_resolution");
     //UniformLocation COUNT_LAYERS_LOC = glGetUniformLocation(shader_2d, "u_count_layers");
     UniformLocation MAT_LOC = glGetUniformLocation(shader_2d, "u_matrix");
-    //UniformLocation TIME_LOC = glGetUniformLocation(shader_2d, "u_time");
+    UniformLocation TIME_LOC = glGetUniformLocation(shader_2d, "u_time");
     UniformLocation CAM_LOC = glGetUniformLocation(shader_2d, "u_position_cam");
+    UniformLocation SCALE_LOC = glGetUniformLocation(shader_2d, "u_scale");
+    glUniform1f(SCALE_LOC, (GLfloat)1.0);
     //UniformLocation ASPECT_LOC = glGetUniformLocation(shader_2d, "u_aspect");
 
     const GLuint UVAL_COUNT_LAYERS = 5;
 
-    //glUniform2fv(RES_LOC, 1, glm::value_ptr(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT)));
+    //glUniform2fv(RES_LOC, 1, glm::value_ptr(Vec2(SCREEN_WIDTH, SCREEN_HEIGHT)));
     //glUniform1i(COUNT_LAYERS_LOC, UVAL_COUNT_LAYERS);
     //glUniform1f(ASPECT_LOC, (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT);
     // TEXTURE 0
@@ -1362,11 +1633,8 @@ int main(int argc, char* argv[])
     gl_get_errors();
 
 
-    #ifdef GL_DRAW2D
-    GLDraw2D<> gl_draw2d;
-    if (!gl_draw2d.init(mat_projection)) {
-        return EXIT_FAILURE;
-    }
+    #ifdef SD
+    auto drawctx = sd::Render_Batch_make(mat_projection);
     #endif
 
     Toggle free_cam_toggle = false;
@@ -1375,7 +1643,7 @@ int main(int argc, char* argv[])
     glUseProgram(shader_grid);
 
     UniformLocation COLOR_LOC_GRID = glGetUniformLocation(shader_grid, "u_color");
-    glUniform4fv(COLOR_LOC_GRID, 1, glm::value_ptr(glm::vec4(0.25f, 0.25f, 0.25f, 0.5f)));
+    glUniform4fv(COLOR_LOC_GRID, 1, glm::value_ptr(Vec4(0.25f, 0.25f, 0.25f, 0.5f)));
 
     UniformLocation SQUARE_PIXEL_LOC_GRID = glGetUniformLocation(shader_grid, "u_grid_square_pix");
 
@@ -1386,9 +1654,11 @@ int main(int argc, char* argv[])
 
     UniformLocation CAM_LOC_GRID = glGetUniformLocation(shader_grid, "u_position_cam");
 
+    UniformLocation SCALE_LOC_GRID = glGetUniformLocation(shader_grid, "u_scale");
+    glUniform1f(SCALE_LOC_GRID, (GLfloat)1.0);
 
-    GLDraw2D<> existing;
-    GLDraw2D<256> in_prog;
+    sd::Render_Batch<> existing;
+    sd::Render_Batch<256> in_prog;
     Toggle drawing = false;
     Toggle deletion = false;
 
@@ -1416,7 +1686,7 @@ int main(int argc, char* argv[])
 
     SDL_GL_SetSwapInterval(1);
     const f64 INTERVAL = MS_PER_S / mode.refresh_rate;
-    const f64 REFRESH_RATE = mode.refresh_rate;
+    const f64 REFRESH_RATE = mode.refresh_rate * (60.0 / mode.refresh_rate);
 
     f64 frequency  = SDL_GetPerformanceFrequency();
 
@@ -1466,31 +1736,32 @@ int main(int argc, char* argv[])
     Toggle grid_toggle = false;
     Toggle physics_toggle = false;
     Toggle verbose_view_toggle = false;
-    glm::vec3 in_progress_line[2];
-    in_progress_line[0] = glm::vec3(0.0f);
-    in_progress_line[1] = glm::vec3(0.0f);
+    Vec3 in_progress_line[2];
+    in_progress_line[0] = Vec3(0.0f);
+    in_progress_line[1] = Vec3(0.0f);
 
 
 ////
-    collision_map.first_free()->a = glm::vec3(0.0, 5 * 128, 0.0);
-    collision_map.first_free()->b = glm::vec3(SCREEN_WIDTH, 5 * 128, 0.0);
-    collision_map.elements_used += 1;
+    collision_map.next_free_slot()->a = Vec3(0.0, 5 * 128, 0.0);
+    collision_map.next_free_slot()->b = Vec3(SCREEN_WIDTH, 5 * 128, 0.0);
+    collision_map.count += 1;
 
-    collision_map.first_free()->a = glm::vec3(512.0, 3 * 128, 0.0);
-    collision_map.first_free()->b = glm::vec3(768.0, 3 * 128, 0.0);
-    collision_map.elements_used += 1;
+    collision_map.next_free_slot()->a = Vec3(512.0, 3 * 128, 0.0);
+    collision_map.next_free_slot()->b = Vec3(768.0, 3 * 128, 0.0);
+    collision_map.count += 1;
 
-    existing.update_projection_matrix = true;
-    existing.projection_matrix = mat_projection;
     existing.begin();
-    existing.draw_type = GL_LINES;
+    existing.draw_type = sd::LINES;
     existing.color = Color::BLACK;
-    existing.transform_matrix = glm::mat4(1.0);
     
-    foreach (i, collision_map.elements_used) {
-        existing.line(collision_map[i].a, collision_map[i].b);        
+    foreach (i, collision_map.count) {
+        SD_ASSERT(existing.line(collision_map[i].a, collision_map[i].b));
     }
+
     existing.end_no_reset();
+
+
+    Toggle temp = false;
 ////
 #endif
 
@@ -1513,8 +1784,8 @@ int main(int argc, char* argv[])
     // return 0;
 
 
-    // glm::vec2 a(0, 0);
-    // glm::vec2 b(1, 1);
+    // Vec2 a(0, 0);
+    // Vec2 b(1, 1);
     // std::cout << glm::degrees(atan2pos_64(b.y - a.y, b.x - a.x)) << std::endl;
 
     #define AIR_CONFIG_PATH "./config/air.txt"
@@ -1542,7 +1813,71 @@ int main(int argc, char* argv[])
 
     //fclose(jump_conf_fd);
 
+    // audio
 
+    AudioSystem_init();
+
+    AudioArgs audio_args;
+    AudioArgs_init(&audio_args, 1);
+
+    mal_decoder_config decoder_conf;
+    decoder_conf.format = mal_format_f32;
+    decoder_conf.channels = 2;
+    decoder_conf.sampleRate = 44100;
+
+    mal_result result = mal_decoder_init_file_wav(
+        "audio/time_rush_v_2_0_1_export_16_bit.wav", 
+        &decoder_conf, 
+        &audio_args.decoders[0]
+    );
+
+    if (result != MAL_SUCCESS) {
+        fprintf(stderr, "ERROR: FAILED TO DECODE AUDIO\n");
+        return -2;
+    }
+
+    mal_device_config config = mal_device_config_init_playback(
+        audio_args.decoders[0].outputFormat,
+        audio_args.decoders[0].outputChannels,
+        audio_args.decoders[0].outputSampleRate,
+        on_send_frames_to_device
+    );
+
+    
+    if (mal_device_init(
+            NULL,
+            mal_device_type_playback,
+            NULL,
+            &config,
+            &audio_args.decoders[0],
+            &audio_system.device
+        ) != MAL_SUCCESS) {
+        fprintf(stderr, "ERROR: FAILED TO OPEN PLAYBACK DEVICE\n");
+        mal_decoder_uninit(&audio_args.decoders[0]);
+        return -3;     
+    }
+
+    if (mal_device_start(&audio_system.device) != MAL_SUCCESS) {
+        fprintf(stderr, "ERROR: FAILED TO START PLAYBACK DEVICE\n");
+        mal_device_uninit(&audio_system.device);
+        mal_decoder_uninit(&audio_args.decoders[0]);
+        return -4; 
+    }
+
+    // printf("press enter to quit...");
+    // getchar();
+
+    // mal_device_uninit(&device);
+    // mal_decoder_uninit(&audio_args.decoders[0]);
+
+    // return EXIT_SUCCESS;
+
+    {
+        int w = 0;
+        int h = 0;
+        SDL_GetWindowSize(window, &w, &h);
+        std::cout << "WIDTH: " << w << " HEIGHT: " << h << std::endl;
+    }
     while (is_running) {
         t_prev = t_now;
         t_prev_s = t_now_s;
@@ -1577,40 +1912,62 @@ int main(int argc, char* argv[])
             main_cam.is_catching_up = true;
         }
 
+        bool left_held = false;
+        bool right_held = false;
 
         {
 
-            main_cam.orientation = glm::quat();
+            //main_cam.orientation = Quat();
 
             if (free_cam_is_on) {
-                if (key_is_held(&input, CONTROL::UP)) {
-                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, t_delta_s * up_acc);
-                    up_acc *= POS_ACC;
-                    up_acc = glm::min(max_acc, up_acc);
-                } else {
-                    if (up_acc > 1.0) {
-                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, t_delta_s * up_acc);
+                if (key_is_held(&input, CONTROL::SHIFT)) {
+                    if (key_is_held(&input, CONTROL::UP)) {
+                        main_cam.scale += (t_delta_s * 4.0);
+                    } else if (key_is_held(&input, CONTROL::DOWN)) {
+                        main_cam.scale -= (t_delta_s * 4.0);
                     }
-                    up_acc = glm::max(1.0, up_acc * NEG_ACC);
+
+                    main_cam.scale = glm::clamp(main_cam.scale, 0.0625f, 4.0f);
+
+                    // if (key_is_pressed(&input, CONTROL::UP)) {
+                    //     main_cam.scale = glm::min(4.0, main_cam.scale * 2.0);
+                    // } else if (key_is_pressed(&input, CONTROL::DOWN)) {
+                    //     main_cam.scale = glm::max(0.015625, main_cam.scale / 2.0);
+                    // }
                 }
-                if (key_is_held(&input, CONTROL::DOWN)) {
-                    FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, t_delta_s * down_acc);
-                    down_acc *= POS_ACC;
-                    down_acc = glm::min(max_acc, down_acc);
-                } else {
-                    if (down_acc > 1.0) {
+                else { 
+                    if (key_is_held(&input, CONTROL::UP)) {
+                        FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, t_delta_s * up_acc);
+                        up_acc *= POS_ACC;
+                        up_acc = glm::min(max_acc, up_acc);
+                    } else {
+                        if (up_acc > 1.0) {
+                            FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, t_delta_s * up_acc);
+                        }
+                        up_acc = glm::max(1.0, up_acc * NEG_ACC);
+                    }
+                    if (key_is_held(&input, CONTROL::DOWN)) {
                         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, t_delta_s * down_acc);
-                    } 
-                    down_acc = glm::max(1.0, down_acc * NEG_ACC);
+                        down_acc *= POS_ACC;
+                        down_acc = glm::min(max_acc, down_acc);
+                    } else {
+                        if (down_acc > 1.0) {
+                            FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, t_delta_s * down_acc);
+                        } 
+                        down_acc = glm::max(1.0, down_acc * NEG_ACC);
+                    }
                 }
             }
+
+
 
             if (key_is_held(&input, CONTROL::LEFT)) {
                 if (free_cam_is_on) {
                     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
                 } else {
                 // TEMP
-                    Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
+                    left_held = true;
+                    //Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
                 }
 
                 left_acc *= POS_ACC;
@@ -1622,7 +1979,7 @@ int main(int argc, char* argv[])
                         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
                     } else {
                     // TEMP
-                        Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
+                        //Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
                     }
                 }
                 left_acc = glm::max(1.0, left_acc * NEG_ACC);
@@ -1634,7 +1991,8 @@ int main(int argc, char* argv[])
                     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
                 } else {
                     // TEMP
-                    Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
+                    right_held = true;
+                    //Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
                 }
 
                 right_acc *= POS_ACC;
@@ -1646,11 +2004,176 @@ int main(int argc, char* argv[])
                         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
                     } else {
                         // TEMP
-                        Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
+                        //Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
                     }
                 }
                 right_acc = glm::max(1.0, right_acc * NEG_ACC);
             }
+
+            const f64 dt_factor = DELTA_TIME_FACTOR(t_delta_s, REFRESH_RATE);
+            const f64 friction = Player::GROUND_ACCELERATION_DEFAULT;
+
+            // TODO ground to air, air to ground angles, probably keep a single variable to share between ground and air instead (rewrite)
+            
+            //std::cout << you.bound.spatial.w << std::endl;
+
+            float64 angle = you.bound.spatial.w;
+
+            // TODO RE-ADD STATEMENT std::cout << "ANGLE: " << angle << std::endl;
+
+            if (you.on_ground) {
+
+                //std::cout << "BEFORE" << you.velocity_ground.x << std::endl;
+                you.velocity_ground.x -= (.125 * 4) * glm::sin(angle) * dt_factor;
+
+                //std::cout << "SUBTRACTING " << (.125 * 4) * glm::sin(angle) * dt_factor << std::endl;
+                //std::cout << "AFTER " << you.velocity_ground.x << std::endl;
+
+                #define ANGLE_TOO_STEEP ((PI / 8) * 3)
+
+                // if (((angle <= -(glm::pi<f64>() / 8) * 3) && you.velocity_ground.x < 0.0) || 
+                //     ((angle >=  (glm::pi<f64>() / 8) * 3) && you.velocity_ground.x > 0.0)) {
+                if (left_held && -angle < ANGLE_TOO_STEEP) {
+                    if (you.velocity_ground.x > 0.0) {
+                        you.velocity_ground.x -= Player::GROUND_NEGATIVE_ACCELERATIION_DEFAULT * dt_factor;
+                    } else {                     
+                        you.velocity_ground.x -= you.acceleration_ground * dt_factor;
+                    }
+                } else if (right_held && angle < ANGLE_TOO_STEEP) {
+                    if (you.velocity_ground.x < 0.0) {
+                        you.velocity_ground.x += Player::GROUND_NEGATIVE_ACCELERATIION_DEFAULT * dt_factor;
+                        //std::cout << "SUBTRACTING SLOPE FACTOR: " << (.125 * 4) * glm::sin(angle) << std::endl;
+                        //std::cout << "ADDING DECCELERATION: " << Player::GROUND_NEGATIVE_ACCELERATIION_DEFAULT << std::endl;
+                        //std::cout << "DIFF DEC - SLOPE: " << Player::GROUND_NEGATIVE_ACCELERATIION_DEFAULT - (.125 * 4) * glm::sin(angle) << std::endl;
+
+                    } else {
+                        you.velocity_ground.x += you.acceleration_ground * dt_factor;
+                    }
+                } else if (you.velocity_ground.x != 0.0) {
+                    // TODO improve friction
+                    if (glm::abs(you.velocity_ground.x) < friction * dt_factor) {
+                        you.velocity_ground.x = 0.0;
+                    } else {
+                        you.velocity_ground.x -= friction * glm::sign(you.velocity_ground.x) * dt_factor;   
+                    } 
+                }
+            } else {
+                // TODO switch between velocity_ground and velocity_air or just use one velocity for both
+                if (left_held) {
+                    you.velocity_ground.x -= you.acceleration_air * dt_factor;
+                } else if (right_held) {
+                    you.velocity_ground.x += you.acceleration_air * dt_factor;
+                }
+
+                if (you.velocity_air.y < 0 && you.velocity_air.y > -4.0) {
+                    if (glm::abs(you.velocity_ground.x) >= 16.0) {
+                        you.velocity_ground.x *= 0.90;
+                    }
+                }
+            }
+
+            if (you.velocity_ground.x < -you.max_speed) {
+                you.velocity_ground.x = -you.max_speed;
+            } else if (you.velocity_ground.x > you.max_speed) {
+                you.velocity_ground.x = you.max_speed;
+            }
+
+                float64 y_comp = -glm::sin(angle);
+                float64 x_comp = glm::cos(angle);
+
+
+                // TODO RE-ADD STATEMENT std::cout << "V: " << you.velocity_ground.x << ":" << x_comp << ":" << y_comp << " SLOPE FACTOR: " << (.125 * 4) * glm::sin(angle) * dt_factor << std::endl;
+            if (you.on_ground) {
+
+
+                // if (((angle <= -(glm::pi<f64>() / 8) * 3) && you.velocity_ground.x < 0.0) || 
+                //     ((angle >=  (glm::pi<f64>() / 8) * 3) && you.velocity_ground.x > 0.0)) {
+                //     you.velocity_ground.x = -you.velocity_ground.x * x_comp;
+                //     you.velocity_ground.y = -you.velocity_ground.y * y_comp;
+                // }
+
+                you.bound.spatial.x += you.velocity_ground.x * x_comp;
+                you.bound.spatial.y += you.velocity_ground.x * y_comp;
+
+                //draw_player_collision(&you, &drawctx);
+
+            } else {
+                you.bound.spatial.x += you.velocity_ground.x;
+            }
+
+
+
+            //printf("%f %f\n", you.velocity_ground.x, you.velocity_air.y);
+
+            {
+                bool collided_l = false;
+                bool collided_r = false;
+
+                CollisionStatus status_l;
+                CollisionStatus_init(&status_l, Vec3(NEGATIVE_INFINITY, NEGATIVE_INFINITY, 0.0));
+                CollisionStatus status_r;
+                CollisionStatus_init(&status_r);
+
+                // this will be off by one movement, need to reorganize so camera updated after play is updated,
+                // also cannot draw bg yet... will need to sequence things differently
+
+                drawctx.begin();
+                drawctx.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+
+                for (auto it = collision_map.begin(); it != collision_map.next_free_slot(); it += 1)
+                {
+                    //Collider_print(it);
+                    
+                    switch (temp_test_collision_sides(&you, it, &status_l, &status_r)) {
+                    case 'l': { // left
+                        drawctx.line(Vec3(0.0), status_l.intersection);
+                        collided_l = true;
+                        break;
+                    }
+                    case 'r': { // right
+                        drawctx.line(Vec3(0.0), status_r.intersection);
+                        collided_r = true;
+                        break;
+                    }
+                    case 'b': { // both
+                        collided_l = true;
+                        collided_r = true;
+                        break;
+                    }
+                    default: { // none
+                        break;
+                    }
+
+                    }
+                }
+                drawctx.end_no_reset();
+
+                // TODO slopes
+
+                if (collided_l) {
+                    f64 angle = atan2_64(status_l.collider->b.y - status_l.collider->a.y, status_l.collider->b.x - status_l.collider->a.x);
+                    angle = glm::abs(angle);
+
+                    if (angle > ((PI / 8) * 3)) {
+                        //std::cout << "COLLIDED L" << std::endl;
+                        you.bound.spatial.x = status_l.intersection.x;
+                        you.velocity_ground.x = 0.0;
+                    }
+                }
+                if (collided_r) {
+                    f64 angle = atan2_64(status_r.collider->b.y - status_r.collider->a.y, status_r.collider->b.x - status_r.collider->a.x);
+                    angle = glm::abs(angle);
+
+                    //std::cout << "COLLIDED R" << std::endl;
+                    if (angle > ((PI / 8) * 3)) {
+                        you.bound.spatial.x = status_r.intersection.x - you.bound.width;
+                        you.velocity_ground.x = 0.0;
+                    }
+                }
+            }
+
+
+
 
             // if (*forwards) {
             //     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::FORWARDS, t_delta_s * forwards_acc);
@@ -1685,8 +2208,9 @@ int main(int argc, char* argv[])
                 //     0.0f
                 // );
                 main_cam.position = start_pos;
-                main_cam.orientation = glm::quat();
+                main_cam.orientation = Quat();
                 main_cam.is_catching_up = false;
+                main_cam.scale = 1.0;
 
                 up_acc        = 1.0;
                 down_acc      = 1.0;
@@ -1705,10 +2229,56 @@ int main(int argc, char* argv[])
 
                 FreeCamera_target_set(&main_cam, you.bound.calc_position_center());
                 FreeCamera_target_follow(&main_cam, t_delta_s);
-                up_acc        = 1.0;
-                down_acc      = 1.0;
+                //up_acc        = 1.0;
+                //down_acc      = 1.0;
             }
         }
+
+
+
+        // AUDIO TEST
+
+            switch (key_is_toggled_4_states(&input, CONTROL::TEMP, &temp)) {
+            case TOGGLE_BRANCH::PRESSED_ON: {
+                AudioCommand* cmd = (AudioCommand*)xmalloc(sizeof(*cmd));
+                cmd->type = AUDIO_COMMAND_TYPE::ADJUST_MASTER_VOLUME;
+                
+                cmd->adjust_master_volume.duration = 5.0f;
+                cmd->adjust_master_volume.from     = 1.0f;
+                cmd->adjust_master_volume.to       = 0.0f;
+                cmd->adjust_master_volume.t_delta  = 0.0f;
+                cmd->adjust_master_volume.t_prev   = 0.0f; 
+
+                if (ck_ring_enqueue_spsc(&audio_args.fifo.ring, audio_args.fifo.buffer, (void*)cmd) == false) {
+                    fprintf(stderr, "ERROR: OUT OF AUDIO QUEUE SPACE\n");
+                }
+                break;
+            }
+            case TOGGLE_BRANCH::ON: {
+                break;
+            }
+            case TOGGLE_BRANCH::PRESSED_OFF: {
+                AudioCommand* cmd = (AudioCommand*)xmalloc(sizeof(*cmd));
+                cmd->type = AUDIO_COMMAND_TYPE::ADJUST_MASTER_VOLUME;
+                
+                cmd->adjust_master_volume.duration  = 5.0f;
+                cmd->adjust_master_volume.from      = 0.0f;
+                cmd->adjust_master_volume.to        = 1.0f;
+                cmd->adjust_master_volume.t_delta   = 0.0f;
+                cmd->adjust_master_volume.t_prev    = 0.0f;
+
+                if (ck_ring_enqueue_spsc(&audio_args.fifo.ring, audio_args.fifo.buffer, (void*)cmd) == false) {
+                    fprintf(stderr, "ERROR: OUT OF AUDIO QUEUE SPACE\n");
+                }
+                break;
+            }
+            case TOGGLE_BRANCH::OFF: {
+                break;
+            }
+            default: {
+                break;
+            }
+            }
 
 
 
@@ -1727,14 +2297,14 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(MAT_LOC, 1, GL_FALSE, glm::value_ptr(
             mat_projection
             /**FreeCamera_calc_view_matrix(&main_cam)*/
-            /*glm::translate(mat_ident, glm::vec3(glm::sin(((double)t_now / frequency)), 0.0, 0.0)) * */
-            /*glm::scale(mat_ident, glm::vec3(0.25, 0.25, 1.0))* */
+            /*glm::translate(mat_ident, Vec3(glm::sin(((double)t_now / frequency)), 0.0, 0.0)) * */
+            /*glm::scale(mat_ident, Vec3(0.25, 0.25, 1.0))* */
                         )
         );
 
-        //glUniform1f(TIME_LOC, t_since_start);
+        glUniform1f(TIME_LOC, t_since_start_s);
 
-        glm::vec3 pos = main_cam.position;
+        Vec3 pos = main_cam.position;
         #ifdef DEBUG_PRINT
 
             if (pos.x != prev_pos.x || pos.y != prev_pos.y || pos.z != prev_pos.z) {
@@ -1744,67 +2314,88 @@ int main(int argc, char* argv[])
             prev_pos.y = pos.y;
             prev_pos.z = pos.z;
         #endif
+        // Vec3 VV = pos * world_bguv_factor;
+        // vec3_print(&VV);
+        // std::cout << std::endl;
+        glUniform1f(SCALE_LOC, main_cam.scale);
 
         glUniform3fv(CAM_LOC, 1, glm::value_ptr(pos * world_bguv_factor));
-        glEnable(GL_DEPTH_TEST);
+        //glEnable(GL_DEPTH_TEST);
         //glClear(GL_DEPTH_BUFFER_BIT);
         // glDepthRange(0, 1);
-        
+
+{
+        //Vec2 P = Vec2(pos * world_bguv_factor);
+        //P.y = glm::clamp(P.y, -1.45f, 1.45f);
+        //f64 x_off = P.x;
+        //f64 y_off = P.y;
+
+
+        //Vec2 t4c = Vec2(0, 0);
+        //t4c.x += (x_off / 1.0);
+        //t4c.y += (y_off / 1.0);
+                //vec2_println(t4c);
+        //t4c = SCALED(t4c, vec2(x_off / 1.0, y_off / 1.0), scaler);
+        //t4c = fract(t4c);
+
+        //vec2_println(t4c);
+}       
         //glEnable(GL_BLEND);
         //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         //glDisable(GL_DEPTH_TEST);
+
         
         glBindVertexArray(vao_2d2.vao);
         glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, 0);
         //glBindVertexArray(0);
 
-        #ifdef GL_DRAW2D
+        #ifdef SD
 
         glEnable(GL_DEPTH_TEST);
         glDepthRange(0, 1);
         glClear(GL_DEPTH_BUFFER_BIT);
 
 
-        glm::mat4 cam = FreeCamera_calc_view_matrix(&main_cam);
+        Mat4 cam = FreeCamera_calc_view_matrix(&main_cam);
 
-        // gl_draw2d.begin();
+        // drawctx.begin();
 
-        //     //gl_draw2d.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
-        //     gl_draw2d.transform_matrix = glm::mat4(1.0f);
+        //     //drawctx.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+        //     drawctx.transform_matrix = Mat4(1.0f);
 
-        //     // gl_draw2d.draw_type = GL_LINES;
-        //     // gl_draw2d.color = Color::RED;
-        //     // gl_draw2d.vertex({0.5, 0.0, -1.0});
-        //     // gl_draw2d.vertex({1.0, 1.0, -1.0});
+        //     // drawctx.draw_type = GL_LINES;
+        //     // drawctx.color = Color::RED;
+        //     // drawctx.vertex({0.5, 0.0, -1.0});
+        //     // drawctx.vertex({1.0, 1.0, -1.0});
             
-        //     // gl_draw2d.draw_type = GL_LINES;
-        //     // gl_draw2d.color = Color::GREEN;
-        //     // gl_draw2d.line({0.0, 0.0, -5.0}, {1.0, 1.0, -5.0});
+        //     // drawctx.draw_type = GL_LINES;
+        //     // drawctx.color = Color::GREEN;
+        //     // drawctx.line({0.0, 0.0, -5.0}, {1.0, 1.0, -5.0});
 
-        //     // gl_draw2d.color = Color::GREEN;
-        //     // gl_draw2d.circle(0.25, {0.0, 0.0, 0.0});
+        //     // drawctx.color = Color::GREEN;
+        //     // drawctx.circle(0.25, {0.0, 0.0, 0.0});
 
-        //     gl_draw2d.draw_type = GL_TRIANGLES;
+        //     drawctx.draw_type = GL_TRIANGLES;
 
         //     GLfloat CX = (SCREEN_WIDTH / 2.0f);
         //     GLfloat CY = 384.0f;
 
-        //     gl_draw2d.color = glm::vec4(252.0f / 255.0f, 212.0f / 255.0f, 64.0f / 255.0f, 1.0f);
+        //     drawctx.color = Vec4(252.0f / 255.0f, 212.0f / 255.0f, 64.0f / 255.0f, 1.0f);
 
-        //     gl_draw2d.transform_matrix = cam;
+        //     drawctx.transform_matrix = cam;
 
-        //     gl_draw2d.circle(90.0f, {CX, CY, -1.0});
+        //     drawctx.circle(90.0f, {CX, CY, -1.0});
 
-        //     gl_draw2d.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        //     gl_draw2d.transform_matrix = glm::translate(cam, glm::vec3(CX - 27.0f, CY - 25.0f, 0.0f));
-        //     gl_draw2d.circle(10.0f, {0.0f, 0.0f, 0.0f});
+        //     drawctx.color = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        //     drawctx.transform_matrix = glm::translate(cam, Vec3(CX - 27.0f, CY - 25.0f, 0.0f));
+        //     drawctx.circle(10.0f, {0.0f, 0.0f, 0.0f});
 
-        //     gl_draw2d.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        //     gl_draw2d.transform_matrix = glm::translate(cam, glm::vec3(CX + 27.0f, CY - 25.0f, 0.0f));
-        //     gl_draw2d.circle(10.0f, {0.0f, 0.0f, 0.0f});
+        //     drawctx.color = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        //     drawctx.transform_matrix = glm::translate(cam, Vec3(CX + 27.0f, CY - 25.0f, 0.0f));
+        //     drawctx.circle(10.0f, {0.0f, 0.0f, 0.0f});
 
             
-        //     gl_draw2d.draw_type = GL_LINES;
+        //     drawctx.draw_type = GL_LINES;
 
         //     #define BASE_TILE_SIZE (128.0f)
         //     #define TILE_SCALE (2.0f)
@@ -1812,29 +2403,29 @@ int main(int argc, char* argv[])
         //     CX = 5.0f / TILE_SCALE;
         //     CY = 3.0f / TILE_SCALE;
             
-        //     glm::mat4 model(1.0f);
-        //     model = glm::scale(model, glm::vec3(BASE_TILE_SIZE * TILE_SCALE, BASE_TILE_SIZE * TILE_SCALE, 1.0f));
-        //     model = glm::translate(model, glm::vec3({CX, CY, 0.0}));
-        //     model = glm::rotate(model, (GLfloat)t_since_start, glm::vec3(0.0f, 0.0f, 1.0f));
-        //     model = glm::translate(model, glm::vec3({-CX, -CY, 0.0}));
+        //     Mat4 model(1.0f);
+        //     model = glm::scale(model, Vec3(BASE_TILE_SIZE * TILE_SCALE, BASE_TILE_SIZE * TILE_SCALE, 1.0f));
+        //     model = glm::translate(model, Vec3({CX, CY, 0.0}));
+        //     model = glm::rotate(model, (GLfloat)t_since_start, Vec3(0.0f, 0.0f, 1.0f));
+        //     model = glm::translate(model, Vec3({-CX, -CY, 0.0}));
             
 
-        //     gl_draw2d.transform_matrix = cam * model;
+        //     drawctx.transform_matrix = cam * model;
 
-        //     gl_draw2d.color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+        //     drawctx.color = Vec4(1.0f, 0.0f, 0.0f, 1.0f);
         //     {
         //         GLfloat off = 1.0f;
         //         // horizontal
-        //         gl_draw2d.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX + off, CY - off, 0.0f));
-        //         gl_draw2d.line(glm::vec3(CX - off, CY + off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
+        //         drawctx.line(Vec3(CX - off, CY - off, 0.0f), Vec3(CX + off, CY - off, 0.0f));
+        //         drawctx.line(Vec3(CX - off, CY + off, 0.0f), Vec3(CX + off, CY + off, 0.0f));
         //         // vertical
-        //         gl_draw2d.line(glm::vec3(CX - off, CY - off, 0.0f), glm::vec3(CX - off, CY + off, 0.0f));
-        //         gl_draw2d.line(glm::vec3(CX + off, CY - off, 0.0f), glm::vec3(CX + off, CY + off, 0.0f));
+        //         drawctx.line(Vec3(CX - off, CY - off, 0.0f), Vec3(CX - off, CY + off, 0.0f));
+        //         drawctx.line(Vec3(CX + off, CY - off, 0.0f), Vec3(CX + off, CY + off, 0.0f));
         //     }   
 
 
 
-        // gl_draw2d.end();
+        // drawctx.end();
 
         #endif
 
@@ -1850,16 +2441,17 @@ int main(int argc, char* argv[])
 
             glUseProgram(shader_grid);
 
-
+            glUniform1f(glGetUniformLocation(shader_grid, "u_time"), t_since_start_s);
+            glUniform1f(SCALE_LOC_GRID, main_cam.scale);
 
             if (key_is_pressed(&input, CONTROL::ZOOM_IN)) {
                 grid_square_pixel_size *= 2;
-                grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 64.0f);
+                grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 128.0f);
 
                 glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
             } else if (key_is_pressed(&input, CONTROL::ZOOM_OUT)) {
                 grid_square_pixel_size /= 2;
-                grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 64.0f);
+                grid_square_pixel_size = glm::clamp(grid_square_pixel_size, 4.0f, 128.0f);
 
                 glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
             }
@@ -1874,14 +2466,117 @@ int main(int argc, char* argv[])
 
 
             glBindVertexArray(vao_2d2.vao);
+
             glDrawElements(GL_TRIANGLES, tri_data.i_count, GL_UNSIGNED_INT, 0);
 
+            //Mat4 mat_screen_to_world = FreeCamera_calc_view_matrix_reverse(&main_cam);
 
-            glm::mat4 rev_view = FreeCamera_calc_view_matrix_reverse(&main_cam);
+            Vec4 mouse = Vec4((int)input.mouse_x, (int)input.mouse_y, 0.0f, 1.0f);
+                      mouse = glm::inverse(cam) * mouse;
 
-            glm::vec4 mouse = glm::vec4((int)input.mouse_x, (int)input.mouse_y, 0.0f, 1.0f);
+            i32 grid_len = (tex_res.x / grid_square_pixel_size);
 
-            mouse = rev_view * mouse;
+
+            // puts("{");
+            // puts("BEFORE SNAP: ");
+            //     vec2_println(Vec2(mouse));
+            // puts("AFTER SNAP: ");
+            //     vec2_println(Vec2(snap_to_grid(mouse.x, grid_len), snap_to_grid(mouse.y, grid_len)));
+            // puts("}\n");
+
+            // {// SCALING WITH MOUSE INPUT IS NOT CORRECT, WILL LIKELY NEED TO CHANGE A LOT
+            //     Vector2 o_mouse = vec2(mouse);
+
+            //     {
+            //         // manual
+            //         Vector2 m2 = o_mouse;
+            //         Vector2 c1 = vec2(main_cam.position);
+
+            //         m2 -= (c1 + ((vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2))));
+            //         m2 /= main_cam.scale;
+            //         m2 += (c1 + ((vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2))));
+
+            //         mouse = vec4(m2, 1.0, 1.0);
+            //         std::cout << "{ORIGINAL:" << std::endl;
+            //         vec2_print(&o_mouse);
+            //         std::cout << std::endl;
+            //     }
+            //     // matrix
+
+            //     // snap the mouse to the default grid
+            //     vec2 m = vec2(
+            //         o_mouse.x, //snap_to_grid(o_mouse.x, grid_len),
+            //         o_mouse.y //snap_to_grid(o_mouse.y, grid_len)
+            //     );
+
+            //     std::cout << "PRE TRANSFORM:" << std::endl;
+            //     vec2_print(&m);
+            //     std::cout << "}" << std::endl;
+
+            //     vec2 cam = vec2(main_cam.position);
+
+            //     std::cout << "CAM: " << std::endl;
+            //     vec2_println(cam);
+
+            //     m -= (cam + main_cam.offset);
+            //     m /= main_cam.scale;
+            //     m += (cam + main_cam.offset);
+
+            //     std::cout << "POST TRANSFORM:" << std::endl;
+            //     vec2_print(&m);
+            //     std::cout << "}" << std::endl;
+
+
+            //     {
+            //         std::cout << "QUICK: " << std::endl;
+
+            //         // vec2 m_raw = vec2((int)input.mouse_x, (int)input.mouse_y);
+
+            //         #define LEN_TEST (8)
+            //         vec2 m_raw = Vec2(
+            //             ((float)input.mouse_x / SCREEN_WIDTH) * LEN_TEST, 
+            //             ((float)input.mouse_y / SCREEN_HEIGHT) * LEN_TEST);
+
+            //         mat4 mat = mat4(1.0f);
+
+            //         #define POS 0, 0
+            //         mat = glm::translate(mat, Vec3(Vec2(POS) + Vec2(LEN_TEST / 2), 0));
+            //         mat = glm::scale(mat, Vec3(1.0 / main_cam.scale, 1.0 / main_cam.scale, 1));
+            //         mat = glm::translate(mat, -Vec3(Vec2(POS) + Vec2(LEN_TEST / 2), 0));
+            //         mat = glm::translate(mat, Vec3(Vec2(POS), 0));
+
+
+            //         mat4 mat2 = glm::translate(Mat4(1.0f), Vec3(Vec2(POS) + Vec2(LEN_TEST / 2), 0)) *
+            //                     glm::scale(Vec3(1.0 / main_cam.scale, 1.0 / main_cam.scale, 1)) *
+            //                     glm::translate(-Vec3(Vec2(POS) + Vec2(LEN_TEST / 2), 0)) *
+            //                     glm::translate(Vec3(Vec2(POS), 0));
+
+
+            //         if (mat == mat2) {
+            //             puts("WEE");
+            //             mat = mat2;
+            //         } else {
+            //             puts("NO");
+            //         }
+
+            //         #undef POS
+            //         #undef LEN_TEST
+
+            //         vec2 out = Vec2(mat * Vec4(m_raw, 0, 1));
+
+            //         std::cout << "BEFORE SNAP: " << std::endl;
+
+            //         vec2_println(out);
+
+            //         out.x = snap_to_grid_f(out.x, 1);
+            //         out.y = snap_to_grid_f(out.y, 1);
+
+            //         vec2_println(out);
+            //         std::cout << std::endl << std::endl;
+            //     }
+            // }
+
+
 
             //printf("CURSOR: [x: %f, y: %f]\n", mouse.x, mouse.y);
 
@@ -1895,57 +2590,103 @@ int main(int argc, char* argv[])
             // }
             glClear(GL_DEPTH_BUFFER_BIT);
 
-            i32 grid_len = tex_res.x / grid_square_pixel_size;
 
-            //printf("CURSOR_SNAPPED: [x: %d, y: %d]\n", snap_to_grid(mouse.x, grid_len), snap_to_grid(mouse.y, grid_len));
+
+            // vec4_print(&mouse);
+            // std::cout << std::endl;
+            // vec3_print(&main_cam.position);
+            // std::cout << std::endl;
+            //printf("CURSOR_SNAPPED: [x: %d, y: %d]\n", snap_to_grid(mouse.x, grid_len / main_cam.scale), snap_to_grid(mouse.y, grid_len / main_cam.scale));
 
             if (mouse_is_toggled(&input, MOUSE_BUTTON::RIGHT, &deletion)) {
                 drawing = false;
+
+                existing.begin();
+                existing.transform_matrix = cam;
+
+                existing.draw_type = sd::LINES;
+                //existing.transform_matrix = cam;
+                existing.end_no_reset();
+
+                glClear(GL_DEPTH_BUFFER_BIT);
+
                 if (mouse_is_pressed(&input, MOUSE_BUTTON::LEFT)) {
                     in_prog.begin();
 
                     {
-                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.draw_type = sd::TRIANGLES;
                         in_prog.transform_matrix = cam;
                         in_prog.color = Color::RED;
-                        in_prog.circle(
-                            10.0f,
-                            glm::vec3(
+                        sd::circle(
+                            &in_prog,
+                            10.0f * (1.0 / main_cam.scale),
+                            Vec3(
                                 mouse.x, 
                                 mouse.y,
                                 1.0f
-                            )
+                            ),
+                            32
                         );
                     }
 
                     in_prog.end();
+
+
+
+                    // Vec3 M = Vec3(mouse);
+                    // vec3_print(&M);
+                    // std::cout << std::endl;
+
+
+                    auto it = collision_map.begin();
+                    f64 min_dist = dist_to_segment_squared(it->a, it->b, mouse);
+                    Collider* nearest_seg = it;
+                    usize selection = 0;
+                    it += 1;
+                    usize idx = 1;
+                    for (; it != collision_map.next_free_slot(); it += 1) {
+                        f64 d2 = dist_to_segment_squared(it->a, it->b, mouse);
+                        if (d2 < min_dist) {
+                            min_dist = d2;
+                            nearest_seg = it;
+                            selection = idx;
+                        }
+                        idx += 1;
+                    }
+                    if (min_dist <= COLLIDER_MAX_SELECTION_DISTANCE * (1.0 / main_cam.scale)) {
+                        in_prog.begin();
+                        in_prog.draw_type = sd::LINES;
+                        in_prog.transform_matrix = cam;
+                        in_prog.color = Color::RED;
+                        in_prog.line(nearest_seg->a, nearest_seg->b);
+                        in_prog.end();
+
+                        collision_map[selection] = collision_map[collision_map.count - 1];
+                        collision_map.count -= 1;
+
+                        sd::remove_line_swap_end(&existing, selection);
+                    }
                 } else {
                     in_prog.begin();
 
                     {
-                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.draw_type = sd::TRIANGLES;
                         in_prog.transform_matrix = cam;
                         in_prog.color = Color::RED;
-                        in_prog.circle(
-                            5.0f,
-                            glm::vec3(
+                        sd::circle(
+                            &in_prog,
+                            5.0f * (1.0 / main_cam.scale),
+                            Vec3(
                                 mouse.x, 
                                 mouse.y,
                                 1.0f
-                            )
+                            ),
+                            32
                         );
                     }
 
                     in_prog.end();                    
                 }
-
-
-                existing.update_projection_matrix = true;
-                existing.projection_matrix = mat_projection * cam;
-                existing.begin();
-                existing.draw_type = GL_LINES;
-                //existing.transform_matrix = cam;
-                existing.end_no_reset();
 
             } else {
                 switch (mouse_is_toggled_4_states(&input, MOUSE_BUTTON::LEFT, &drawing)) {
@@ -1955,43 +2696,46 @@ int main(int argc, char* argv[])
                     in_progress_line[0].y = snap_to_grid(mouse.y, grid_len);
                     in_progress_line[0].z = mouse.z;
 
-                    collision_map.first_free()->a = in_progress_line[0];
-                    collision_map.first_free()->a.z = 0;
+                    collision_map.next_free_slot()->a = in_progress_line[0];
+                    collision_map.next_free_slot()->a.z = 0;
                 case TOGGLE_BRANCH::ON:
                     //printf("\tDRAWING\n");
                     in_progress_line[1].x = snap_to_grid(mouse.x, grid_len);
                     in_progress_line[1].y = snap_to_grid(mouse.y, grid_len);
                     in_progress_line[1].z = mouse.z;
 
-                    collision_map.first_free()->b = in_progress_line[1];
-                    collision_map.first_free()->b.z = 0;
+                    collision_map.next_free_slot()->b = in_progress_line[1];
+                    collision_map.next_free_slot()->b.z = 0;
 
                     in_prog.begin();
-                    in_prog.draw_type = GL_LINES;
+                    in_prog.draw_type = sd::LINES;
                     in_prog.transform_matrix = cam;
                     in_prog.color = Color::BLACK;
                     in_prog.line(in_progress_line[0], in_progress_line[1]);
 
                     {
-                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.draw_type = sd::TRIANGLES;
                         in_prog.transform_matrix = cam;
                         in_prog.color = Color::BLUE;
-                        in_prog.circle(
-                            5.0f,
-                            glm::vec3(
+                        sd::circle(
+                            &in_prog,
+                            5.0f * (1.0 / main_cam.scale),
+                            Vec3(
                                 snap_to_grid(mouse.x, grid_len), 
                                 snap_to_grid(mouse.y, grid_len),
                                 1.0f
-                            )
+                            ),
+                            32
                         );
                     }
 
                     in_prog.end();
 
-                    existing.update_projection_matrix = true;
-                    existing.projection_matrix = mat_projection * cam;
+
                     existing.begin();
-                    existing.draw_type = GL_LINES;
+                    existing.transform_matrix = cam;
+
+                    existing.draw_type = sd::LINES;
                     //existing.transform_matrix = cam;
                     existing.end_no_reset();
 
@@ -2000,41 +2744,43 @@ int main(int argc, char* argv[])
 
                     //printf("ENDING DRAWING\n");
 
-                    collision_map.elements_used += 1;
+                    collision_map.count += 1;
 
                     in_prog.begin();
                     {
-                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.draw_type = sd::TRIANGLES;
                         in_prog.transform_matrix = cam;
                         in_prog.color = Color::GREEN;
-                        in_prog.circle(
-                            10.0f,
-                            glm::vec3(
+                        sd::circle(
+                            &in_prog,
+                            10.0f * (1.0 / main_cam.scale),
+                            Vec3(
                                 snap_to_grid(mouse.x, grid_len), 
                                 snap_to_grid(mouse.y, grid_len),
                                 1.0f
-                            )
+                            ),
+                            32
                         );
                     }
                     in_prog.end();
 
-                    existing.update_projection_matrix = true;
-                    existing.projection_matrix = mat_projection * cam;
                     existing.begin();
-                    existing.draw_type = GL_LINES;
+                    existing.transform_matrix = cam;
+
+                    existing.draw_type = sd::LINES;
                     //existing.transform_matrix = cam;
 
                     //sort_segment(in_progress_line);
                     
                     existing.line(in_progress_line[0], in_progress_line[1]);
-                    
+
                     // {
                     //     f64 dy = in_progress_line[1].y - in_progress_line[0].y;
                     //     f64 dx = in_progress_line[1].x - in_progress_line[0].x;
                     //     existing.color = Color::BLUE;
 
-                    //     glm::vec3 na(-dy, dx, 0.0);
-                    //     glm::vec3 nb(dy, -dx, 0.0);
+                    //     Vec3 na(-dy, dx, 0.0);
+                    //     Vec3 nb(dy, -dx, 0.0);
 
                     //     //na = glm::normalize(na);
                     //     //nb = glm::normalize(nb);
@@ -2053,24 +2799,25 @@ int main(int argc, char* argv[])
                 case TOGGLE_BRANCH::OFF:
                     in_prog.begin();
                     {
-                        in_prog.draw_type = GL_TRIANGLES;
+                        in_prog.draw_type = sd::TRIANGLES;
                         in_prog.transform_matrix = cam;
                         in_prog.color = Color::BLUE;
-                        in_prog.circle(
-                            5.0f,
-                            glm::vec3(
+                        sd::circle(
+                            &in_prog,
+                            5.0f * (1.0 / main_cam.scale),
+                            Vec3(
                                 snap_to_grid(mouse.x, grid_len), 
                                 snap_to_grid(mouse.y, grid_len),
                                 1.0f
-                            )
+                            ),
+                            32
                         );
                     }
                     in_prog.end();
 
-                    existing.update_projection_matrix = true;
-                    existing.projection_matrix = mat_projection * cam;
                     existing.begin();
-                    existing.draw_type = GL_LINES;
+                    existing.transform_matrix = cam;
+                    existing.draw_type = sd::LINES;
                     //existing.transform_matrix = cam;
                     existing.end_no_reset();
                     break;
@@ -2079,20 +2826,20 @@ int main(int argc, char* argv[])
                 }
             }
 
-            gl_draw2d.begin();
+            drawctx.begin();
 
             glClear(GL_DEPTH_BUFFER_BIT);
 
-            gl_draw2d.draw_type = GL_LINES;
+            drawctx.draw_type = sd::LINES;
 
-            gl_draw2d.color = Color::BLUE;
+            drawctx.color = Color::BLUE;
 
-            gl_draw2d.transform_matrix = cam;
+            drawctx.transform_matrix = cam;
 
-            //draw_lines_from_image(&gl_draw2d, "./test_paths/C.bmp", {glm::vec3(1.0f), glm::vec3(0.0f)});
+            //draw_lines_from_image(&drawctx, "./test_paths/C.bmp", {Vec3(1.0f), Vec3(0.0f)});
 
 
-            f64 WEE = ((f64)(t_now - you.state_change_time)) / frequency;
+            // f64 WEE = ((f64)(t_now - you.state_change_time)) / frequency;
 
             // if (/*key_is_toggled(&input, CONTROL::PHYSICS, &physics_toggle) && */!you.on_ground) {
             //     you.bound.spatial.y = you.bound.spatial.y + 1 * 9.81 * (WEE * WEE);
@@ -2101,14 +2848,14 @@ int main(int argc, char* argv[])
             // }
 
             
-            gl_draw2d.end();
+            drawctx.end();
 
-            gl_draw2d.begin();
+            drawctx.begin();
 
             glClear(GL_DEPTH_BUFFER_BIT);
 
-            gl_draw2d.color = Color::GREEN;
-            gl_draw2d.transform_matrix = cam;
+            drawctx.color = Color::GREEN;
+            drawctx.transform_matrix = cam;
 
 
             if (cmd.hot_config && air_physics_conf.fd != nullptr && key_is_pressed(&input, CONTROL::LOAD_CONFIG)) {
@@ -2126,14 +2873,22 @@ int main(int argc, char* argv[])
 
                 //std::cout << "MULTIPLIER V1 " << (INTERVAL / t_delta_s) / 1000 << std::endl;
                 //std::cout << "MULTIPLIER V2 " << (1 / (t_delta_s * REFRESH_RATE)) << std::endl;
+
+                // TODO JUMP needs to take angles into consideration when dealing with the impulse
                 if (!key_is_held(&input, CONTROL::JUMP)) {
                     if (you.velocity_air.y < you.initial_jump_velocity_short) {
                         you.velocity_air.y = you.initial_jump_velocity_short;
                     }
+
                 }
 
-                you.velocity_air += (physics::gravity * DELTA_TIME_FACTOR(t_delta_s, REFRESH_RATE));
+                you.velocity_air.y += (physics::gravity * DELTA_TIME_FACTOR(t_delta_s, REFRESH_RATE));
+                if (you.velocity_air.y > 16) {
+                    you.velocity_air.y = 16;
+                }
+                you.bound.spatial.x += you.velocity_air.x;
                 you.bound.spatial.y += you.velocity_air.y;
+
             }
 
 
@@ -2141,15 +2896,16 @@ int main(int argc, char* argv[])
 
             CollisionStatus status;
             CollisionStatus_init(&status);
-            for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
+            for (auto it = collision_map.begin(); it != collision_map.next_free_slot(); it += 1)
             {
                 //Collider_print(it);
                 
                 if (temp_test_collision(&you, it, &status)) {
                     //printf("COLLISION\n");
-                    gl_draw2d.line(glm::vec3(0.0), status.intersection);
+                    drawctx.line(Vec3(0.0), status.intersection);
+
                     you.on_ground = true;
-                    you.state_change_time = t_now;
+                    // you.state_change_time = t_now;
                     collided = true;
 
                     //puts("COLLIDED");
@@ -2158,39 +2914,68 @@ int main(int argc, char* argv[])
                 }
             }
 
+
+            // Vec2 tang = .1 * angular_impulse(glm::pi<double>() / 30.0, Vec2(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5), Vec2(you.bound.spatial.x, you.bound.spatial.y));
+
+            // drawctx.circle(glm::distance(Vec2(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5), Vec2(you.bound.calc_position_center())), Vec3(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5, 1.0));
+            
+            // drawctx.color = Vec4(1.0, 1.0, 0.0, 1.0);
+
+            // drawctx.line(Vec2(you.bound.calc_position_center()), tang + Vec2(you.bound.calc_position_center()));
+
             if (!collided) {
                 you.on_ground = false;
             } else {
-
                 if (you.on_ground) {
                     if (key_is_pressed(&input, CONTROL::JUMP)) {
                         you.velocity_air.y = you.initial_jump_velocity;
+                        
+                        //you.velocity_air.x += tang.x;
+                        //you.velocity_air.y += tang.y;
+
+
                         you.on_ground = false;
+
+                        // temp move this
+                        // send data args as pointer to pre-allocated buffer
+                        AudioCommand* cmd = (AudioCommand*)xmalloc(sizeof(*cmd));
+                        cmd->type = AUDIO_COMMAND_TYPE::DELAY;
+
+                        cmd->delay.decay = 0.4;
+                        cmd->delay.channel_a_offset_percent = 0.0;
+                        cmd->delay.channel_b_offset_percent = 0.05;
+
+                        if (ck_ring_enqueue_spsc(&audio_args.fifo.ring, audio_args.fifo.buffer, (void*)cmd) == false) {
+                            fprintf(stderr, "ERROR: OUT OF AUDIO QUEUE SPACE\n");
+                        }
+                    } else {
+                        you.velocity_air = Vec3(0.0);
                     }
                 }
                 //you.bound.spatial.x = out.x - (1 * you.bound.width); <-- ENABLE TO MAKE THE FLOOR A TREADMILL
                 you.bound.spatial.y = status.intersection.y - (1 * you.bound.height);
 
                 Collider* col = status.collider;
-                glm::vec3* a = &col->a;
-                glm::vec3* b = &col->b;
-                you.bound.spatial.w = glm::mod(atan2pos_64(b->y - a->y, b->x - a->x), glm::pi<f64>());
+                Vec3* a = &col->a;
+                Vec3* b = &col->b;
+                you.bound.spatial.w = atan2_64(b->y - a->y, b->x - a->x);
 
                 // draw surface and normals
                 if (key_is_toggled(&input, CONTROL::EDIT_VERBOSE, &verbose_view_toggle)) {
                     f64 dy = col->b.y - col->a.y;
                     f64 dx = col->b.x - col->a.x;
 
-                    glm::vec3 na(-dy, dx, 0.0);
-                    glm::vec3 nb(dy, -dx, 0.0);
+                    auto na = Vec3{-dy, dx, 0.0};
+                    auto nb = Vec3{dy, -dx, 0.0};
 
                     //na = glm::normalize(na);
                     //nb = glm::normalize(nb);
 
-                    gl_draw2d.color = Color::GREEN;
-                    gl_draw2d.line(status.collider->a, status.collider->b);
-                    gl_draw2d.color = Color::BLUE;
-                    gl_draw2d.line(na + col->a, nb + col->a);
+                    drawctx.color = Color::CYAN;
+                    sd::line(&drawctx, status.collider->a, status.collider->b);
+
+                    drawctx.color = Color::BLUE;
+                    sd::line(&drawctx,/* na + */col->a, nb + col->a);
 
                     
                     //existing.color = Color::BLACK;
@@ -2201,16 +2986,16 @@ int main(int argc, char* argv[])
 
             }
 
-            gl_draw2d.color = Color::BLUE;
-            draw_player_collision(&you, &gl_draw2d);
+            drawctx.color = Color::BLUE;
+            draw_player_collision(&you, &drawctx);
 
-            gl_draw2d.end();
+            drawctx.end();
 
             glDisable(GL_BLEND);
 
-            // if (collision_map.elements_used > 0) {
+            // if (collision_map.count > 0) {
             //     printf("{");
-            //     for (auto it = collision_map.begin(); it != collision_map.first_free(); ++it)
+            //     for (auto it = collision_map.begin(); it != collision_map.next_free_slot(); ++it)
             //     {
             //         printf("\n");
             //         Collider_print(it);
@@ -2218,7 +3003,16 @@ int main(int argc, char* argv[])
             //     printf("\n}\n");
             // }
 
+            //existing.projection_matrix = mat_projection * FreeCamera_calc_view_matrix(&main_cam);
+            //existing.render(&existing);
+            //in_prog.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+            //in_prog.render(&in_prog);
+            sd::batch_render(&in_prog);
         }
+
+        //drawctx.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
+        //drawctx.render(&drawctx);
+        sd::batch_render(&drawctx);
 
         #endif
 
@@ -2236,18 +3030,21 @@ int main(int argc, char* argv[])
     //////////////////
     }
 
+    mal_device_uninit(&audio_system.device);
+    mal_decoder_uninit(&audio_args.decoders[0]);
+
     if (air_physics_conf.fd != nullptr) {
         fclose(air_physics_conf.fd);
     }
     
     VertexAttributeArray_delete(&vao_2d2);
     VertexBufferData_delete_inplace(&tri_data);
-    #ifdef GL_DRAW2D
-    gl_draw2d.free();
+    #ifdef SD
+    sd::free(&drawctx);
     #endif
     #ifdef EDITOR
-    in_prog.free();
-    existing.free();
+    sd::free(&in_prog);
+    sd::free(&existing);
     glDeleteProgram(shader_grid);
     #endif
     glDeleteProgram(shader_2d);
