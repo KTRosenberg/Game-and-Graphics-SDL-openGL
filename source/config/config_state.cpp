@@ -217,12 +217,12 @@
                 }
 
                 if (do_print) {
-                    std::cout << *marker;
+                    printf("%c\n", *marker);
                 }
 
                 marker += 1;
             }
-            assert(buff != buff_end);
+            ASSERT(buff != buff_end);
 
             return nullptr;
         }

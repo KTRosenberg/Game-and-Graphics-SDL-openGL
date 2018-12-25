@@ -2,4 +2,7 @@
 *.dSYM
 *.swp
 *.mov
-
+*.d
+*.DS_Store
+*.wav
+*.psd
