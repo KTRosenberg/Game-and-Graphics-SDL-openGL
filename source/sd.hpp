@@ -2,28 +2,34 @@
 #define SD_HPP
 
 #ifdef SD_DEBUG_LOG_ON
-    // inline void sd__log(FILE * stream, const char * format, ...)
-    // {
-    //     va_list argptr;
-    //     va_start(argptr, format);
-    //         vfprintf(stream, format, argptr);
-    //     va_end(argptr);  
-    // }
-    // inline void sd__log(const char * format, ...)
-    // {
-    // va_list argptr;
-    // va_start(argptr, format);
-    //     vfprintf(stderr, format, argptr);
-    // va_end(argptr);  
-    // }
 
-    #define SD_ASSERT(condition__) ASSERT(condition__)
-    #define SD_ASSERT_MSG(condition__, ...) ASSERT_MSG(condition__, __VA_ARGS__)
+    // from Odin lang, gb library
+
+    #define ASSERT_MSG__INTERNAL(cond, msg, ...) do { \
+        if (!(cond)) { \
+            gb_assert_handler("Assertion Failure", #cond, __FILE__, (i64)__LINE__, msg, ##__VA_ARGS__); \
+            abort(); \
+        } \
+    } while (0)
+
+    #define ASSERT__INTERNAL(cond) ASSERT_MSG__INTERNAL(cond, NULL)
+
+    //
+
+    #warning "SD DEBUG LOG ON"
+
+    #define SD_ASSERT(condition__) ASSERT__INTERNAL(condition__)
+    #define SD_ASSERT_MSG(condition__, msg, ...) ASSERT_MSG__INTERNAL(condition__, msg, __VA_ARGS__)
+    #define SD_ASSERT_PROC(proc__) ASSERT__INTERNAL(proc__)
+    #define SD_ASSERT_MSG_PROC(proc__, msg, ...) ASSERT_MSG__INTERNAL(proc__, msg, __VA_ARGS__)
+
     #define SD_LOG(format__, ...) (fprintf(stdout, format__, __VA_ARGS__));
     #define SD_LOG_ERR(format__, ...) (fprintf(stderr, format__, __VA_ARGS__));
 #else
-    #define SD_ASSERT(condition__) condition__
-    #define SD_ASSERT_MSG(condition__, ...) condition__
+    #define SD_ASSERT(condition__)
+    #define SD_ASSERT_MSG(condition__, msg, ...)
+    #define SD_ASSERT_PROC(proc__) proc__
+    #define SD_ASSERT_MSG_PROC(proc__, msg, ...) proc__
     #define SD_LOG(format__, ...)
     #define SD_LOG_ERR(args__, ...)
 #endif

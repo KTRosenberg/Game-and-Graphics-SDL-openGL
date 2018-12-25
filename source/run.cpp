@@ -12,8 +12,13 @@
 
 #define RELEASE_MODE (false)
 
+#define LOG_WRITE_ENABLED (true)
+#define LOG_PATH "./logs/"
+#define LOG_FILE "log.txt"
+
 #if !(RELEASE_MODE)
     #define USE_ASSERTS
+    #pragma message("Using Asserts")
 #endif
 
 
@@ -50,7 +55,6 @@
 
 #include "sdl.hpp"
 
-#include <iostream>
 #include <string>
 
 #define SHADER_IMPLEMENTATION
@@ -1171,9 +1175,12 @@ bool load_config(AirPhysicsConfig* conf)
 #endif
 
 
+
 #include <time.h>
 int main(int argc, char* argv[])
 {
+
+    logging_init(LOG_PATH, LOG_FILE, LOG_WRITE_ENABLED);
 /*
         struct {
             LogicNode* out;
@@ -1755,7 +1762,7 @@ int main(int argc, char* argv[])
     existing.color = Color::BLACK;
     
     foreach (i, collision_map.count) {
-        SD_ASSERT(existing.line(collision_map[i].a, collision_map[i].b));
+        existing.line(collision_map[i].a, collision_map[i].b);
     }
 
     existing.end_no_reset();

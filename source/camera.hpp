@@ -8,8 +8,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <iostream>
-
 #include <limits>
 
 #include "core_utils.h"

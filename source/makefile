@@ -34,6 +34,7 @@ $(OBJECTS_C): %.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $@
 	
 clean :
-	-rm -f *.o *.core $(EXECNAME)
+	-rm -f *.o *.core $(EXECNAME) ./logs/log.txt
 clean_all :
 	-rm -f *.o *.core $(EXECNAME) *.d
+	-rmdir ./logs

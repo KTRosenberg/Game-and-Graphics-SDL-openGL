@@ -17,6 +17,10 @@ extern "C"
 #include <getopt.h>
 #include <string.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 // Credit to Handmade Network person for the following macros {
 typedef int8_t   int8;
 typedef int16_t  int16;
@@ -49,8 +53,10 @@ typedef uint64   u64;
 typedef float32  f32; 
 typedef float64  f64;
 
+#if !(OVERRIDE_SIZE_TYPE)
 typedef i64 isize;
 typedef u64 usize;
+#endif
 typedef unsigned char* ucharptr;
 
 
@@ -71,6 +77,14 @@ typedef unsigned char* ucharptr;
 
 #define LOG_PARAMS const char *const file_name, const int line_number
 #define LOG_ARGS __FILE__, __LINE__
+
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_BLUE    "\x1b[34m"
+#define ANSI_COLOR_MAGENTA "\x1b[35m"
+#define ANSI_COLOR_CYAN    "\x1b[36m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
 
 #define FILE_NAME (__FILE__)
 #define LINE_NUMBER (__LINE__)
@@ -93,6 +107,12 @@ char* read_file(const char *path);
 char* read_file_mode(const char *path, const char * mode);
 bool write_file(const char *path, const char *buf, size_t len);
 bool write_file_mode(const char *path, const char* mode, const char *buf, size_t len);
+bool clear_file(const char *path);
+
+extern char log_path__[512];
+extern bool do_log_writes;
+
+bool logging_init(const char* const directory_name, const char* const file_name, bool log_writes_enabled);
 
 
 #define ARENA_DEFAULT_BLOCK_SIZE (1024 * 1024)
@@ -131,22 +151,48 @@ void ArenaAllocator_delete(ArenaAllocator* arena);
 
 void debug_print(const char* const in);
 
-#ifdef USE_ASSERTS
-// https://stackoverflow.com/questions/3767869/adding-message-to-assert
-#define ASSERT_MSG(condition,...) assert( \
-    condition|| \
-    (fprintf(stderr,__VA_ARGS__)&&fprintf(stderr," at %s:%d\n",__FILE__,__LINE__)) \
-);
 
-#define ASSERT(condition) assert( \
-    condition|| \
-    (fprintf(stderr," at %s:%d\n",__FILE__,__LINE__)) \
-);
+
+// taken from Odin lang open-source library
+//https://github.com/odin-lang/Odin/blob/master/src/gb/gb.h
+
+#define gb_inline inline
+#define gb_local_persist static
+
+gb_inline isize gb_fprintf_va(char const *fmt, va_list va);
+gb_inline isize gb_printf_err_va(char const *fmt, va_list va);
+isize gb_printf_err(char const *fmt, ...);
+void gb_assert_handler(char const *prefix, char const *condition, char const *file, i32 line, char const *msg, ...);
+
+#ifdef USE_ASSERTS
+
+
+
+
+
+// #define ASSERT_MSG(condition, msg, ...) assert( \
+//     condition|| \
+//     (fprintf(stderr,__VA_ARGS__)&&fprintf(stderr," at %s:%d\n",__FILE__,__LINE__)) \
+// );
+
+// #define ASSERT(condition) assert( \
+//     condition|| \
+//     (fprintf(stderr," at %s:%d\n",__FILE__,__LINE__)) \
+// );
+
+#define ASSERT_MSG(cond, msg, ...) do { \
+    if (!(cond)) { \
+        gb_assert_handler("Assertion Failure", #cond, __FILE__, (i64)__LINE__, msg, ##__VA_ARGS__); \
+        abort(); \
+    } \
+} while (0)
+
+#define ASSERT(cond) ASSERT_MSG(cond, NULL)
 
 #else
 
-#define ASSERT_MSG(condition,...) condition
-#define ASSERT(condition) condition
+#define ASSERT_MSG(condition, msg, ...)
+#define ASSERT(condition)
 
 #endif
 
@@ -347,6 +393,96 @@ bool write_file_mode(const char* path, const char* mode, const char* buf, size_t
     size_t n = fwrite(buf, len, 1, file);
     fclose(file);
     return n == 1;
+}
+
+bool clear_file(const char *path)
+{
+    FILE* file = fopen(path, "w");
+    if (file == NULL) {
+        return false;
+    }
+
+    fclose(file);
+    return true;
+}
+
+char log_path__[512];
+bool do_log_writes;
+
+
+bool logging_init(const char* const directory_name, const char* const file_name, bool log_writes_enabled)
+{
+    if (!log_writes_enabled) {
+        return true;
+    }
+
+
+    usize d_len = strlen(directory_name);
+    usize f_len = strlen(file_name);
+    memcpy(log_path__, directory_name, d_len);
+    memcpy(log_path__ + d_len, file_name, f_len + 1);
+
+    struct stat status = {0};
+
+    if (stat(directory_name, &status) == -1) {
+        mkdir(directory_name, 0777);
+    } else if (access(log_path__, F_OK) != -1) {
+        if (!clear_file(log_path__)) {
+            fprintf(stderr, "logging initialization failed\n");
+
+            do_log_writes = false;
+
+            return false;
+        }
+    }
+
+    do_log_writes = log_writes_enabled;
+
+    return true;
+}
+
+isize gb_fprintf_va(char const *fmt, va_list va) {
+    static char buf[4096];
+    isize len = vsnprintf(buf, sizeof(buf), fmt, va);
+
+    if (do_log_writes) {
+        if (!write_file_mode(log_path__, "a", buf, len)) {
+            fprintf(stderr, "error log write failed\n");
+            return 0;
+        }
+    } else {
+        printf(ANSI_COLOR_RED "%s" ANSI_COLOR_RESET, buf);
+    }
+
+    return len;
+}
+
+gb_inline isize gb_printf_err_va(char const *fmt, va_list va) {
+    return gb_fprintf_va(fmt, va);
+}
+
+isize gb_printf_err(char const *fmt, ...) 
+{
+    isize res;
+    va_list va;
+    va_start(va, fmt);
+    res = gb_printf_err_va(fmt, va);
+    va_end(va);
+    return res;
+}
+
+void gb_assert_handler(char const *prefix, char const *condition, char const *file, i32 line, char const *msg, ...) 
+{
+    gb_printf_err("%s(%d): %s: ", file, line, prefix);
+    if (condition)
+        gb_printf_err( "`%s` ", condition);
+    if (msg) {
+        va_list va;
+        va_start(va, msg);
+        gb_printf_err_va(msg, va);
+        va_end(va);
+    }
+    gb_printf_err("\n");
 }
 
 void ArenaAllocator_init(ArenaAllocator* arena)

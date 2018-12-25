@@ -174,8 +174,9 @@ T make(void)
 }
 
 #define MEMORY_IMPLEMENTATION
-#include "memory.hpp"
-#include "array.hpp"
+#include "memory.cpp"
+#define ARRAY_IMPLEMENTATION
+#include "array.cpp"
 
 constexpr bool is_pow_2_greater_equal_4(usize N)
 {
@@ -540,7 +541,7 @@ void print_array(T* const array, const usize N, const usize M)
     }
     s += "}";
 
-    std::cout << s << std::endl;
+   printf("%s\n", s.c_str());
 }
 
 static inline f32 atan2pos_32(f64 y, f64 x)
