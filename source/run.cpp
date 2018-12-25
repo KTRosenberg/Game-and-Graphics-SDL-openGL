@@ -66,6 +66,11 @@
 #define CAMERA_IMPLEMENTATION
 #include "camera.hpp"
 
+
+
+// TODO remove all references to iostream
+#include <iostream>
+
 int ignore_mouse_movement(void* unused, SDL_Event* event)
 {
     return (event->type == SDL_MOUSEMOTION) ? 0 : 1;

@@ -2,6 +2,8 @@
 #define CAMERA_HPP
 
 #if !(UNITY_BUILD)
+#include "common_utils.hpp"
+
 #include "opengl.hpp"
 
 #include <glm/glm.hpp>

@@ -16,6 +16,7 @@ extern "C"
 #include <math.h>
 #include <getopt.h>
 #include <string.h>
+#include <errno.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>

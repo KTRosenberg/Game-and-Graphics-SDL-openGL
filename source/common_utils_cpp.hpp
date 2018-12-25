@@ -29,7 +29,6 @@
 #include <bitset>
 #include <limits>
 #include <string>
-#include <iostream>
 
 typedef glm::aligned_vec2  Vector2;
 typedef glm::aligned_vec3  Vector3;

@@ -4,8 +4,8 @@
 #if !(UNITY_BUILD)
 #include "opengl.hpp"
 
+#include <string.h>
 #include <string>
-#include <iostream>
 //#include <vector>
 #include <stdbool.h>
 

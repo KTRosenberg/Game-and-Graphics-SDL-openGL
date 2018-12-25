@@ -24,37 +24,37 @@ void ViewCamera_process_directional_movement(ViewCamera* view, MOVEMENT_DIRECTIO
     switch (direction) {
     case MOVEMENT_DIRECTION::FORWARDS:
         #ifdef DB 
-        std::cout << "FORWARDS" << std::endl; 
+        printf("%s\n", "FORWARDS"); 
         #endif
         p->z -= velocity;
         break;
     case MOVEMENT_DIRECTION::BACKWARDS:
         #ifdef DB 
-        std::cout << "BACKWARDS" << std::endl;
+        printf("%s\n", "BACKWARDS"); 
         #endif
         p->z += velocity;
         break;
     case MOVEMENT_DIRECTION::LEFTWARDS:
         #ifdef DB 
-        std::cout << "LEFTWARDS" << std::endl; 
+        printf("%s\n", "LEFTWARDS");  
         #endif
         p->x -= velocity;
         break;
     case MOVEMENT_DIRECTION::RIGHTWARDS:
         #ifdef DB 
-        std::cout << "RIGHTWARDS" << std::endl; 
+        printf("%s\n", "RIGHTWARDS"); 
         #endif
         p->x += velocity;
         break;
     case MOVEMENT_DIRECTION::UPWARDS:
         #ifdef DB 
-        std::cout << "UPWARDS" << std::endl; 
+        printf("%s\n", "UPWARDS"); 
         #endif
         p->y += velocity;
         break;
     case MOVEMENT_DIRECTION::DOWNWARDS:
         #ifdef DB 
-        std::cout << "DOWNWARDS" << std::endl; 
+        printf("%s\n", "DOWNWARDS"); 
         #endif
         p->y -= velocity;
         break;
@@ -260,37 +260,37 @@ void FreeCamera_process_directional_movement(FreeCamera* view, MOVEMENT_DIRECTIO
     switch (direction) {
     case MOVEMENT_DIRECTION::FORWARDS:
         #ifdef DB 
-        std::cout << "FORWARDS" << std::endl; 
+        printf("%s\n", "FORWARDS");  
         #endif
         p->z -= velocity;
         break;
     case MOVEMENT_DIRECTION::BACKWARDS:
         #ifdef DB 
-        std::cout << "BACKWARDS" << std::endl;
+        printf("%s\n", "BACKWARDS"); 
         #endif
         p->z += velocity;
         break;
     case MOVEMENT_DIRECTION::LEFTWARDS:
         #ifdef DB 
-        std::cout << "LEFTWARDS" << std::endl; 
+        printf("%s\n", "LEFTWARDS"); 
         #endif
         p->x -= velocity;
         break;
     case MOVEMENT_DIRECTION::RIGHTWARDS:
         #ifdef DB 
-        std::cout << "RIGHTWARDS" << std::endl; 
+        printf("%s\n", "RIGHTWARDS");  
         #endif
         p->x += velocity;
         break;
     case MOVEMENT_DIRECTION::UPWARDS:
         #ifdef DB 
-        std::cout << "UPWARDS" << std::endl; 
+        printf("%s\n", "UPWARDS");  
         #endif
         p->y -= velocity;
         break;
     case MOVEMENT_DIRECTION::DOWNWARDS:
         #ifdef DB 
-        std::cout << "DOWNWARDS" << std::endl; 
+        printf("%s\n", "DOWNWARDS"); 
         #endif
         p->y += velocity;
         break;
