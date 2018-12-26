@@ -7,6 +7,8 @@
 #include <ck_pr.h>
 #include "sdl.hpp"
 
+#include <strings.h>
+
 #include "external_libraries/freeverb/freeverb.c"
 
 //#include "external_libraries/mini_al/extras/dr_flac.h"  // Enables FLAC decoding.
@@ -25,6 +27,7 @@ typedef mal_uint32 mal_u32;
 
 enum struct AUDIO_COMMAND_TYPE : u8 {
     ADJUST_MASTER_VOLUME,
+    TRACK_SELECTION,
     DELAY,
     ENUM_COUNT
 };
@@ -59,6 +62,9 @@ struct AudioCommand {
             float32 channel_b_offset_percent;
             bool on;
         } delay;
+        struct {
+            usize modified_tracks_bitmap;
+        } track_selection;
     };
 
     Fn_AudioCallback callback;
@@ -204,7 +210,7 @@ void AudioSystem_init(void)
     fv_set_damp(&fx_reverb.ctx, 0.2);
 }
 
-
+usize track_bits = 127;
 mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void* p_samples)
 {
     struct AudioArgs* args = (struct AudioArgs*)p_device->pUserData;
@@ -212,32 +218,81 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
         return 0;
     }
 
+    static float32 temp_buff[1024];
+
     mal_decoder* decoders = args->decoders;
+    mal_u32 frames_read = 0;
 
-    mal_u32 frames_read = (mal_u32)mal_decoder_read(&decoders[0], frame_count, p_samples);
+    f64 master_pan_value = 0.0f;//glm::sin(t_now_s) * 100.0f;
+    static f64 pan_range = 200.0;
+    #define PAN_FOR_RIGHT(val) ((val / pan_range) + 0.5)
+    #define PAN_FOR_LEFT(val) (1 - PAN_FOR_RIGHT(val))
+    f64 pan[2] = {PAN_FOR_LEFT(master_pan_value), PAN_FOR_RIGHT(master_pan_value)};
 
-    // detect if audio finished playing
-    if (frames_read == 0) {
+        for (usize frame = 0; frame < frame_count; ++frame) {
+            for (usize channel = 0; channel < 2; ++channel) {
+                ((float*)p_samples)[(frame * 2) + channel] = 0;
+            }
+        }
 
-        // loop bgm
-        // (44100 = 1 second into the clip, given a sample rate of 44.1 KHz)
+    static usize tracks = 127;
 
-        // for the current iteration of "Time Rush" (July 18th, 2018), which plays at 170 bpm,
-        // the loop-point is 26 measures in at 4/4 (26 * 4 quarter notes) plus 1 quater note
-        // samples per quarter note = (60 / BPM) * SAMPLE_RATE
-        // e.g. (60.0 / 170) * 44100 * 26 * 4
+    usize t = tracks;
+    for (usize i = 0; i < 7; i += 1) {
 
-        #define SAMPLE_RATE (44100)
-        #define BPM (170)
-        #define MEASURE_COUNT (26)
-        #define QUARTER_NOTES_PER_MEASURE (4)
+        // TODO: if you don't read a track, then it gets let behind. I need logic to seek to the correct spot,
+        // for now just read and discard
+        //usize off = ffsll(t) - 1;
+        //printf("IDX: %llu OFF: %llu\n", i, off);
+        // t ^= (1 << off);
 
-        mal_decoder_seek_to_frame(&decoders[0], (mal_uint64)roundf(
-           LOOP_FRAME_4_4(MEASURE_COUNT, QUARTER_NOTES_PER_MEASURE, 1, SAMPLE_RATE, BPM)
-        ));
+        frames_read = (mal_u32)mal_decoder_read(&decoders[i], frame_count, temp_buff);
 
-        // read samples from loop point
-        frames_read = (mal_u32)mal_decoder_read(&decoders[0], frame_count, p_samples);
+        // detect if audio finished playing
+        if (frames_read == 0) {
+
+            // loop bgm
+            // (44100 = 1 second into the clip, given a sample rate of 44.1 KHz)
+
+            // for the current iteration of "Time Rush" (July 18th, 2018), which plays at 170 bpm,
+            // the loop-point is 26 measures in at 4/4 (26 * 4 quarter notes) plus 1 quater note
+            // samples per quarter note = (60 / BPM) * SAMPLE_RATE
+            // e.g. (60.0 / 170) * 44100 * 26 * 4
+
+            #define SAMPLE_RATE (44100)
+            #define BPM (170)
+            #define MEASURE_COUNT (26)
+            #define QUARTER_NOTES_PER_MEASURE (4)
+
+            mal_decoder_seek_to_frame(&decoders[i], (mal_uint64)roundf(
+               LOOP_FRAME_4_4(MEASURE_COUNT, QUARTER_NOTES_PER_MEASURE, 1, SAMPLE_RATE, BPM)
+            ));
+
+            // read samples from loop point
+            frames_read = (mal_u32)mal_decoder_read(&decoders[i], frame_count, temp_buff);
+        }
+
+
+        // temporary, just don't put the data in the buffer
+        if ((tracks & (1 << i)) == 0) {
+            continue;
+        }
+        
+        for (usize frame = 0; frame < frames_read; ++frame) {
+            for (usize channel = 0; channel < 2; ++channel) {
+                ((float*)temp_buff)[(frame * 2) + channel] *= 0.5;
+            }
+        }
+
+
+        for (usize frame = 0; frame < frames_read; ++frame) {
+            for (usize channel = 0; channel < 2; ++channel) {
+                ((float*)p_samples)[(frame * 2) + channel] += ((float*)temp_buff)[(frame * 2) + channel];
+            }
+        }
+
+
+
     }
 
     void* result;
@@ -270,11 +325,7 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
 
     f64 t_now_s = (f64)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency();
 
-    f64 master_pan_value = 0.0f;//glm::sin(t_now_s) * 100.0f;
-    static f64 pan_range = 200.0;
-    #define PAN_FOR_RIGHT(val) ((val / pan_range) + 0.5)
-    #define PAN_FOR_LEFT(val) (1 - PAN_FOR_RIGHT(val))
-    f64 pan[2] = {PAN_FOR_LEFT(master_pan_value), PAN_FOR_RIGHT(master_pan_value)};
+
 
     for (usize i = 0, size = audio_system.command_queue.size; i < size; ++i) {
         AudioCommand* cmd = RingBuffer_dequeue_pointer(&audio_system.command_queue);
@@ -325,11 +376,24 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
             }
             break;
         }
+        case AUDIO_COMMAND_TYPE::TRACK_SELECTION: {
+            // TODO
+            usize modified_tracks = cmd->track_selection.modified_tracks_bitmap;
+
+            while (modified_tracks != 0) {
+                usize off = ffsll(modified_tracks) - 1;
+                tracks ^= (1 << off);
+                modified_tracks ^= (1 << off);
+            }
+        }
         default: { 
             break; 
         } 
         }
     }
+
+
+
 
     // handle delay
     if (delay_is_on) {
@@ -349,11 +413,11 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
     }
 
 
-    for (usize frame = 0; frame < frames_read; ++frame) {
-        for (usize channel = 0; channel < 2; ++channel) {
-            ((float*)p_samples)[(frame * 2) + channel] *= pan[channel] * master_volume_percentage;
-        }
-    }
+    // for (usize frame = 0; frame < frames_read; ++frame) {
+    //     for (usize channel = 0; channel < 2; ++channel) {
+    //         ((float*)p_samples)[(frame * 2) + channel] *= pan[channel] * master_volume_percentage;
+    //     }
+    // }
 
 
     args->total_frames_read += frames_read;

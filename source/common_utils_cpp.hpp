@@ -129,6 +129,19 @@ T make(void);
 #define POSITIVE_INFINITY (std::numeric_limits<f64>::infinity())
 #define NEGATIVE_INFINITY (-POSITIVE_INFINITY)
 
+namespace m {
+
+TYPE_T
+inline T min(T val_a, T val_b);
+
+TYPE_T
+inline T max(T val_a, T val_b);
+
+TYPE_T
+inline T abs(T val);
+
+}
+
 #define declare_pair_type(type__, name__) typedef std::pair<type__, type__> name__##_pair
 declare_pair_type(Vec3, vec3);
 declare_pair_type(Vec4, vec4);
@@ -282,6 +295,28 @@ inline T dref_as(void* ptr)
     return *static_cast<T*>(ptr);
 }
 
+namespace m {
+
+TYPE_T
+inline T min(T val_a, T val_b)
+{
+    return glm::min(val_a, val_b);
+}
+
+TYPE_T
+inline T max(T val_a, T val_b)
+{
+    return glm::max(val_a, val_b);
+}
+
+TYPE_T
+inline T abs(T val)
+{
+    return glm::abs(val);
+}
+
+}
+
 inline f64 dist2(Vec3 v, Vec3 w)
 {
     f64 a = v.x - w.x;
@@ -296,7 +331,7 @@ inline f64 dist_to_segment_squared(Vec3 v, Vec3 w, Vec3 p)
         return dist2(p, v);
     }
 
-    const f64 t = glm::max(0.0, glm::min(1.0, dot(p - v, w - v) / l2));
+    const f64 t = m::max(0.0, m::min(1.0, dot(p - v, w - v) / l2));
     return dist2(p, Vec3(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y), 0.0));
 }
 

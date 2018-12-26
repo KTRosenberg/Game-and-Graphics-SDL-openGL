@@ -221,24 +221,24 @@ void FreeCamera_target_y_set(FreeCamera* view, f64 target)
 
 void FreeCamera_target_follow(FreeCamera* view, f64 t_delta_s)
 {
-    //f64 next_x = position.x + (view->target.x - view->position.x) * 16 * glm::min(1.0, t_delta_s);
+    //f64 next_x = position.x + (view->target.x - view->position.x) * 16 * m::min(1.0, t_delta_s);
 
     if (view->is_catching_up) {
-        view->position.x += (view->target.x - view->position.x) * 8 * glm::min(1.0, t_delta_s);
-        if (glm::abs(view->position.x - view->target.x) < 1) {
+        view->position.x += (view->target.x - view->position.x) * 8 * m::min(1.0, t_delta_s);
+        if (m::abs(view->position.x - view->target.x) < 1) {
             view->is_catching_up = false;
         }
     } else {
         view->position.x = view->target.x;   
     }
-    view->position.y += (view->target.y - view->position.y) * 16 * glm::min(1.0, t_delta_s);
+    view->position.y += (view->target.y - view->position.y) * 16 * m::min(1.0, t_delta_s);
 }
 
 void FreeCamera_target_follow_x(FreeCamera* view, f64 t_delta_s)
 {
     if (view->is_catching_up) {
-        view->position.x += (view->target.x - view->position.x) * 8 * glm::min(1.0, t_delta_s);
-        if (glm::abs(view->position.x - view->target.x) < 1) {
+        view->position.x += (view->target.x - view->position.x) * 8 * m::min(1.0, t_delta_s);
+        if (m::abs(view->position.x - view->target.x) < 1) {
             view->is_catching_up = false;
         }
     } else {
@@ -248,12 +248,12 @@ void FreeCamera_target_follow_x(FreeCamera* view, f64 t_delta_s)
 
 void FreeCamera_target_follow_y(FreeCamera* view, f64 t_delta_s)
 {
-    view->position.y += (view->target.y - view->position.y) * 16 * glm::min(1.0, t_delta_s);
+    view->position.y += (view->target.y - view->position.y) * 16 * m::min(1.0, t_delta_s);
 }
 
 void FreeCamera_process_directional_movement(FreeCamera* view, MOVEMENT_DIRECTION direction, GLfloat delta_time)
 {
-    const GLfloat velocity = glm::min(PLAYER_BASE_SPEED * delta_time, 36.0);
+    const GLfloat velocity = m::min(PLAYER_BASE_SPEED * delta_time, 36.0);
     Vec3* p = &view->position;
 
     //#define DB

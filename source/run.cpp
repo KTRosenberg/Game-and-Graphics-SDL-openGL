@@ -705,22 +705,22 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 std::cout << "AXIS_MAX " << event->caxis.value << std::endl;
                 break;
             case SDL_CONTROLLER_AXIS_LEFTY:
-                if (glm::abs(event->caxis.value) > JOYSTICK_DEADZONE) {
+                if (m::abs(event->caxis.value) > JOYSTICK_DEADZONE) {
                     std::cout << "AXIS_LEFTY " << event->caxis.value << std::endl;
                 }
                 break;
             case SDL_CONTROLLER_AXIS_RIGHTY:
-                if (glm::abs(event->caxis.value) > JOYSTICK_DEADZONE) {
+                if (m::abs(event->caxis.value) > JOYSTICK_DEADZONE) {
                     std::cout << "AXIS_RIGHTY " << event->caxis.value << std::endl;
                 }
                 break;
             case SDL_CONTROLLER_AXIS_LEFTX:
-                if (glm::abs(event->caxis.value) > JOYSTICK_DEADZONE) {
+                if (m::abs(event->caxis.value) > JOYSTICK_DEADZONE) {
                     std::cout << "AXIS_LEFTX " << event->caxis.value << std::endl;
                 }
                 break;
             case SDL_CONTROLLER_AXIS_RIGHTX:
-                if (glm::abs(event->caxis.value) > JOYSTICK_DEADZONE) {
+                if (m::abs(event->caxis.value) > JOYSTICK_DEADZONE) {
                     std::cout << "AXIS_RIGHTX " << event->caxis.value << std::endl;
                 }
                 break;
@@ -785,6 +785,34 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
             case SDL_SCANCODE_LSHIFT:
                 key_set_down(input, CONTROL::SHIFT);
                 break;
+
+            case SDL_SCANCODE_1:
+                key_set_down(input, CONTROL::AUDIO_TRACK_1);
+                break;
+            case SDL_SCANCODE_2:
+                key_set_down(input, CONTROL::AUDIO_TRACK_2);
+                break;
+            case SDL_SCANCODE_3:
+                key_set_down(input, CONTROL::AUDIO_TRACK_3);
+                break;
+            case SDL_SCANCODE_4:
+                key_set_down(input, CONTROL::AUDIO_TRACK_4);
+                break;
+            case SDL_SCANCODE_5:
+                key_set_down(input, CONTROL::AUDIO_TRACK_5);
+                break;
+            case SDL_SCANCODE_6:
+                key_set_down(input, CONTROL::AUDIO_TRACK_6);
+                break;
+            case SDL_SCANCODE_7:
+                key_set_down(input, CONTROL::AUDIO_TRACK_7);
+                break;
+            case SDL_SCANCODE_8:
+                key_set_down(input, CONTROL::AUDIO_TRACK_8);
+                break;
+            case SDL_SCANCODE_9:
+                key_set_down(input, CONTROL::AUDIO_TRACK_9);
+                break;
 #endif
             case SDL_SCANCODE_UP:
                 key_set_down(input, CONTROL::ZOOM_IN);
@@ -845,6 +873,34 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
                 break;
             case SDL_SCANCODE_LSHIFT:
                 key_set_up(input, CONTROL::SHIFT);
+                break;
+
+            case SDL_SCANCODE_1:
+                key_set_up(input, CONTROL::AUDIO_TRACK_1);
+                break;
+            case SDL_SCANCODE_2:
+                key_set_up(input, CONTROL::AUDIO_TRACK_2);
+                break;
+            case SDL_SCANCODE_3:
+                key_set_up(input, CONTROL::AUDIO_TRACK_3);
+                break;
+            case SDL_SCANCODE_4:
+                key_set_up(input, CONTROL::AUDIO_TRACK_4);
+                break;
+            case SDL_SCANCODE_5:
+                key_set_up(input, CONTROL::AUDIO_TRACK_5);
+                break;
+            case SDL_SCANCODE_6:
+                key_set_up(input, CONTROL::AUDIO_TRACK_6);
+                break;
+            case SDL_SCANCODE_7:
+                key_set_up(input, CONTROL::AUDIO_TRACK_7);
+                break;
+            case SDL_SCANCODE_8:
+                key_set_up(input, CONTROL::AUDIO_TRACK_8);
+                break;
+            case SDL_SCANCODE_9:
+                key_set_up(input, CONTROL::AUDIO_TRACK_9);
                 break;
 #endif
             case SDL_SCANCODE_UP:
@@ -1829,23 +1885,42 @@ int main(int argc, char* argv[])
 
     AudioSystem_init();
 
+    // AudioArgs audio_args;
+    // AudioArgs_init(&audio_args, 1);
+
+    // mal_decoder_config decoder_conf;
+    // decoder_conf.format = mal_format_f32;
+    // decoder_conf.channels = 2;
+    // decoder_conf.sampleRate = 44100;
+
+    // mal_result result = mal_decoder_init_file_wav(
+    //     "audio/time_rush_v_2_0_1_export_16_bit.wav", 
+    //     &decoder_conf, 
+    //     &audio_args.decoders[0]
+    // );
+
     AudioArgs audio_args;
-    AudioArgs_init(&audio_args, 1);
+    AudioArgs_init(&audio_args, 7);
 
     mal_decoder_config decoder_conf;
     decoder_conf.format = mal_format_f32;
     decoder_conf.channels = 2;
     decoder_conf.sampleRate = 44100;
 
-    mal_result result = mal_decoder_init_file_wav(
-        "audio/time_rush_v_2_0_1_export_16_bit.wav", 
-        &decoder_conf, 
-        &audio_args.decoders[0]
-    );
 
-    if (result != MAL_SUCCESS) {
-        fprintf(stderr, "ERROR: FAILED TO DECODE AUDIO\n");
-        return -2;
+
+    for (usize i = 0; i < 7; i += 1) {
+        mal_result result = mal_decoder_init_file_wav(
+            ("audio/separate_instruments_test/time_rush_v_2_0_1_export_0" + std::to_string(i) +  ".wav").c_str(), 
+            &decoder_conf, 
+            &audio_args.decoders[i]
+        );
+
+
+        if (result != MAL_SUCCESS) {
+            fprintf(stderr, "ERROR: FAILED TO DECODE AUDIO\n");
+            return -2;
+        }
     }
 
     mal_device_config config = mal_device_config_init_playback(
@@ -1942,31 +2017,31 @@ int main(int argc, char* argv[])
                     main_cam.scale = glm::clamp(main_cam.scale, 0.0625f, 4.0f);
 
                     // if (key_is_pressed(&input, CONTROL::UP)) {
-                    //     main_cam.scale = glm::min(4.0, main_cam.scale * 2.0);
+                    //     main_cam.scale = m::min(4.0, main_cam.scale * 2.0);
                     // } else if (key_is_pressed(&input, CONTROL::DOWN)) {
-                    //     main_cam.scale = glm::max(0.015625, main_cam.scale / 2.0);
+                    //     main_cam.scale = m::max(0.015625, main_cam.scale / 2.0);
                     // }
                 }
                 else { 
                     if (key_is_held(&input, CONTROL::UP)) {
                         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, t_delta_s * up_acc);
                         up_acc *= POS_ACC;
-                        up_acc = glm::min(max_acc, up_acc);
+                        up_acc = m::min(max_acc, up_acc);
                     } else {
                         if (up_acc > 1.0) {
                             FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::UPWARDS, t_delta_s * up_acc);
                         }
-                        up_acc = glm::max(1.0, up_acc * NEG_ACC);
+                        up_acc = m::max(1.0, up_acc * NEG_ACC);
                     }
                     if (key_is_held(&input, CONTROL::DOWN)) {
                         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, t_delta_s * down_acc);
                         down_acc *= POS_ACC;
-                        down_acc = glm::min(max_acc, down_acc);
+                        down_acc = m::min(max_acc, down_acc);
                     } else {
                         if (down_acc > 1.0) {
                             FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::DOWNWARDS, t_delta_s * down_acc);
                         } 
-                        down_acc = glm::max(1.0, down_acc * NEG_ACC);
+                        down_acc = m::max(1.0, down_acc * NEG_ACC);
                     }
                 }
             }
@@ -1983,7 +2058,7 @@ int main(int argc, char* argv[])
                 }
 
                 left_acc *= POS_ACC;
-                left_acc = glm::min(max_acc, left_acc);
+                left_acc = m::min(max_acc, left_acc);
             
             } else {
                 if (left_acc > 1.0) {
@@ -1994,8 +2069,8 @@ int main(int argc, char* argv[])
                         //Player_move_test(&you, MOVEMENT_DIRECTION::LEFTWARDS, t_delta_s * left_acc);
                     }
                 }
-                left_acc = glm::max(1.0, left_acc * NEG_ACC);
-                left_acc = glm::min(max_acc, left_acc);
+                left_acc = m::max(1.0, left_acc * NEG_ACC);
+                left_acc = m::min(max_acc, left_acc);
             }
 
             if (key_is_held(&input, CONTROL::RIGHT)) {
@@ -2008,7 +2083,7 @@ int main(int argc, char* argv[])
                 }
 
                 right_acc *= POS_ACC;
-                right_acc = glm::min(max_acc, right_acc);
+                right_acc = m::min(max_acc, right_acc);
 
             } else {
                 if (right_acc > 1.0) {
@@ -2019,7 +2094,7 @@ int main(int argc, char* argv[])
                         //Player_move_test(&you, MOVEMENT_DIRECTION::RIGHTWARDS, t_delta_s * right_acc);
                     }
                 }
-                right_acc = glm::max(1.0, right_acc * NEG_ACC);
+                right_acc = m::max(1.0, right_acc * NEG_ACC);
             }
 
             const f64 dt_factor = DELTA_TIME_FACTOR(t_delta_s, REFRESH_RATE);
@@ -2063,7 +2138,7 @@ int main(int argc, char* argv[])
                     }
                 } else if (you.velocity_ground.x != 0.0) {
                     // TODO improve friction
-                    if (glm::abs(you.velocity_ground.x) < friction * dt_factor) {
+                    if (m::abs(you.velocity_ground.x) < friction * dt_factor) {
                         you.velocity_ground.x = 0.0;
                     } else {
                         you.velocity_ground.x -= friction * glm::sign(you.velocity_ground.x) * dt_factor;   
@@ -2078,7 +2153,7 @@ int main(int argc, char* argv[])
                 }
 
                 if (you.velocity_air.y < 0 && you.velocity_air.y > -4.0) {
-                    if (glm::abs(you.velocity_ground.x) >= 16.0) {
+                    if (m::abs(you.velocity_ground.x) >= 16.0) {
                         you.velocity_ground.x *= 0.90;
                     }
                 }
@@ -2132,7 +2207,7 @@ int main(int argc, char* argv[])
                 drawctx.begin();
                 drawctx.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
 
-                for (auto it = collision_map.begin(); it != collision_map.next_free_slot(); it += 1)
+                for (auto it = collision_map.begin_ptr(); it != collision_map.next_free_slot(); it += 1)
                 {
                     //Collider_print(it);
                     
@@ -2164,7 +2239,7 @@ int main(int argc, char* argv[])
 
                 if (collided_l) {
                     f64 angle = atan2_64(status_l.collider->b.y - status_l.collider->a.y, status_l.collider->b.x - status_l.collider->a.x);
-                    angle = glm::abs(angle);
+                    angle = m::abs(angle);
 
                     if (angle > ((PI / 8) * 3)) {
                         //std::cout << "COLLIDED L" << std::endl;
@@ -2174,7 +2249,7 @@ int main(int argc, char* argv[])
                 }
                 if (collided_r) {
                     f64 angle = atan2_64(status_r.collider->b.y - status_r.collider->a.y, status_r.collider->b.x - status_r.collider->a.x);
-                    angle = glm::abs(angle);
+                    angle = m::abs(angle);
 
                     //std::cout << "COLLIDED R" << std::endl;
                     if (angle > ((PI / 8) * 3)) {
@@ -2190,22 +2265,22 @@ int main(int argc, char* argv[])
             // if (*forwards) {
             //     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::FORWARDS, t_delta_s * forwards_acc);
             //     forwards_acc *= POS_ACC;
-            //     forwards_acc = glm::min(max_acc, forwards_acc);
+            //     forwards_acc = m::min(max_acc, forwards_acc);
             // } else {
             //     if (forwards_acc > 1.0) {
             //         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::FORWARDS, t_delta_s * forwards_acc);
             //     }
-            //     forwards_acc = glm::max(1.0, forwards_acc * NEG_ACC);
+            //     forwards_acc = m::max(1.0, forwards_acc * NEG_ACC);
             // }
             // if (*backwards) {
             //     FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::BACKWARDS, t_delta_s * backwards_acc);
             //     backwards_acc *= POS_ACC;
-            //     backwards_acc = glm::min(max_acc, backwards_acc);
+            //     backwards_acc = m::min(max_acc, backwards_acc);
             // } else {
             //     if (backwards_acc > 1.0) {
             //         FreeCamera_process_directional_movement(&main_cam, MOVEMENT_DIRECTION::BACKWARDS, t_delta_s * backwards_acc);
             //     } 
-            //     backwards_acc = glm::max(1.0, backwards_acc * NEG_ACC);  
+            //     backwards_acc = m::max(1.0, backwards_acc * NEG_ACC);  
             // }
             if (key_is_pressed(&input, CONTROL::RESET_POSITION)) {
                 // FreeCamera_init(
@@ -2249,6 +2324,49 @@ int main(int argc, char* argv[])
 
 
         // AUDIO TEST
+
+            usize audio_tracks = 0x0000000000000000; 
+            if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_1)) {
+                audio_tracks |= (1 << 0);
+            }
+            if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_2)) {
+                audio_tracks |= (1 << 1);
+            }
+            if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_3)) {
+                audio_tracks |= (1 << 2);
+            }
+            if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_4)) {
+                audio_tracks |= (1 << 3);
+            }
+            if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_5)) {
+                audio_tracks |= (1 << 4);
+            }
+            if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_6)) {
+                audio_tracks |= (1 << 5);
+            }
+            if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_7)) {
+                audio_tracks |= (1 << 6);
+            }
+            if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_8)) {
+                audio_tracks |= (1 << 7);
+            }
+            if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_9)) {
+                audio_tracks |= (1 << 8);
+            }
+
+            if (audio_tracks != 0) {
+
+                AudioCommand* cmd = (AudioCommand*)xmalloc(sizeof(*cmd));
+                cmd->type = AUDIO_COMMAND_TYPE::TRACK_SELECTION;
+                
+                cmd->track_selection.modified_tracks_bitmap = audio_tracks;
+
+                printf("Sending track change: %llx\n", audio_tracks);
+
+                if (ck_ring_enqueue_spsc(&audio_args.fifo.ring, audio_args.fifo.buffer, (void*)cmd) == false) {
+                    fprintf(stderr, "ERROR: OUT OF AUDIO QUEUE SPACE\n");
+                }
+            }
 
             switch (key_is_toggled_4_states(&input, CONTROL::TEMP, &temp)) {
             case TOGGLE_BRANCH::PRESSED_ON: {
@@ -2650,7 +2768,7 @@ int main(int argc, char* argv[])
                     // std::cout << std::endl;
 
 
-                    auto it = collision_map.begin();
+                    auto it = collision_map.begin_ptr();
                     f64 min_dist = dist_to_segment_squared(it->a, it->b, mouse);
                     Collider* nearest_seg = it;
                     usize selection = 0;
@@ -2908,7 +3026,7 @@ int main(int argc, char* argv[])
 
             CollisionStatus status;
             CollisionStatus_init(&status);
-            for (auto it = collision_map.begin(); it != collision_map.next_free_slot(); it += 1)
+            for (auto it = collision_map.begin_ptr(); it != collision_map.next_free_slot(); it += 1)
             {
                 //Collider_print(it);
                 

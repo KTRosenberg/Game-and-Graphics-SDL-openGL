@@ -53,6 +53,16 @@ enum struct CONTROL {
     
     TEMP,
 
+    AUDIO_TRACK_1,
+    AUDIO_TRACK_2,
+    AUDIO_TRACK_3,
+    AUDIO_TRACK_4,
+    AUDIO_TRACK_5,
+    AUDIO_TRACK_6,
+    AUDIO_TRACK_7,
+    AUDIO_TRACK_8,
+    AUDIO_TRACK_9,
+
     COUNT
 };
 
@@ -644,7 +654,7 @@ void Player_init(Player* pl, f64 x, f64 y, f64 z, bool position_at_center, f64 a
 
 void Player_move_test(Player* you, MOVEMENT_DIRECTION direction, GLfloat delta_time)
 {
-    const GLfloat velocity = glm::min(PLAYER_BASE_SPEED * delta_time, PLAYER_MAX_SPEED);
+    const GLfloat velocity = m::min(PLAYER_BASE_SPEED * delta_time, PLAYER_MAX_SPEED);
     Vec4* p = &you->bound.spatial;
 
     //printf("%f\n", velocity);
