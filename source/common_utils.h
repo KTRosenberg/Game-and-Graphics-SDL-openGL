@@ -66,6 +66,8 @@ typedef unsigned char* ucharptr;
 #define mb(n) (kb(n) * 1024ull)
 #define gb(n) (mb(n) * 1024ull)
 
+#define BSET_ADD(bits__, index__) bits__ |= (1 << index__)
+
 
 #define foreach(i, lim) for (u64 (i) = 0; (i) < ((u64)lim); (i += 1))
 #define forrange(i, l, h) for (i64 (i) = (l); (i) < (h); (i += 1))
@@ -197,8 +199,29 @@ void gb_assert_handler(char const *prefix, char const *condition, char const *fi
 
 #endif
 
-typedef void* (*Fn_Memory_Allocator)(usize bytes);
-typedef void (*Fn_Memory_Deallocator)(void* memory);
+#ifndef DEFAULT_MEMORY_ALIGNMENT
+#define DEFAULT_MEMORY_ALIGNMENT (2 * sizeof(void*))
+#endif
+
+typedef void* (*Fn_Memory_allocate)(void* data, usize bytes);
+typedef void  (*Fn_Memory_deallocate)(void* data, void* memory);
+typedef void* (*Fn_Memory_resize)(void);
+typedef void  (*Fn_Memory_deallocate_all)(void);
+
+void* mem_alloc(void* data, usize num_bytes);
+void mem_free(void* data, void* bytes);
+
+#define array_allocate(allocator_, Type, count) (Type*)mem_alloc((void*)allocator_, sizeof(Type) * (count))
+
+#define MEM_ALLOCATOR_PROC(name) \
+void* name(void* allocator_data, \
+           usize size, \
+           size alignment, \
+           void* old_memory, \
+           isize old_size, \
+           uint64 flags)
+
+
 
 #define PROGRAM_ARGS_COUNT (2)
 extern struct option program_args[PROGRAM_ARGS_COUNT + 1];
@@ -536,6 +559,16 @@ void ArenaAllocator_delete(ArenaAllocator* arena)
         free(arena->blocks[i]);
     }
     free(arena->blocks);
+}
+
+void* mem_alloc(void* data, usize num_bytes)
+{
+    return (void*)xmalloc(num_bytes);
+}
+
+void mem_free(void* data, void* bytes)
+{
+    free(bytes);
 }
 
 void debug_print(const char* const in) 

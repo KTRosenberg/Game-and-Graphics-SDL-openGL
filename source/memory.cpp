@@ -5,8 +5,10 @@ namespace mem {
 
 struct Allocator {
     void* data;
-    Fn_Memory_Allocator allocate;
-    Fn_Memory_Deallocator free;
+    Fn_Memory_allocate       allocate;
+    Fn_Memory_deallocate     deallocate;
+    Fn_Memory_resize         resize;
+    Fn_Memory_deallocate_all deallocate_all;
 };
 
 template <typename T>

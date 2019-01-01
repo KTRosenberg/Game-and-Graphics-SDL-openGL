@@ -96,13 +96,13 @@ void AttributeData_init(
     GLchar* name    
 );
 
-void VertexBufferData_init(
-    VertexBufferData* g,
-    const size_t v_cap,
-    const size_t i_cap,
-    Fn_Memory_Allocator alloc_v,
-    Fn_Memory_Allocator alloc_i
-);
+// void VertexBufferData_init(
+//     VertexBufferData* g,
+//     const size_t v_cap,
+//     const size_t i_cap,
+//     Fn_Memory_Allocator alloc_v,
+//     Fn_Memory_Allocator alloc_i
+// );
 void VertexBufferData_init_inplace(
     VertexBufferData* g,
     const size_t v_cap,
@@ -129,7 +129,7 @@ void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd);
 void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset);
 void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset, GLfloat* vertices, GLuint* indices);
 
-void GLData_init(GLData* gl_data, size_t attribute_stride, const size_t v_cap, const size_t i_cap, Fn_Memory_Allocator alloc_v, Fn_Memory_Allocator alloc_i);
+// void GLData_init(GLData* gl_data, size_t attribute_stride, const size_t v_cap, const size_t i_cap, Fn_Memory_Allocator alloc_v, Fn_Memory_Allocator alloc_i);
 void GLData_init_inplace(GLData* gl_data, size_t attribute_stride, const size_t v_cap, GLfloat* vertices, const size_t i_cap, GLuint* indices);
 inline void GLData_advance(GLData* const gl_data, const size_t i); // probably not useful TODO replace when using different vertex formats
 void GLData_delete(GLData* gl_data);
@@ -143,7 +143,7 @@ void GLData_delete_inplace(GLData* gl_data);
 // TEXTURES
 void TextureData_init(TextureData* t, const size_t id_count) 
 {
-    t->ids = (Texture*)mem_alloc(id_count * sizeof(t->ids));
+    t->ids = (Texture*)mem_alloc(nullptr, id_count * sizeof(t->ids));
     t->count = id_count;
     glGenTextures(t->count, t->ids);
 }
@@ -243,25 +243,25 @@ void AttributeData_init(
 
 
 
-void VertexBufferData_init(
-    VertexBufferData* g,
-    const size_t v_cap,
-    const size_t i_cap,
-    Fn_Memory_Allocator alloc_v,
-    Fn_Memory_Allocator alloc_i
-) {
-    glGenBuffers(1, (GLBuffer*)&g->vbo);
-    glGenBuffers(1, (GLBuffer*)&g->ebo);
+// void VertexBufferData_init(
+//     VertexBufferData* g,
+//     const size_t v_cap,
+//     const size_t i_cap,
+//     Fn_Memory_Allocator alloc_v,
+//     Fn_Memory_Allocator alloc_i
+// ) {
+//     glGenBuffers(1, (GLBuffer*)&g->vbo);
+//     glGenBuffers(1, (GLBuffer*)&g->ebo);
 
-    g->v_cap = v_cap;
-    g->i_cap = i_cap;
+//     g->v_cap = v_cap;
+//     g->i_cap = i_cap;
 
-    g->vertices = (GLfloat*)alloc_v(sizeof(GLfloat) * g->v_cap);
-    g->indices  = (GLuint*)alloc_i(sizeof(GLuint) * g->i_cap);
+//     g->vertices = (GLfloat*)alloc_v(sizeof(GLfloat) * g->v_cap);
+//     g->indices  = (GLuint*)alloc_i(sizeof(GLuint) * g->i_cap);
 
-    g->v_count = v_cap;
-    g->i_count = i_cap;
-}
+//     g->v_count = v_cap;
+//     g->i_count = i_cap;
+// }
 
 void VertexBufferData_init_inplace(
     VertexBufferData* g,
@@ -287,8 +287,8 @@ void VertexBufferData_delete(VertexBufferData* g)
 {
     glDeleteBuffers(1, (GLBuffer*)&g->vbo);
     glDeleteBuffers(1, (GLBuffer*)&g->ebo);
-    mem_free(g->vertices);
-    mem_free(g->indices);
+    mem_free(nullptr, g->vertices);
+    mem_free(nullptr, g->indices);
 }
 void VertexBufferData_delete_inplace(VertexBufferData* g)
 {
@@ -371,11 +371,11 @@ void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd, usize v_dest_off
 
 
 
-void GLData_init(GLData* gl_data, size_t attribute_stride, const size_t v_cap, const size_t i_cap, Fn_Memory_Allocator alloc_v, Fn_Memory_Allocator alloc_i) 
-{
-    VertexAttributeArray_init(&gl_data->vao, attribute_stride);
-    VertexBufferData_init(&gl_data->vbd, v_cap, i_cap, alloc_v, alloc_i);
-}
+// void GLData_init(GLData* gl_data, size_t attribute_stride, const size_t v_cap, const size_t i_cap, Fn_Memory_Allocator alloc_v, Fn_Memory_Allocator alloc_i) 
+// {
+//     VertexAttributeArray_init(&gl_data->vao, attribute_stride);
+//     VertexBufferData_init(&gl_data->vbd, v_cap, i_cap, alloc_v, alloc_i);
+// }
 
 void GLData_init_inplace(GLData* gl_data, size_t attribute_stride, const size_t v_cap, GLfloat* vertices, const size_t i_cap, GLuint* indices) 
 {

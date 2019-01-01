@@ -120,6 +120,9 @@ typedef U16Vector2 u8vec2;
 #define TYPE_T_SIZE_N template <typename T, usize N>
 #define TYPE_KV template <typename K, typename V>
 
+
+#define $T template <typename T>
+
 template <typename T>
 inline T dref_as(void* ptr);
 
@@ -185,9 +188,7 @@ T make(void)
     return structure;
 }
 
-#define MEMORY_IMPLEMENTATION
 #include "memory.cpp"
-#define ARRAY_IMPLEMENTATION
 #include "array.cpp"
 
 constexpr bool is_pow_2_greater_equal_4(usize N)
@@ -280,14 +281,14 @@ struct ConcurrentFIFO_SingleProducerSingleConsumer {
 };
 
 
-void* mem_alloc(usize num_bytes);
-void mem_free(void* bytes);
+
 
 // }
 #endif
 
 
 #ifdef COMMON_UTILS_CPP_IMPLEMENTATION
+#undef COMMON_UTILS_CPP_IMPLEMENTATION
 
 template <typename T>
 inline T dref_as(void* ptr)
@@ -437,6 +438,11 @@ static std::string to_binary_string(const T& x)
 {
     return std::bitset<sizeof(T) * 8>(x).to_string();
 }
+
+#define MEMORY_IMPLEMENTATION
+#include "memory.cpp"
+#define ARRAY_IMPLEMENTATION
+#include "array.cpp"
 
 
 template <typename T, usize N>
@@ -606,17 +612,7 @@ bool check_file_status(const char* file_path, struct stat* file_stat)
     return stat(file_path, file_stat) == 0;
 }
 
-void* mem_alloc(usize num_bytes)
-{
-    return (void*)xmalloc(num_bytes);
-}
-
-void mem_free(void* bytes)
-{
-    free(bytes);
-}
 
 
-#undef COMMON_UTILS_CPP_IMPLEMENTATION
 
 #endif

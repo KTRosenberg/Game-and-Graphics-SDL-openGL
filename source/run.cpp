@@ -1235,12 +1235,8 @@ bool load_config(AirPhysicsConfig* conf)
 #include "metatesting.cpp"
 #endif
 
-
-
-#include <time.h>
 int main(int argc, char* argv[])
 {
-
     logging_init(LOG_PATH, LOG_FILE, LOG_WRITE_ENABLED);
 /*
         struct {
@@ -1589,6 +1585,7 @@ int main(int argc, char* argv[])
         0.0f, 
         1.0f * 10.0f
     );
+
     //Mat4 mat_projection = glm::perspective(glm::radians(45.0f), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
 
 //////////////////
@@ -1714,6 +1711,10 @@ int main(int argc, char* argv[])
     glUniform4fv(COLOR_LOC_GRID, 1, glm::value_ptr(Vec4(0.25f, 0.25f, 0.25f, 0.5f)));
 
     UniformLocation SQUARE_PIXEL_LOC_GRID = glGetUniformLocation(shader_grid, "u_grid_square_pix");
+    UniformLocation RESOLUTION_LOC_GRID = glGetUniformLocation(shader_grid, "u_resolution");
+
+
+    glUniform2fv(RESOLUTION_LOC_GRID, 1, glm::value_ptr(Vec2(SCREEN_WIDTH, SCREEN_HEIGHT)));
 
     GLfloat grid_square_pixel_size = 16.0f;
     glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
@@ -1811,9 +1812,10 @@ int main(int argc, char* argv[])
 
 ////
     collision_map.next_free_slot()->a = Vec3(0.0, 5 * 128, 0.0);
-    collision_map.next_free_slot()->b = Vec3(SCREEN_WIDTH, 5 * 128, 0.0);
+    collision_map.next_free_slot()->b = Vec3(1280.0f, 5 * 128, 0.0);
     collision_map.count += 1;
 
+//
     collision_map.next_free_slot()->a = Vec3(512.0, 3 * 128, 0.0);
     collision_map.next_free_slot()->b = Vec3(768.0, 3 * 128, 0.0);
     collision_map.count += 1;
@@ -1834,7 +1836,7 @@ int main(int argc, char* argv[])
 #endif
 
     Player you;
-    Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0.0, true, 0, 20, 40);
+    Player_init(&you, 1280.0 / 2.0, 720.0 / 2.0, 0.0, true, 0, 20, 40);
     you.state_change_time = t_now;
 
 
@@ -2306,7 +2308,7 @@ int main(int argc, char* argv[])
                 backwards_acc = 1.0;
                 forwards_acc  = 1.0;
 
-                Player_init(&you, SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0, 0.0, true, 0, 20, 40);
+                Player_init(&you, 1280.0 / 2.0, 720.0 / 2.0, 0.0, true, 0, 20, 40);
                 you.state_change_time = t_now;
                 you.on_ground = false;
             }
@@ -2327,31 +2329,31 @@ int main(int argc, char* argv[])
 
             usize audio_tracks = 0x0000000000000000; 
             if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_1)) {
-                audio_tracks |= (1 << 0);
+                BSET_ADD(audio_tracks, 0);
             }
             if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_2)) {
-                audio_tracks |= (1 << 1);
+                BSET_ADD(audio_tracks, 1);
             }
             if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_3)) {
-                audio_tracks |= (1 << 2);
+                BSET_ADD(audio_tracks, 2);
             }
             if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_4)) {
-                audio_tracks |= (1 << 3);
+                BSET_ADD(audio_tracks, 3);
             }
             if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_5)) {
-                audio_tracks |= (1 << 4);
+                BSET_ADD(audio_tracks, 4);
             }
             if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_6)) {
-                audio_tracks |= (1 << 5);
+                BSET_ADD(audio_tracks, 5);
             }
             if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_7)) {
-                audio_tracks |= (1 << 6);
+                BSET_ADD(audio_tracks, 6);
             }
             if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_8)) {
-                audio_tracks |= (1 << 7);
+                BSET_ADD(audio_tracks, 7);
             }
             if (key_is_pressed(&input, CONTROL::AUDIO_TRACK_9)) {
-                audio_tracks |= (1 << 8);
+                BSET_ADD(audio_tracks, 8);
             }
 
             if (audio_tracks != 0) {

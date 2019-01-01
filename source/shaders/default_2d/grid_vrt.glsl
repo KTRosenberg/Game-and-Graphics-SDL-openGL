@@ -14,6 +14,7 @@ uniform vec3 u_position_cam;
 uniform vec4 u_color;
 uniform float u_time;
 uniform float u_scale;
+uniform vec2 u_resolution;
 
 float sin01(float x)
 {
@@ -26,7 +27,11 @@ void main(void)
    gl_Position = u_matrix * vec4(a_position, 1.0);
    v_position =  a_position.xyz;
 
-   vec2 c = vec2(640.0, 360.0);
+   //vec2 c = vec2(u_resolution.x, u_resolution.y) / 2.0;
+   vec2 c;
+   c = u_resolution / 2.0;
+   //c = vec2(1280.0 / 2.0, 720.0 / 2.0);
+   //c = vec2(1280.0, 720.0) / 2.0; 
 #ifdef SCALE_TEST
    vec2 scaled_pos = ((-u_position_cam.xy - c) * u_scale) + c;
 #else
