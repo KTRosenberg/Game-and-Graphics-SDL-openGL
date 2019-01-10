@@ -1235,9 +1235,115 @@ bool load_config(AirPhysicsConfig* conf)
 #include "metatesting.cpp"
 #endif
 
+
+struct Type_Info;
+
+TYPE_T
+struct Hee {
+    T t;
+};
+
+TYPE_T
+struct Wee {
+    Hee<T> hee;
+};
+
+struct Type_Info_Named {
+    char* name;
+    Type_Info* type_info;
+};
+
+struct Type_Info_Struct {
+    Array_Slice<Type_Info> types;
+    Array_Slice<char*>     names;
+    Array_Slice<usize>     offsets;
+};
+
+enum struct TYPE_INFO_TYPE {
+    NAMED,
+    STRUCT
+};
+
+struct Type_Info {
+    usize size;
+
+    TYPE_INFO_TYPE type_info_type;
+    union {
+        Type_Info_Named ti_named;
+        Type_Info_Struct ti_struct;
+    };
+};
+
+static int assign_type_id(void)
+{
+    static int id = 0;
+    id += 1;
+    return id - 1;
+}
+struct _wee {
+    static int id;
+};
+int _wee::id = assign_type_id();
+
+struct _hee {
+    static int id;
+};
+int _hee::id = assign_type_id();
+
+/*
+
+struct Entity {
+    Transform t;
+
+    type_id id;
+    Fn_entity_handler (void* args) entity_handler;
+};
+
+*/
+
+enum struct ENTITY_KIND {
+    FISH,
+    ENUM_COUNT
+};
+
+struct Fish {
+
+};
+
+struct Entity {
+    Vec4 transform;
+
+    ENTITY_KIND kind;
+    union {
+        Fish k_fish;
+    };
+};
+
+#define ENTITY_TYPE_SYSTEM_IMPLEMENTATION
+#include "entity_type_system.cpp"
+
 int main(int argc, char* argv[])
 {
     logging_init(LOG_PATH, LOG_FILE, LOG_WRITE_ENABLED);
+
+    // Type_Info ti_wee;
+    // ti_wee.type = TYPE_INFO_TYPE::NAMED;
+
+    // Type_Info_Named ti_named_wee;
+
+    // Type_Info ti_named_wee;
+    // Type_Info_Struct ti_struct_wee;
+
+    // Type_Info ti_hee;
+    // Type_Info_Named ti_named_hee
+    // Type_Info_Struct ti_struct_hee;
+
+    // Type_Info ti_t;
+
+
+    // Type_Info __[3];
+    // tis.types.data = __;
+    // tis.types.count = 3;
 /*
         struct {
             LogicNode* out;

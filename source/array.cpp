@@ -10,14 +10,14 @@
 
 TYPE_T
 struct Array_Slice {
-    const T* data;
-    const usize count;
+    T* data;
+    usize count;
 };
 
 TYPE_T_SIZE_N
 struct Array {
-    T     data[N];
     usize count;
+    T     data[N];
 
     inline operator T*(void) 
     {
@@ -31,13 +31,13 @@ struct Array {
 
     inline T& operator[](usize index)
     {
-        ASSERT_MSG(index >= 0 && index < this->count, "Index %llu is out-of-bounds ranges 0..<%llu", index, this->count);
+        ASSERT_MSG(index >= 0 && index < N, "Index %llu is out-of-bounds ranges 0..<%llu", index, N);
         return this->data[index];
     }
 
     inline const T& operator[](usize index) const 
     {
-        ASSERT_MSG(index >= 0 && index < this->count, "Index %llu is out-of-bounds ranges 0..<%llu", index, this->count);
+        ASSERT_MSG(index >= 0 && index < N, "Index %llu is out-of-bounds ranges 0..<%llu", index, N);
         
         return this->data[index];
     }
@@ -118,16 +118,20 @@ void ordered_remove(Array<T, N>* array, usize index);
 TYPE_T_SIZE_N
 void unordered_remove(Array<T, N>* array, usize index);
 
+namespace mem {
+    inline mem::Allocator const& get_mem_context_array_allocator(void);
+}
 
 #define ARRAY_GROW_FORMULA(x) (2*(x) + 8)
 static_assert(ARRAY_GROW_FORMULA(0) > 0, "ARRAY_GROW FORMULA(0) SHOULD NOT BE 0");
 
 TYPE_T 
 struct Dynamic_Array {
-    T*             data;
     usize          count;
     usize          cap;
     mem::Allocator allocator;
+    T*             data;
+
 
     inline operator T*(void) 
     {
@@ -186,12 +190,15 @@ struct Dynamic_Array {
 
     inline void swap(usize i, usize j);
 
+    static Dynamic_Array<T> make(mem::Allocator const& a);
     static Dynamic_Array<T> make(void);
-    static Dynamic_Array<T> make(mem::Allocator const* a);
+
+    static Dynamic_Array<T> make(mem::Allocator const& a, usize count);
     static Dynamic_Array<T> make(usize count);
-    static Dynamic_Array<T> make(mem::Allocator const* a, usize count);
-    static Dynamic_Array<T> make(mem::Allocator const* a, usize count, usize capacity);
+
+    static Dynamic_Array<T> make(mem::Allocator const& a, usize count, usize capacity);
     static Dynamic_Array<T> make(usize count, usize capacity);
+
     static Dynamic_Array<T> make_from_ptr(T* data, usize count, usize capacity);
 
     // static Dynamic_Array<T> make()
@@ -226,15 +233,15 @@ inline bool is_empty(Dynamic_Array<T>* array);
 TYPE_T
 void init(Dynamic_Array<T>* array);
 TYPE_T
-void init(Dynamic_Array<T>* array, mem::Allocator const* a);
+void init(Dynamic_Array<T>* array, mem::Allocator const& a);
 
 TYPE_T
 void init(Dynamic_Array<T>* array, usize count);
 TYPE_T
-void init(Dynamic_Array<T>* array, mem::Allocator const* a, usize count);
+void init(Dynamic_Array<T>* array, mem::Allocator const& a, usize count);
 
 template <typename T>
-void init(Dynamic_Array<T>* array, mem::Allocator const* a, usize count, usize capacity);
+void init(Dynamic_Array<T>* array, mem::Allocator const& a, usize count, usize capacity);
 TYPE_T
 void init(Dynamic_Array<T>* array, usize count, usize capacity);
 
@@ -244,13 +251,16 @@ inline void swap(Dynamic_Array<T>* array, usize i, usize j);
 
 
 TYPE_T
-inline void free(void);
+void deallocate(Dynamic_Array<T>* array);
 
 TYPE_T
 void clear(void);
 
 TYPE_T
 void reserve(Dynamic_Array<T>* array, usize cap);
+
+TYPE_T
+void array__grow(Dynamic_Array<T>* array, usize min_cap);
 
 TYPE_T
 void resize(Dynamic_Array<T>* array, usize count);
@@ -277,10 +287,18 @@ void copy(Dynamic_Array<T>* array, Dynamic_Array<T> const& data, isize offset, u
 
 // floating procedure API ////////////////////////////////////////////
 
+TYPE_T
+inline Array_Slice<T> slice(Array_Slice<T>* array, usize i, usize j)
+{
+    ASSERT_MSG(i <= j && j < array->count, "Slice out-of-bounds >= %llu", array->count);
+
+    return Array_Slice<T>{&array->data[i], j - i};
+}
+
 TYPE_T_SIZE_N
 inline Array_Slice<T> slice(Array<T, N>* array, usize i, usize j)
 {
-    ASSERT_MSG(j < array->count, "Slice out-of-bounds >= %llu", N);
+    ASSERT_MSG(i <= j && j < array->count, "Slice out-of-bounds >= %llu", array->count);
     return Array_Slice<T>{&array->data[i], j - i};
 }
 
@@ -472,7 +490,7 @@ inline void Array<T, N>::swap(usize i, usize j)
 TYPE_T
 inline Array_Slice<T> slice(Dynamic_Array<T>* array, usize i, usize j)
 {
-    ASSERT_MSG(j < array->count, "Slice out-of-bounds >= %llu", array->count);
+    ASSERT_MSG(i <= j && j < array->count, "Slice out-of-bounds >= %llu", array->count);
 
     return Array_Slice<T>{&array->data[i], j - i};
 }
@@ -500,6 +518,10 @@ inline void append(Dynamic_Array<T>* array, T* val)
 TYPE_T
 inline void push(Dynamic_Array<T>* array, T val)
 {
+    if (array->cap < array->count + 1) {
+        array__grow(array, 0);
+    }
+
     array->data[array->count] = val;
     array->count += 1;
 }
@@ -507,6 +529,10 @@ inline void push(Dynamic_Array<T>* array, T val)
 TYPE_T
 inline void push(Dynamic_Array<T>* array, T* val)
 {
+    if (array->cap < array->count + 1) {
+        array__grow(array, 0);
+    }
+
     array->data[array->count] = *val;
     array->count += 1;
 }
@@ -545,13 +571,15 @@ inline void swap(Dynamic_Array<T>* array, usize i, usize j)
 }
 
 TYPE_T
-inline void free(Dynamic_Array<T>* array)
+void deallocate(Dynamic_Array<T>* array)
 {
-    if (array->allocator.allocate != nullptr) {
-        array->allocator.allocate(array->allocator, array->data);
+    if (array->allocator.deallocate != nullptr) {
+        array->allocator.deallocate((void*)&array->allocator, array->data);
     }
+    array->data = nullptr;
     array->count = 0;
     array->cap = 0;
+
 }
 
 TYPE_T
@@ -563,16 +591,51 @@ inline void clear(Dynamic_Array<T>* array)
 TYPE_T
 void reserve(Dynamic_Array<T>* array, usize cap)
 {
+    if (array->capacity < cap) {
+        set_capacity(array, cap);
+    }
+}
+
+TYPE_T
+void array__grow(Dynamic_Array<T>* array, usize min_cap)
+{
+    usize new_cap = ARRAY_GROW_FORMULA(array->cap);
+    if (new_cap < min_cap) {
+        new_cap = min_cap;
+    }
+    set_capacity(array, new_cap);
 }
 
 TYPE_T
 void resize(Dynamic_Array<T>* array, usize count)
 {
+    if (array->cap < count) {
+        array__grow(array, count);
+    }
+    array->count = count;
 }
 
 TYPE_T
 void set_capacity(Dynamic_Array<T>* array, usize capacity)
 {
+    if (capacity == array->cap) {
+        return;
+    }
+
+    if (capacity < array->count) {
+        resize(array, capacity);
+    }
+
+    T* new_data = nullptr;
+    if (capacity > 0) {
+        printf("%u\n", sizeof(T) * capacity);
+        new_data = (T*)array->allocator.allocate((void*)&array->allocator, sizeof(T) * capacity);
+        memmove(new_data, array->data, sizeof(T) * array->cap);
+    }
+
+    array->allocator.deallocate((void*)&array->allocator, (void*)array->data);
+    array->data = new_data;
+    array->cap = capacity;
 }
 
 TYPE_T
@@ -607,78 +670,101 @@ void init(Dynamic_Array<T>* array, mem::Allocator const& a)
 TYPE_T
 void init(Dynamic_Array<T>* array)
 {
-    array->count = 0;
-    array->cap = 0;
-
-    // TODO use default allocator    
+    usize cap = ARRAY_GROW_FORMULA(0); 
+    init(array, mem::get_mem_context_array_allocator(), 0, cap);
 }
 
 
 TYPE_T
-void init(Dynamic_Array<T>* array, mem::Allocator const* a, usize count)
+void init(Dynamic_Array<T>* array, mem::Allocator const& a, usize count)
 {
     init(array, a, count, count);
 }
 TYPE_T
 void init(Dynamic_Array<T>* array, usize count)
 {
+    init(array, mem::get_mem_context_array_allocator(), count, count);
+}
+
+TYPE_T
+void init(Dynamic_Array<T>* array, usize count, usize capacity)
+{
+    init(array, mem::get_mem_context_array_allocator(), count, capacity);
 }
 TYPE_T
-void init(Dynamic_Array<T>* array, mem::Allocator const* a, usize count, usize capacity)
+void init(Dynamic_Array<T>* array, mem::Allocator const& a, usize count, usize capacity)
 {
     array->allocator = a;
     array->data = nullptr;
     if (capacity > 0) {
-        array->data = array_allocate(a, T, capacity);
+        ASSERT(array->allocator.allocate != nullptr);
+        array->data = (T*)array->allocator.allocate((void*)&a, sizeof(T) * capacity);
     }
     array->count = count;
     array->cap   = capacity;
 }
-TYPE_T
-void init(Dynamic_Array<T>* array, usize count, usize capacity)
-{
-}
 
+
+
+TYPE_T
+Dynamic_Array<T> Dynamic_Array<T>::make(mem::Allocator const& a)
+{
+    Dynamic_Array<T> array;
+    ::init(&array, a);
+
+    return array;
+}
 TYPE_T
 Dynamic_Array<T> Dynamic_Array<T>::make(void)
 {
-    return {};
+    Dynamic_Array<T> array;
+    ::init(&array);
+
+    return array; 
 }
+
 TYPE_T
-Dynamic_Array<T> Dynamic_Array<T>::make(mem::Allocator const* a)
+Dynamic_Array<T> Dynamic_Array<T>::make(mem::Allocator const& a, usize count)
 {
-    return {};   
+    Dynamic_Array<T> array;
+    ::init(&array, a, count, count);
+
+    return array;
 }
 TYPE_T
 Dynamic_Array<T> Dynamic_Array<T>::make(usize count)
 {
-    return {};
+    Dynamic_Array<T> array;
+    ::init(&array, count, count);
+
+    return array;
 }
+
 TYPE_T
-Dynamic_Array<T> Dynamic_Array<T>::make(mem::Allocator const* a, usize count)
+Dynamic_Array<T> Dynamic_Array<T>::make(mem::Allocator const& a, usize count, usize capacity)
 {
-    return {};
-}
-TYPE_T
-Dynamic_Array<T> Dynamic_Array<T>::make(mem::Allocator const* a, usize count, usize capacity)
-{
-    return {};
+    Dynamic_Array<T> array;
+    ::init(&array, a, count, capacity);
+
+    return array;
 }
 TYPE_T
 Dynamic_Array<T> Dynamic_Array<T>::make(usize count, usize capacity)
 {
-    return {};
+    Dynamic_Array<T> array;
+    ::init(&array, count, capacity);
+
+    return array;
 }
 
 TYPE_T
 Dynamic_Array<T> Dynamic_Array<T>::make_from_ptr(T* data, usize count, usize capacity)
 {
-    Dynamic_Array<T> array;
+    Dynamic_Array<T> array = {};
     array.data  = data;
     array.count = count;
     array.cap   = capacity;
 
-    // TODO init allocator maybe?
     return array;
 }
 

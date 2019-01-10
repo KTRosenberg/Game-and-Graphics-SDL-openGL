@@ -203,15 +203,20 @@ void gb_assert_handler(char const *prefix, char const *condition, char const *fi
 #define DEFAULT_MEMORY_ALIGNMENT (2 * sizeof(void*))
 #endif
 
-typedef void* (*Fn_Memory_allocate)(void* data, usize bytes);
-typedef void  (*Fn_Memory_deallocate)(void* data, void* memory);
-typedef void* (*Fn_Memory_resize)(void);
-typedef void  (*Fn_Memory_deallocate_all)(void);
+typedef void* (*Fn_Memory_allocate)(void*, usize);
+typedef void  (*Fn_Memory_deallocate)(void*, void*);
+typedef void  (*Fn_Memory_resize)(void*, usize);
+typedef void  (*Fn_Memory_deallocate_all)(void*, usize);
 
 void* mem_alloc(void* data, usize num_bytes);
 void mem_free(void* data, void* bytes);
+void mem_resize(void* data, usize bytes);
+void mem_free_all(void* data, usize bytes);
 
 #define array_allocate(allocator_, Type, count) (Type*)mem_alloc((void*)allocator_, sizeof(Type) * (count))
+#define array_free(allocator_, data) mem_free((void*)allocator_, data_) 
+
+
 
 #define MEM_ALLOCATOR_PROC(name) \
 void* name(void* allocator_data, \
@@ -563,12 +568,23 @@ void ArenaAllocator_delete(ArenaAllocator* arena)
 
 void* mem_alloc(void* data, usize num_bytes)
 {
+    (void)data;
     return (void*)xmalloc(num_bytes);
 }
 
 void mem_free(void* data, void* bytes)
 {
+    (void)data;
     free(bytes);
+}
+
+void mem_resize(void* data, usize bytes)
+{
+    // TODO
+}
+void mem_free_all(void* data, usize bytes)
+{
+    // TODO
 }
 
 void debug_print(const char* const in) 

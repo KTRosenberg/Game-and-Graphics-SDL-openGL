@@ -38,4 +38,5 @@ clean :
 	if [ -f "./logs/log.txt" ]; then rm ./logs/log.txt; fi 
 clean_all :
 	-rm -f *.o *.core $(EXECNAME) *.d
+	if [ -f "./logs/log.txt" ]; then rm ./logs/log.txt; fi 
 	if [ -d "./logs" ]; then rmdir ./logs; fi
