@@ -119,7 +119,7 @@ TYPE_T_SIZE_N
 void unordered_remove(Array<T, N>* array, usize index);
 
 namespace mem {
-    inline mem::Allocator const& get_mem_context_array_allocator(void);
+    inline mem::Allocator const& get_sys_context_array_allocator(void);
 }
 
 #define ARRAY_GROW_FORMULA(x) (2*(x) + 8)
@@ -129,8 +129,8 @@ TYPE_T
 struct Dynamic_Array {
     usize          count;
     usize          cap;
-    mem::Allocator allocator;
     T*             data;
+    mem::Allocator allocator;
 
 
     inline operator T*(void) 
@@ -628,7 +628,6 @@ void set_capacity(Dynamic_Array<T>* array, usize capacity)
 
     T* new_data = nullptr;
     if (capacity > 0) {
-        printf("%u\n", sizeof(T) * capacity);
         new_data = (T*)array->allocator.allocate((void*)&array->allocator, sizeof(T) * capacity);
         memmove(new_data, array->data, sizeof(T) * array->cap);
     }
@@ -671,7 +670,7 @@ TYPE_T
 void init(Dynamic_Array<T>* array)
 {
     usize cap = ARRAY_GROW_FORMULA(0); 
-    init(array, mem::get_mem_context_array_allocator(), 0, cap);
+    init(array, mem::get_sys_context_array_allocator(), 0, cap);
 }
 
 
@@ -683,13 +682,13 @@ void init(Dynamic_Array<T>* array, mem::Allocator const& a, usize count)
 TYPE_T
 void init(Dynamic_Array<T>* array, usize count)
 {
-    init(array, mem::get_mem_context_array_allocator(), count, count);
+    init(array, mem::get_sys_context_array_allocator(), count, count);
 }
 
 TYPE_T
 void init(Dynamic_Array<T>* array, usize count, usize capacity)
 {
-    init(array, mem::get_mem_context_array_allocator(), count, capacity);
+    init(array, mem::get_sys_context_array_allocator(), count, capacity);
 }
 TYPE_T
 void init(Dynamic_Array<T>* array, mem::Allocator const& a, usize count, usize capacity)

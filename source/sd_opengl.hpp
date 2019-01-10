@@ -94,6 +94,7 @@ static constexpr GLenum LINES     = GL_LINES;
 
 struct Shader_Vertex {
     Vec3_ua position;
+    float32 angle;
     Vec4_ua color;
     Vec2_ua uv;
 };
@@ -633,6 +634,8 @@ template<usize SD_RENDER_BATCH_SIZE> void free(sd::Render_Batch<SD_RENDER_BATCH_
 
 template<usize SD_RENDER_BATCH_SIZE> bool line(sd::Render_Batch<SD_RENDER_BATCH_SIZE>* ctx, Vec3 a, Vec3 b);
 template<usize SD_RENDER_BATCH_SIZE> bool line(sd::Render_Batch<SD_RENDER_BATCH_SIZE>* ctx, Vec2 a, Vec2 b);
+template<usize SD_RENDER_BATCH_SIZE> bool debug_line(sd::Render_Batch<SD_RENDER_BATCH_SIZE>* ctx, Vec3 a, Vec3 b);
+template<usize SD_RENDER_BATCH_SIZE> bool debug_line(sd::Render_Batch<SD_RENDER_BATCH_SIZE>* ctx, Vec2 a, Vec2 b);
 template<usize SD_RENDER_BATCH_SIZE> bool remove_line_swap_end(sd::Render_Batch<SD_RENDER_BATCH_SIZE>* ctx, usize idx);
 template<usize SD_RENDER_BATCH_SIZE> bool quad(sd::Render_Batch<SD_RENDER_BATCH_SIZE>* ctx, Vec3, Vec3, Vec3, Vec3);
 template<usize SD_RENDER_BATCH_SIZE> bool quad(sd::Render_Batch<SD_RENDER_BATCH_SIZE>* ctx, Vec2, Vec2, Vec2, Vec2);

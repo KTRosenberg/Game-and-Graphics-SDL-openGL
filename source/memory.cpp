@@ -11,20 +11,20 @@ struct Allocator {
     Fn_Memory_deallocate_all deallocate_all;
 };
 
-struct Memory_Context {
+struct System_Context {
     mem::Allocator allocator;
     mem::Allocator array_allocator;
 };
 
-inline mem::Allocator const& get_allocator(Memory_Context* mc);
-inline mem::Allocator const& get_array_allocator(Memory_Context* mc);
-inline mem::Allocator const& get_mem_context_allocator(void);
-inline mem::Allocator const& get_mem_context_array_allocator(void);
+inline mem::Allocator const& get_allocator(System_Context* sc);
+inline mem::Allocator const& get_array_allocator(System_Context* sc);
+inline mem::Allocator const& get_sys_context_allocator(void);
+inline mem::Allocator const& get_sys_context_array_allocator(void);
 
-void push_mem_context(Memory_Context* mc, mem::Allocator const& a);
-void pop_mem_context(Memory_Context* mc);
-void push_mem_context(void);
-void pop_mem_context(void);
+void push_sys_context(System_Context* mc, mem::Allocator const& a);
+void pop_sys_context(System_Context* mc);
+void push_sys_context(void);
+void pop_sys_context(void);
 
 template <typename T>
 T* alloc(void); 
@@ -42,7 +42,7 @@ inline void zero(T* ptr);
 
 namespace mem {
 
-static Memory_Context mem_ctx = {
+static System_Context sys_ctx = {
     .allocator = {
         .allocate = mem_alloc,
         .deallocate = mem_free,
@@ -57,33 +57,33 @@ static Memory_Context mem_ctx = {
     },
 };
 
-inline mem::Allocator const& get_allocator(Memory_Context* mc)
+inline mem::Allocator const& get_allocator(System_Context* sc)
 {
-    return mc->allocator;
+    return sc->allocator;
 }
-inline mem::Allocator const& get_array_allocator(Memory_Context* mc)
+inline mem::Allocator const& get_array_allocator(System_Context* sc)
 {
-    return mc->array_allocator;
+    return sc->array_allocator;
 }
-inline mem::Allocator const& get_mem_context_allocator(void)
+inline mem::Allocator const& get_sys_context_allocator(void)
 {
-    return mem_ctx.allocator;
+    return sys_ctx.allocator;
 }
-inline mem::Allocator const& get_mem_context_array_allocator(void)
+inline mem::Allocator const& get_sys_context_array_allocator(void)
 {
-    return mem_ctx.array_allocator;
+    return sys_ctx.array_allocator;
 }
 
-void push_mem_context(Memory_Context* mc, mem::Allocator const& a)
+void push_sys_context(System_Context* sc, mem::Allocator const& a)
 {
 }
-void pop_mem_context(Memory_Context* mc)
+void pop_sys_context(System_Context* sc)
 {
 }
-void push_mem_context(void)
+void push_sys_context(void)
 {
 }
-void pop_mem_context(void)
+void pop_sys_context(void)
 {
 }
 
