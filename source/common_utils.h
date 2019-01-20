@@ -67,6 +67,7 @@ typedef unsigned char* ucharptr;
 #define gb(n) (mb(n) * 1024ull)
 
 #define BSET_ADD(bits__, index__) bits__ |= (1 << index__)
+#define BSET_CONTAINS(bits__, index__) ((bits__ & (1 << index__)) != 0)
 
 
 #define foreach(i, lim) for (u64 (i) = 0; (i) < ((u64)lim); (i += 1))
@@ -159,11 +160,14 @@ void debug_print(const char* const in);
 // taken from Odin lang open-source library
 //https://github.com/odin-lang/Odin/blob/master/src/gb/gb.h
 
-#define gb_inline inline
+#define gb_inline static inline
 #define gb_local_persist static
 
-gb_inline isize gb_fprintf_va(char const *fmt, va_list va);
-gb_inline isize gb_printf_err_va(char const *fmt, va_list va);
+isize gb_fprintf_va(char const *fmt, va_list va);
+gb_inline isize gb_printf_err_va(char const *fmt, va_list va) 
+{
+    return gb_fprintf_va(fmt, va);
+}
 isize gb_printf_err(char const *fmt, ...);
 void gb_assert_handler(char const *prefix, char const *condition, char const *file, i32 line, char const *msg, ...);
 
@@ -486,9 +490,6 @@ isize gb_fprintf_va(char const *fmt, va_list va) {
     return len;
 }
 
-gb_inline isize gb_printf_err_va(char const *fmt, va_list va) {
-    return gb_fprintf_va(fmt, va);
-}
 
 isize gb_printf_err(char const *fmt, ...) 
 {

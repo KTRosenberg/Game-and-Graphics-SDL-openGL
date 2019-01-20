@@ -20,21 +20,64 @@
 
 #endif
 
-typedef GLuint UniformLocation;
+typedef GLint Uniform_Location;
+typedef GLuint Uniform_Block_Index;
 typedef GLuint Texture;
 typedef GLuint VertexArray;
+typedef VertexArray Vertex_Array_Object;
 typedef VertexArray VAO;
 typedef GLuint VertexBuffer;
+typedef VertexBuffer Vertex_Buffer_Object;
 typedef VertexBuffer VBO; 
 typedef GLuint ElementBuffer;
+typedef ElementBuffer Element_Buffer_Object;
 typedef ElementBuffer EBO;
+typedef GLuint Uniform_Buffer_Object; 
 typedef GLuint GLBuffer;
+typedef GLuint GL_Buffer;
+typedef GLuint Shader_Program;
 
-#define gl_get_errors() \
+
+#define GL_GET_ERRORS() \
     do { \
         GLenum err = GL_NO_ERROR; \
+        bool has_error = false; \
         while ((err = glGetError()) != GL_NO_ERROR) { \
-            fprintf(stderr, "ERROR: 0x%x\n", err); \
+            fprintf(stderr, "%s, %d\n", __FILE__, __LINE__ ); \
+            has_error = true; \
+            \
+            switch (err) { \
+            case GL_INVALID_ENUM: \
+                fprintf(stderr, "%s\n", "GL_INVALID_ENUM"); \
+                break; \
+            case GL_INVALID_VALUE: \
+                fprintf(stderr, "%s\n", "GL_INVALID_VALUE"); \
+                break; \
+            case GL_INVALID_OPERATION: \
+                fprintf(stderr, "%s\n", "GL_INVALID_OPERATION"); \
+                break; \
+            case GL_STACK_OVERFLOW: \
+                fprintf(stderr, "%s\n", "GL_STACK_OVERFLOW"); \
+                break; \
+            case GL_STACK_UNDERFLOW: \
+                fprintf(stderr, "%s\n", "GL_STACK_UNDERFLOW"); \
+                break; \
+            case GL_OUT_OF_MEMORY: \
+                fprintf(stderr, "%s\n", "GL_OUT_OF_MEMORY"); \
+                break; \
+            case GL_INVALID_FRAMEBUFFER_OPERATION: \
+                fprintf(stderr, "%s\n", "GL_INVALID_FRAMEBUFFER_OPERATION"); \
+                break; \
+            case GL_CONTEXT_LOST: \
+                fprintf(stderr, "%s\n", "GL_CONTEXT_LOST"); \
+                break; \
+            case GL_TABLE_TOO_LARGE: \
+                fprintf(stderr, "%s\n", "GL_TABLE_TOO_LARGE"); \
+                break; \
+            } \
+        } \
+        if (has_error) { \
+            \
         } \
     } while (0) \
 \
@@ -49,15 +92,15 @@ struct AttributeData {
     GLchar*   name;
 };
 
-struct VertexAttributeArray {
+struct Vertex_Attribute_Array {
     VertexArray vao;
     size_t stride;
 
     operator GLuint() { return vao; }
 };
-typedef VertexAttributeArray VAttribArr;
+typedef Vertex_Attribute_Array VAttribArr;
 
-struct VertexBufferData {
+struct Vertex_Buffer_Data {
     VertexBuffer vbo;
     ElementBuffer ebo;
     size_t    v_cap;
@@ -69,8 +112,8 @@ struct VertexBufferData {
 };
 
 struct GLData {
-    VertexAttributeArray vao;
-    VertexBufferData vbd;
+    Vertex_Attribute_Array vao;
+    Vertex_Buffer_Data vbd;
 };
 
 struct TextureData {
@@ -96,38 +139,38 @@ void AttributeData_init(
     GLchar* name    
 );
 
-// void VertexBufferData_init(
-//     VertexBufferData* g,
+// void Vertex_Buffer_Data_init(
+//     Vertex_Buffer_Data* g,
 //     const size_t v_cap,
 //     const size_t i_cap,
 //     Fn_Memory_Allocator alloc_v,
 //     Fn_Memory_Allocator alloc_i
 // );
-void VertexBufferData_init_inplace(
-    VertexBufferData* g,
+void Vertex_Buffer_Data_init_inplace(
+    Vertex_Buffer_Data* g,
     const size_t v_cap,
     GLfloat* vertices,
     const size_t i_cap,
     GLuint* indices
 );
-void VertexBufferData_delete(VertexBufferData* g);
-void VertexBufferData_delete_inplace(VertexBufferData* g);
-void VertexBufferData_init_with_arenas(ArenaAllocator* v_arena, ArenaAllocator* i_arena, VertexBufferData* vbd, size_t v_count_elements, size_t i_count_elements);
+void Vertex_Buffer_Data_delete(Vertex_Buffer_Data* g);
+void Vertex_Buffer_Data_delete_inplace(Vertex_Buffer_Data* g);
+void Vertex_Buffer_Data_init_with_arenas(ArenaAllocator* v_arena, ArenaAllocator* i_arena, Vertex_Buffer_Data* vbd, size_t v_count_elements, size_t i_count_elements);
 
-void VertexAttributeArray_init(VertexAttributeArray* vao, size_t stride);
-void VertexAttributeArray_delete(VertexAttributeArray* vao);
+void Vertex_Attribute_Array_init(Vertex_Attribute_Array* vao, size_t stride);
+void Vertex_Attribute_Array_delete(Vertex_Attribute_Array* vao);
 
 // TODO vertex package structs instead of all floats
 
 #define attribute_offsetof(offset) (GLvoid*)(offset * sizeof(GLfloat))
 #define attribute_sizeof(vao) vao->stride * sizeof(GLfloat)
 
-void gl_set_and_enable_vertex_attrib_ptr(GLuint index, GLint size, GLenum type, GLboolean normalized, size_t offset, VertexAttributeArray* va);
-void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, GLenum usage, size_t v_cap, size_t i_cap, GLintptr v_begin_offset = 0, GLintptr i_begin_offset = 0);
-void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, GLenum usage, GLintptr v_begin_offset = 0, GLintptr i_begin_offset = 0);
-void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd);
-void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset);
-void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset, GLfloat* vertices, GLuint* indices);
+void gl_set_and_enable_vertex_attrib_ptr(GLuint index, GLint size, GLenum type, GLboolean normalized, size_t offset, Vertex_Attribute_Array* va);
+void gl_bind_buffers_and_upload_data(Vertex_Buffer_Data* vbd, GLenum usage, size_t v_cap, size_t i_cap, GLintptr v_begin_offset = 0, GLintptr i_begin_offset = 0);
+void gl_bind_buffers_and_upload_data(Vertex_Buffer_Data* vbd, GLenum usage, GLintptr v_begin_offset = 0, GLintptr i_begin_offset = 0);
+void gl_bind_buffers_and_upload_sub_data(Vertex_Buffer_Data* vbd);
+void gl_bind_buffers_and_upload_sub_data(Vertex_Buffer_Data* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset);
+void gl_bind_buffers_and_upload_sub_data(Vertex_Buffer_Data* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset, GLfloat* vertices, GLuint* indices);
 
 // void GLData_init(GLData* gl_data, size_t attribute_stride, const size_t v_cap, const size_t i_cap, Fn_Memory_Allocator alloc_v, Fn_Memory_Allocator alloc_i);
 void GLData_init_inplace(GLData* gl_data, size_t attribute_stride, const size_t v_cap, GLfloat* vertices, const size_t i_cap, GLuint* indices);
@@ -232,19 +275,19 @@ void AttributeData_init(
 //     DynamicBuffer<GLuint> indices;
 // };
 
-// struct VertexBufferDataAlt {
+// struct Vertex_Buffer_DataAlt {
 //     VertexBuffer vbo;
 //     ElementBuffer ebo;
 //     Buffer<GLfloat> vertices_lines;
 //     Buffer<GLuint>  indices;
-// } VertexBufferDataAlt;
+// } Vertex_Buffer_DataAlt;
 
-// typedef VertexBufferData VBData;
+// typedef Vertex_Buffer_Data VBData;
 
 
 
-// void VertexBufferData_init(
-//     VertexBufferData* g,
+// void Vertex_Buffer_Data_init(
+//     Vertex_Buffer_Data* g,
 //     const size_t v_cap,
 //     const size_t i_cap,
 //     Fn_Memory_Allocator alloc_v,
@@ -263,8 +306,8 @@ void AttributeData_init(
 //     g->i_count = i_cap;
 // }
 
-void VertexBufferData_init_inplace(
-    VertexBufferData* g,
+void Vertex_Buffer_Data_init_inplace(
+    Vertex_Buffer_Data* g,
     const size_t v_cap,
     GLfloat* vertices,
     const size_t i_cap,
@@ -283,22 +326,22 @@ void VertexBufferData_init_inplace(
     g->i_count = i_cap;
 }
 
-void VertexBufferData_delete(VertexBufferData* g)
+void Vertex_Buffer_Data_delete(Vertex_Buffer_Data* g)
 {
     glDeleteBuffers(1, (GLBuffer*)&g->vbo);
     glDeleteBuffers(1, (GLBuffer*)&g->ebo);
     mem_free(nullptr, g->vertices);
     mem_free(nullptr, g->indices);
 }
-void VertexBufferData_delete_inplace(VertexBufferData* g)
+void Vertex_Buffer_Data_delete_inplace(Vertex_Buffer_Data* g)
 {
     glDeleteBuffers(1, (GLBuffer*)&g->vbo);
     glDeleteBuffers(1, (GLBuffer*)&g->ebo);
 }
 
-void VertexBufferData_init_with_arenas(ArenaAllocator* v_arena, ArenaAllocator* i_arena, VertexBufferData* vbd, size_t v_count_elements, size_t i_count_elements) 
+void Vertex_Buffer_Data_init_with_arenas(ArenaAllocator* v_arena, ArenaAllocator* i_arena, Vertex_Buffer_Data* vbd, size_t v_count_elements, size_t i_count_elements) 
 {
-    VertexBufferData_init_inplace(
+    Vertex_Buffer_Data_init_inplace(
         vbd, 
         v_count_elements,
         (GLfloat*)ArenaAllocator_allocate(v_arena, v_count_elements * sizeof(GLfloat)),
@@ -308,23 +351,23 @@ void VertexBufferData_init_with_arenas(ArenaAllocator* v_arena, ArenaAllocator* 
 }
 
 
-void VertexAttributeArray_init(VertexAttributeArray* vao, size_t stride) 
+void Vertex_Attribute_Array_init(Vertex_Attribute_Array* vao, size_t stride) 
 {
     glGenVertexArrays(1, &vao->vao);
     vao->stride = stride;
 }
-void VertexAttributeArray_delete(VertexAttributeArray* vao) 
+void Vertex_Attribute_Array_delete(Vertex_Attribute_Array* vao) 
 {
     glDeleteVertexArrays(1, &vao->vao);
 }
 
-void gl_set_and_enable_vertex_attrib_ptr(GLuint index, GLint size, GLenum type, GLboolean normalized, size_t offset, VertexAttributeArray* va)
+void gl_set_and_enable_vertex_attrib_ptr(GLuint index, GLint size, GLenum type, GLboolean normalized, size_t offset, Vertex_Attribute_Array* va)
 {
     glVertexAttribPointer(index, size, type, normalized, attribute_sizeof(va), attribute_offsetof(offset));            
     glEnableVertexAttribArray(index);
 }
 
-void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, GLenum usage, size_t v_cap, size_t i_cap, GLintptr v_begin_offset, GLintptr i_begin_offset)
+void gl_bind_buffers_and_upload_data(Vertex_Buffer_Data* vbd, GLenum usage, size_t v_cap, size_t i_cap, GLintptr v_begin_offset, GLintptr i_begin_offset)
 {
     glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
     glBufferData(GL_ARRAY_BUFFER, v_cap * sizeof(GLfloat), vbd->vertices + v_begin_offset, usage);
@@ -333,7 +376,7 @@ void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, GLenum usage, size_t
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, i_cap * sizeof(GLuint), vbd->indices + i_begin_offset, usage);            
 }
 
-void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, GLenum usage, GLintptr v_begin_offset, GLintptr i_begin_offset)
+void gl_bind_buffers_and_upload_data(Vertex_Buffer_Data* vbd, GLenum usage, GLintptr v_begin_offset, GLintptr i_begin_offset)
 {
     glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
     glBufferData(GL_ARRAY_BUFFER, vbd->v_cap * sizeof(GLfloat), vbd->vertices + v_begin_offset, usage);
@@ -342,7 +385,7 @@ void gl_bind_buffers_and_upload_data(VertexBufferData* vbd, GLenum usage, GLintp
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, vbd->i_cap * sizeof(GLuint), vbd->indices + i_begin_offset, usage);           
 }
 
-void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd)
+void gl_bind_buffers_and_upload_sub_data(Vertex_Buffer_Data* vbd)
 {
     glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, vbd->v_count * sizeof(GLfloat), vbd->vertices);
@@ -351,7 +394,7 @@ void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd)
     glBufferSubData(GL_ARRAY_BUFFER, 0, vbd->i_count * sizeof(GLuint), vbd->indices);
 }
 
-void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset)
+void gl_bind_buffers_and_upload_sub_data(Vertex_Buffer_Data* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset)
 {
     glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
     glBufferSubData(GL_ARRAY_BUFFER, v_dest_offset * sizeof(GLfloat), v_sub_count * sizeof(GLfloat), vbd->vertices + v_begin_offset);
@@ -360,7 +403,7 @@ void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd, usize v_dest_off
     glBufferSubData(GL_ARRAY_BUFFER, i_dest_offset * sizeof(GLuint), i_sub_count * sizeof(GLuint), vbd->indices + i_begin_offset);
 }
 
-void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset, GLfloat* vertices, GLuint* indices)
+void gl_bind_buffers_and_upload_sub_data(Vertex_Buffer_Data* vbd, usize v_dest_offset, usize v_sub_count, GLintptr v_begin_offset, usize i_dest_offset, usize i_sub_count, GLintptr i_begin_offset, GLfloat* vertices, GLuint* indices)
 {
     glBindBuffer(GL_ARRAY_BUFFER, vbd->vbo);
     glBufferSubData(GL_ARRAY_BUFFER, v_dest_offset * sizeof(GLfloat), v_sub_count * sizeof(GLfloat), vertices + v_begin_offset);
@@ -373,14 +416,14 @@ void gl_bind_buffers_and_upload_sub_data(VertexBufferData* vbd, usize v_dest_off
 
 // void GLData_init(GLData* gl_data, size_t attribute_stride, const size_t v_cap, const size_t i_cap, Fn_Memory_Allocator alloc_v, Fn_Memory_Allocator alloc_i) 
 // {
-//     VertexAttributeArray_init(&gl_data->vao, attribute_stride);
-//     VertexBufferData_init(&gl_data->vbd, v_cap, i_cap, alloc_v, alloc_i);
+//     Vertex_Attribute_Array_init(&gl_data->vao, attribute_stride);
+//     Vertex_Buffer_Data_init(&gl_data->vbd, v_cap, i_cap, alloc_v, alloc_i);
 // }
 
 void GLData_init_inplace(GLData* gl_data, size_t attribute_stride, const size_t v_cap, GLfloat* vertices, const size_t i_cap, GLuint* indices) 
 {
-    VertexAttributeArray_init(&gl_data->vao, attribute_stride);
-    VertexBufferData_init_inplace(&gl_data->vbd, v_cap, vertices, i_cap, indices);    
+    Vertex_Attribute_Array_init(&gl_data->vao, attribute_stride);
+    Vertex_Buffer_Data_init_inplace(&gl_data->vbd, v_cap, vertices, i_cap, indices);    
 }
 
 inline void GLData_advance(GLData* const gl_data, const size_t i)
@@ -391,14 +434,14 @@ inline void GLData_advance(GLData* const gl_data, const size_t i)
 
 void GLData_delete(GLData* gl_data)
 {
-    VertexAttributeArray_delete(&gl_data->vao);
-    VertexBufferData_delete(&gl_data->vbd);
+    Vertex_Attribute_Array_delete(&gl_data->vao);
+    Vertex_Buffer_Data_delete(&gl_data->vbd);
 }
 
 void GLData_delete_inplace(GLData* gl_data)
 {
-    VertexAttributeArray_delete(&gl_data->vao);
-    VertexBufferData_delete_inplace(&gl_data->vbd);    
+    Vertex_Attribute_Array_delete(&gl_data->vao);
+    Vertex_Buffer_Data_delete_inplace(&gl_data->vbd);    
 }
 
 #endif

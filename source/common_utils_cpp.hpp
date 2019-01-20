@@ -2,9 +2,9 @@
 #define COMMON_UTILS_HPP
 
 #include "common_utils.h"
-#include <cstring>
-#include <ctime>
-#include <csignal>
+#include <string.h>
+#include <time.h>
+#include <signal.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -120,6 +120,8 @@ typedef U16Vector2 u8vec2;
 #define TYPE_T_SIZE_N template <typename T, usize N>
 #define TYPE_KV template <typename K, typename V>
 
+#define POSITIVE_INFINITY (std::numeric_limits<f64>::infinity())
+#define NEGATIVE_INFINITY (-POSITIVE_INFINITY)
 
 #define $T template <typename T>
 
@@ -128,9 +130,6 @@ inline T dref_as(void* ptr);
 
 TYPE_T
 T make(void);
-
-#define POSITIVE_INFINITY (std::numeric_limits<f64>::infinity())
-#define NEGATIVE_INFINITY (-POSITIVE_INFINITY)
 
 namespace m {
 
@@ -142,6 +141,12 @@ inline T max(T val_a, T val_b);
 
 TYPE_T
 inline T abs(T val);
+
+TYPE_T
+inline T cos(T val);
+
+TYPE_T
+inline T sin(T val);
 
 }
 
@@ -165,9 +170,24 @@ inline float32 sin01(float32 val);
 template<typename T>
 static std::string to_binary_string(const T& x);
 
-constexpr bool is_powerof2(usize N) 
+constexpr bool is_powerof2(uint64 N) 
 {
     return N && ((N & (N - 1)) == 0);
+}
+
+constexpr uint64 next_powerof2_ge(uint64 n)
+{
+    if (is_powerof2(n)) {
+        return n;
+    }
+
+    n -= 1;
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+    return n + 1;
 }
 
 
@@ -271,13 +291,17 @@ bool check_file_status(const char* file_path, struct stat* file_stat);
 
 #include <ck_ring.h>
 
-template <usize N>
-struct ConcurrentFIFO_SingleProducerSingleConsumer {
+template <typename T, usize N>
+struct Concurrent_Ring_Buffer {
     static_assert(is_pow_2_greater_equal_4(N), REQUIRED_POW_2_CAPACITY_ERROR_MESSAGE);
     
     ck_ring_t ring;
-    ck_ring_buffer_t buffer[N];
-    const usize capacity = N;
+    T buffer[N];
+
+    inline usize cap(void)
+    {
+        return N;
+    }
 };
 
 
@@ -314,6 +338,18 @@ TYPE_T
 inline T abs(T val)
 {
     return glm::abs(val);
+}
+
+TYPE_T
+inline T cos(T val)
+{
+    return glm::cos(val);
+}
+
+TYPE_T
+inline T sin(T val)
+{
+    return glm::sin(val);
 }
 
 }

@@ -48,9 +48,9 @@ namespace Color {
 namespace sd {
 
 enum struct BATCH_TYPE {
-    POLYGON_TEXTURED = (1 << 0),
-    POLYGON_COLORED  = (1 << 1),
-    LINE_DEBUG       = (1 << 2),
+    POLYGON_TEXTURED_2D = (1 << 0),
+    POLYGON_COLORED_2D  = (1 << 1),
+    LINE_DEBUG          = (1 << 2),
 };
 
 }
@@ -58,7 +58,12 @@ enum struct BATCH_TYPE {
 #if defined(SD_RENDERER_VULKAN)
     #error VULKAN RENDERER NOT IMPLEMENTED
 #elif defined(SD_RENDERER_OPENGL)
-    #include "sd_opengl.hpp"
+    #if defined(SD_RENDERER_VERSION_1)
+        #warning "using sd opengl deprecated version 1 renderer"
+        #include "sd_opengl_v1.hpp"
+    #else
+        #include "sd_opengl.hpp"
+    #endif
 #else
     #error SD RENDERER NOT DEFINED
 #endif

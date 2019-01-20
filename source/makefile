@@ -2,8 +2,8 @@ CXX         = g++
 CC          = gcc
 CXXDISABLEDFLAGS = -Wno-unused-function -Wno-unused-parameter
 CDISABLEDFLAGS = -Wno-unused-function -Wno-unused-parameter
-CXXFLAGS    = -O3 -Wall -Wextra $(CXXDISABLEDFLAGS) -std=c++17
-CFLAGS      = -O3 -Wall -Wextra $(CDISABLEDFLAGS) -std=c11
+CXXFLAGS    = -O2 -Wall -Wextra $(CXXDISABLEDFLAGS) -std=c++17
+CFLAGS      = -O2 -Wall -Wextra $(CDISABLEDFLAGS) -std=c11
 LDFLAGS     = -framework OpenGL -framework CoreFoundation -framework CoreAudio -framework AudioToolbox -lGLEW -lSDL2 -lSDL2_image -lm -lpthread  
 SDLCFLAGS   = $(shell sdl2-config --cflags)
 SDLLIBFLAGS = $(shell sdl2-config --libs)
@@ -34,9 +34,9 @@ $(OBJECTS_C): %.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $@
 	
 clean :
-	-rm -f *.o *.core $(EXECNAME) 
+	-rm -f *.o *.core *.dylib $(EXECNAME) 
 	if [ -f "./logs/log.txt" ]; then rm ./logs/log.txt; fi 
 clean_all :
-	-rm -f *.o *.core $(EXECNAME) *.d
+	-rm -f *.o *.core *.dylib $(EXECNAME) *.d
 	if [ -f "./logs/log.txt" ]; then rm ./logs/log.txt; fi 
 	if [ -d "./logs" ]; then rmdir ./logs; fi

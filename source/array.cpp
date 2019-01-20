@@ -31,13 +31,17 @@ struct Array {
 
     inline T& operator[](usize index)
     {
+#ifndef NO_ARRAY_BOUNDS_CHECK
         ASSERT_MSG(index >= 0 && index < N, "Index %llu is out-of-bounds ranges 0..<%llu", index, N);
+#endif
         return this->data[index];
     }
 
     inline const T& operator[](usize index) const 
     {
+#ifndef NO_ARRAY_BOUNDS_CHECK
         ASSERT_MSG(index >= 0 && index < N, "Index %llu is out-of-bounds ranges 0..<%llu", index, N);
+#endif
         
         return this->data[index];
     }
@@ -45,8 +49,9 @@ struct Array {
     typedef T* iterator;
     typedef const T* const_iterator;
     iterator begin_ptr(void) { return &this->data[0]; }
-    iterator next_free_slot(void) { return &this->data[this->count]; }
-    iterator end_ptr(void) { return next_free_slot(); }
+    iterator next_free_slot_ptr(void) { return &this->data[this->count]; }
+    iterator end_ptr(void) { return next_free_slot_ptr(); }
+    iterator last_ptr(void) { return &this->data[this->count - 1]; }
     iterator bound(void) { return &this->data[N]; }
     usize cap(void) { return N; }
 
@@ -113,10 +118,16 @@ TYPE_T_SIZE_N
 inline void swap(Array<T, N>* array, usize i, usize j);
 
 TYPE_T_SIZE_N
+inline void clear(Array<T, N>* array);
+
+TYPE_T_SIZE_N
 void ordered_remove(Array<T, N>* array, usize index);
 
 TYPE_T_SIZE_N
 void unordered_remove(Array<T, N>* array, usize index);
+
+TYPE_T_SIZE_N
+void increment_count(Array<T, N>* array, const usize count_increment);
 
 namespace mem {
     inline mem::Allocator const& get_sys_context_array_allocator(void);
@@ -132,7 +143,6 @@ struct Dynamic_Array {
     T*             data;
     mem::Allocator allocator;
 
-
     inline operator T*(void) 
     {
         return this->data;
@@ -145,22 +155,28 @@ struct Dynamic_Array {
 
     inline T& operator[](usize index)
     {
+    #ifndef NO_ARRAY_BOUNDS_CHECK
         ASSERT_MSG(index >= 0 && index < this->count, "Index %llu is out-of-bounds ranges 0..<%llu", index, this->count);
+    #endif
+
         return this->data[index];
     }
 
     inline const T& operator[](usize index) const 
     {
+    #ifndef NO_ARRAY_BOUNDS_CHECK
         ASSERT_MSG(index >= 0 && index < this->count, "Index %llu is out-of-bounds ranges 0..<%llu", index, this->count);
-        
+    #endif
+
         return this->data[index];
     }
 
     typedef T* iterator;
     typedef const T* const_iterator;
-    iterator next_free_slot(void) { return &this->data[this->count]; }
+    iterator next_free_slot_ptr(void) { return &this->data[this->count]; }
     iterator begin_ptr(void) { return &this->data[0]; }
-    iterator end_ptr(void) { return next_free_slot(); }
+    iterator end_ptr(void) { return next_free_slot_ptr(); }
+    iterator last_ptr(void) { return &this->data[this->count - 1]; }
 
 
     // member procedure API
@@ -240,10 +256,12 @@ void init(Dynamic_Array<T>* array, usize count);
 TYPE_T
 void init(Dynamic_Array<T>* array, mem::Allocator const& a, usize count);
 
-template <typename T>
+TYPE_T
 void init(Dynamic_Array<T>* array, mem::Allocator const& a, usize count, usize capacity);
 TYPE_T
 void init(Dynamic_Array<T>* array, usize count, usize capacity);
+TYPE_T
+void init_from_ptr(Dynamic_Array<T>* array, T* data, usize count, usize capacity);
 
 
 TYPE_T
@@ -275,6 +293,9 @@ TYPE_T
 void unordered_remove(Dynamic_Array<T>* array, usize index);
 
 TYPE_T
+void increment_count(Dynamic_Array<T>* array, const usize count_increment);
+
+TYPE_T
 void copy(Dynamic_Array<T>* array, Dynamic_Array<T> const& data, isize offset);
 TYPE_T
 void copy(Dynamic_Array<T>* array, Dynamic_Array<T> const& data, isize offset, usize count);
@@ -290,7 +311,9 @@ void copy(Dynamic_Array<T>* array, Dynamic_Array<T> const& data, isize offset, u
 TYPE_T
 inline Array_Slice<T> slice(Array_Slice<T>* array, usize i, usize j)
 {
+#ifndef NO_ARRAY_BOUNDS_CHECK
     ASSERT_MSG(i <= j && j < array->count, "Slice out-of-bounds >= %llu", array->count);
+#endif
 
     return Array_Slice<T>{&array->data[i], j - i};
 }
@@ -298,7 +321,10 @@ inline Array_Slice<T> slice(Array_Slice<T>* array, usize i, usize j)
 TYPE_T_SIZE_N
 inline Array_Slice<T> slice(Array<T, N>* array, usize i, usize j)
 {
+#ifndef NO_ARRAY_BOUNDS_CHECK
     ASSERT_MSG(i <= j && j < array->count, "Slice out-of-bounds >= %llu", array->count);
+#endif
+
     return Array_Slice<T>{&array->data[i], j - i};
 }
 
@@ -311,7 +337,9 @@ inline usize byte_length(Array<T, N>* array)
 TYPE_T_SIZE_N
 inline void append(Array<T, N>* array, T val)
 {
+#ifndef NO_ARRAY_BOUNDS_CHECK
     ASSERT_MSG(array->count < N, "Array has reached maximum capacity %llu", N);
+#endif
 
     array->data[array->count] = val;
     array->count += 1;
@@ -320,7 +348,9 @@ inline void append(Array<T, N>* array, T val)
 TYPE_T_SIZE_N
 inline void append(Array<T, N>* array, T* val)
 {
+#ifndef NO_ARRAY_BOUNDS_CHECK
     ASSERT_MSG(array->count < N, "Array has reached maximum capacity %llu", array->count);
+#endif
 
     array->data[array->count] = *val;
     array->count += 1;
@@ -329,7 +359,9 @@ inline void append(Array<T, N>* array, T* val)
 TYPE_T_SIZE_N
 inline void push(Array<T, N>* array, T val)
 {
+#ifndef NO_ARRAY_BOUNDS_CHECK
     ASSERT_MSG(array->count < N, "Array has reached maximum capacity %llu", array->count);
+#endif
 
     array->data[array->count] = val;
     array->count += 1;
@@ -338,7 +370,9 @@ inline void push(Array<T, N>* array, T val)
 TYPE_T_SIZE_N
 inline void push(Array<T, N>* array, T* val)
 {
+#ifndef NO_ARRAY_BOUNDS_CHECK
     ASSERT_MSG(array->count < N, "Array has reached maximum capacity %llu", array->count);
+#endif
 
     array->data[array->count] = *val;
     array->count += 1;
@@ -356,7 +390,9 @@ inline T* peek(Array<T, N>* array)
 TYPE_T_SIZE_N
 inline T pop(Array<T, N>* array)
 {
+#ifndef NO_ARRAY_BOUNDS_CHECK
     ASSERT_MSG(array->count != 0, "cannot pop if empty");
+#endif
 
     array->count -= 1;
     return array->data[array->count];
@@ -395,9 +431,17 @@ inline void swap(Array<T, N>* array, usize i, usize j)
 }
 
 TYPE_T_SIZE_N
+inline void clear(Array<T, N>* array)
+{
+    array->count = 0;
+}
+
+TYPE_T_SIZE_N
 void ordered_remove(Array<T, N>* array, usize index)
 {
+#ifndef NO_ARRAY_BOUNDS_CHECK
     ASSERT(0 <= index && index < array->count);
+#endif
 
     usize bytes = sizeof(T) * (array->count - (index + 1));
     memmove(array->data + index, array->data + index + 1, bytes);
@@ -407,13 +451,21 @@ void ordered_remove(Array<T, N>* array, usize index)
 TYPE_T_SIZE_N
 void unordered_remove(Array<T, N>* array, usize index)
 {
+#ifndef NO_ARRAY_BOUNDS_CHECK
     ASSERT(0 <= index && index < array->count);
+#endif
 
     usize n = array->count - 1;
 
     memmove(array->data + index, array->data + n, sizeof(T));
 
     pop(array);
+}
+
+TYPE_T_SIZE_N
+void increment_count(Array<T, N>* array, const usize count_increment)
+{
+    return;
 }
 
 // member procedure API ///////////////////////////////////////
@@ -490,7 +542,9 @@ inline void Array<T, N>::swap(usize i, usize j)
 TYPE_T
 inline Array_Slice<T> slice(Dynamic_Array<T>* array, usize i, usize j)
 {
+#ifndef NO_ARRAY_BOUNDS_CHECK
     ASSERT_MSG(i <= j && j < array->count, "Slice out-of-bounds >= %llu", array->count);
+#endif
 
     return Array_Slice<T>{&array->data[i], j - i};
 }
@@ -504,6 +558,10 @@ inline usize byte_length(Dynamic_Array<T>* array)
 TYPE_T
 inline void append(Dynamic_Array<T>* array, T val)
 {
+    if (array->cap < array->count + 1) {
+        array__grow(array, 0);
+    }
+
     array->data[array->count] = val;
     array->count += 1;
 }
@@ -511,6 +569,10 @@ inline void append(Dynamic_Array<T>* array, T val)
 TYPE_T
 inline void append(Dynamic_Array<T>* array, T* val)
 {
+    if (array->cap < array->count + 1) {
+        array__grow(array, 0);
+    }
+
     array->data[array->count] = *val;
     array->count += 1;
 }
@@ -549,7 +611,9 @@ inline T* peek(Dynamic_Array<T>* array)
 TYPE_T
 inline T pop(Dynamic_Array<T>* array)
 {
+#ifndef NO_ARRAY_BOUNDS_CHECK
     ASSERT_MSG(array->count != 0, "cannot pop if empty");
+#endif
 
     array->count -= 1;
     return array->data[array->count];
@@ -640,7 +704,9 @@ void set_capacity(Dynamic_Array<T>* array, usize capacity)
 TYPE_T
 void ordered_remove(Dynamic_Array<T>* array, usize index)
 {
+#ifndef NO_ARRAY_BOUNDS_CHECK
     ASSERT(0 <= index && index < array->count);
+#endif
 
     usize bytes = sizeof(T) * (array->count - (index + 1));
     memmove(array->data + index, array->data + index + 1, bytes);
@@ -650,13 +716,26 @@ void ordered_remove(Dynamic_Array<T>* array, usize index)
 TYPE_T
 void unordered_remove(Dynamic_Array<T>* array, usize index)
 {
+#ifndef NO_ARRAY_BOUNDS_CHECK
     ASSERT(0 <= index && index < array->count);
+#endif
 
     usize n = array->count - 1;
 
     memmove(array->data + index, array->data + n, sizeof(T));
 
     pop(array);
+}
+
+TYPE_T
+void increment_count(Dynamic_Array<T>* array, const usize count_increment)
+{
+    const usize next_count = array->count + count_increment;
+    while (array->cap < next_count) {
+        array__grow(array, 0);
+    }
+
+    array->count += count_increment;
 }
 
 
@@ -701,6 +780,18 @@ void init(Dynamic_Array<T>* array, mem::Allocator const& a, usize count, usize c
     }
     array->count = count;
     array->cap   = capacity;
+}
+TYPE_T
+void init_from_ptr(Dynamic_Array<T>* array, T* data, usize count, usize capacity)
+{
+    array->data  = data;
+    array->count = count;
+    array->cap   = capacity;
+    
+    array->allocator.allocate = nullptr;
+    array->allocator.deallocate = nullptr;
+    array->allocator.resize = nullptr;
+    array->allocator.deallocate_all = nullptr;
 }
 
 

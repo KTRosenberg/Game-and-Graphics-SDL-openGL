@@ -24,7 +24,11 @@
 
 #define UNITY_BUILD (true)
 
+#define NO_ARRAY_BOUNDS_CHECK
+
 //#define METATESTING
+
+#define TEST_RENDERING
 
 // audio
 #define AUDIO_SYS_IMPLEMENTATION
@@ -57,12 +61,6 @@
 
 #include <string>
 
-#define SHADER_IMPLEMENTATION
-#include "shader.hpp"
-
-#define TEXTURE_IMPLEMENTATION
-#include "texture.hpp"
-
 #define CAMERA_IMPLEMENTATION
 #include "camera.hpp"
 
@@ -89,7 +87,7 @@ void* GlobalArenaAlloc_index_data(size_t count)
 
 // WORLD STATE
 struct Room {
-    VertexBufferData  geometry;
+    Vertex_Buffer_Data  geometry;
     Collider* collision_data;
     Mat4 matrix;
 };
@@ -107,12 +105,23 @@ struct GlobalData {
 
 GlobalData program_data;
 
+#define SHADER_IMPLEMENTATION
+#define SHADER_OPEN_GL
+#include "shader.hpp"
+
+#define TEXTURE_IMPLEMENTATION
+#define TEXTURE_OPEN_GL
+#include "texture.hpp"
+
 #define SD
 #define SD_DEBUG_LOG_ON
 #ifdef VULKAN_HPP
     #define SD_RENDERER_VULKAN
 #elif defined(OPEN_GL_HPP)
     #define SD_RENDERER_OPENGL
+    #if !defined TEST_RENDERING
+        #define SD_RENDERER_VERSION_1
+    #endif
 #endif
 #if !(RELEASE_MODE)
     #define SD_BOUNDS_CHECK
@@ -953,6 +962,7 @@ bool poll_input_events(input_sys::Input* input, SDL_Event* event)
     return true;
 }
 
+#ifndef TEST_RENDERING
 template <usize N>
 void draw_player_collision(Player* you, sd::Render_Batch<N>* ctx)
 {
@@ -997,6 +1007,7 @@ void draw_player_collision(Player* you, sd::Render_Batch<N>* ctx)
     }
 }
 
+
 template <usize N>
 void BoxComponent_draw(BoxComponent* bc, sd::Render_Batch<N>* ctx)
 {
@@ -1012,6 +1023,7 @@ void BoxComponent_draw(BoxComponent* bc, sd::Render_Batch<N>* ctx)
     sd::line(ctx, bottom_right, bottom_left);
     sd::line(ctx, bottom_left, top_left);
 }
+#endif
 
 bool temp_test_collision(Player* you, Collider* c, CollisionStatus* status)
 {
@@ -1322,9 +1334,23 @@ struct Entity {
 #define ENTITY_TYPE_SYSTEM_IMPLEMENTATION
 #include "entity_type_system.cpp"
 
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef TEST_RENDERING
+#include "test_rendering.cpp"
+#endif
+//////////////////////////////////////////////////////////////////////////////////////////////
+
 int main(int argc, char* argv[])
 {
-    logging_init(LOG_PATH, LOG_FILE, LOG_WRITE_ENABLED);
+    //logging_init(LOG_PATH, LOG_FILE, LOG_WRITE_ENABLED);
+//////////////////////////////////////////////////////////////////////////////////////////////
+    #ifdef TEST_RENDERING
+    return test_rendering(argc, argv);
+    #else
+//////////////////////////////////////////////////////////////////////////////////////////////
+
 
     // Type_Info ti_wee;
     // ti_wee.type = TYPE_INFO_TYPE::NAMED;
@@ -1480,7 +1506,7 @@ int main(int argc, char* argv[])
     SDL_SetEventFilter(ignore_mouse_movement, NULL); ///////////////////////////
     #endif
 
-    // openGL initialization ///////////////////////////////////////////////////
+    // OpenGL initialization ///////////////////////////////////////////////////
     
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -1522,7 +1548,7 @@ int main(int argc, char* argv[])
     ConfigState_load_runtime();
 
     bool status = false;
-    std::string glsl_perlin_noise = Shader_retrieve_src_from_file("shaders/perlin_noise.glsl", &status);
+    std::string glsl_perlin_noise = Shader_retrieve_src_txt_from_file("shaders/perlin_noise.glsl", &status);
     if (!status) {
         fprintf(stderr, "ERROR: failed to load shader addon source");
         return EXIT_FAILURE;
@@ -1604,14 +1630,14 @@ int main(int argc, char* argv[])
 
 //////////////////////////////////////////////////
 
-    VertexAttributeArray vao_2d2;
-    VertexBufferData tri_data;
+    Vertex_Attribute_Array vao_2d2;
+    Vertex_Buffer_Data tri_data;
 
-    VertexAttributeArray_init(&vao_2d2, STRIDE);
+    Vertex_Attribute_Array_init(&vao_2d2, STRIDE);
 
     glBindVertexArray(vao_2d2.vao);
 
-        VertexBufferData_init_inplace(
+        Vertex_Buffer_Data_init_inplace(
             &tri_data, 
             StaticArrayCount(T),
             T,
@@ -1760,19 +1786,19 @@ int main(int argc, char* argv[])
         }
     }
 
-    gl_get_errors();
+    GL_GET_ERRORS();
 
 
     glUseProgram(shader_2d);
 
-    //UniformLocation RES_LOC = glGetUniformLocation(shader_2d, "u_resolution");
-    //UniformLocation COUNT_LAYERS_LOC = glGetUniformLocation(shader_2d, "u_count_layers");
-    UniformLocation MAT_LOC = glGetUniformLocation(shader_2d, "u_matrix");
-    UniformLocation TIME_LOC = glGetUniformLocation(shader_2d, "u_time");
-    UniformLocation CAM_LOC = glGetUniformLocation(shader_2d, "u_position_cam");
-    UniformLocation SCALE_LOC = glGetUniformLocation(shader_2d, "u_scale");
+    //Uniform_Location RES_LOC = glGetUniformLocation(shader_2d, "u_resolution");
+    //Uniform_Location COUNT_LAYERS_LOC = glGetUniformLocation(shader_2d, "u_count_layers");
+    Uniform_Location MAT_LOC = glGetUniformLocation(shader_2d, "u_matrix");
+    Uniform_Location TIME_LOC = glGetUniformLocation(shader_2d, "u_time");
+    Uniform_Location CAM_LOC = glGetUniformLocation(shader_2d, "u_position_cam");
+    Uniform_Location SCALE_LOC = glGetUniformLocation(shader_2d, "u_scale");
     glUniform1f(SCALE_LOC, (GLfloat)1.0);
-    //UniformLocation ASPECT_LOC = glGetUniformLocation(shader_2d, "u_aspect");
+    //Uniform_Location ASPECT_LOC = glGetUniformLocation(shader_2d, "u_aspect");
 
     const GLuint UVAL_COUNT_LAYERS = 5;
 
@@ -1801,7 +1827,7 @@ int main(int argc, char* argv[])
     glUniform1i(glGetUniformLocation(shader_2d, "tex4"), 4);
 
 
-    gl_get_errors();
+    GL_GET_ERRORS();
 
 
     #ifdef SD
@@ -1813,11 +1839,11 @@ int main(int argc, char* argv[])
     #ifdef EDITOR
     glUseProgram(shader_grid);
 
-    UniformLocation COLOR_LOC_GRID = glGetUniformLocation(shader_grid, "u_color");
+    Uniform_Location COLOR_LOC_GRID = glGetUniformLocation(shader_grid, "u_color");
     glUniform4fv(COLOR_LOC_GRID, 1, glm::value_ptr(Vec4(0.25f, 0.25f, 0.25f, 0.5f)));
 
-    UniformLocation SQUARE_PIXEL_LOC_GRID = glGetUniformLocation(shader_grid, "u_grid_square_pix");
-    UniformLocation RESOLUTION_LOC_GRID = glGetUniformLocation(shader_grid, "u_resolution");
+    Uniform_Location SQUARE_PIXEL_LOC_GRID = glGetUniformLocation(shader_grid, "u_grid_square_pix");
+    Uniform_Location RESOLUTION_LOC_GRID = glGetUniformLocation(shader_grid, "u_resolution");
 
 
     glUniform2fv(RESOLUTION_LOC_GRID, 1, glm::value_ptr(Vec2(SCREEN_WIDTH, SCREEN_HEIGHT)));
@@ -1825,11 +1851,11 @@ int main(int argc, char* argv[])
     GLfloat grid_square_pixel_size = 16.0f;
     glUniform1f(SQUARE_PIXEL_LOC_GRID, tex_res.x / grid_square_pixel_size);
 
-    UniformLocation MAT_LOC_GRID = glGetUniformLocation(shader_grid, "u_matrix");
+    Uniform_Location MAT_LOC_GRID = glGetUniformLocation(shader_grid, "u_matrix");
 
-    UniformLocation CAM_LOC_GRID = glGetUniformLocation(shader_grid, "u_position_cam");
+    Uniform_Location CAM_LOC_GRID = glGetUniformLocation(shader_grid, "u_position_cam");
 
-    UniformLocation SCALE_LOC_GRID = glGetUniformLocation(shader_grid, "u_scale");
+    Uniform_Location SCALE_LOC_GRID = glGetUniformLocation(shader_grid, "u_scale");
     glUniform1f(SCALE_LOC_GRID, (GLfloat)1.0);
 
     sd::Render_Batch<> existing;
@@ -1917,13 +1943,13 @@ int main(int argc, char* argv[])
 
 
 ////
-    collision_map.next_free_slot()->a = Vec3(0.0, 5 * 128, 0.0);
-    collision_map.next_free_slot()->b = Vec3(1280.0f, 5 * 128, 0.0);
+    collision_map.next_free_slot_ptr()->a = Vec3(0.0, 5 * 128, 0.0);
+    collision_map.next_free_slot_ptr()->b = Vec3(1280.0f, 5 * 128, 0.0);
     collision_map.count += 1;
 
 //
-    collision_map.next_free_slot()->a = Vec3(512.0, 3 * 128, 0.0);
-    collision_map.next_free_slot()->b = Vec3(768.0, 3 * 128, 0.0);
+    collision_map.next_free_slot_ptr()->a = Vec3(512.0, 3 * 128, 0.0);
+    collision_map.next_free_slot_ptr()->b = Vec3(768.0, 3 * 128, 0.0);
     collision_map.count += 1;
 
     existing.begin();
@@ -1993,8 +2019,8 @@ int main(int argc, char* argv[])
 
     AudioSystem_init();
 
-    // AudioArgs audio_args;
-    // AudioArgs_init(&audio_args, 1);
+    // Audio_Args audio_args;
+    // Audio_Args_init(&audio_args, 1);
 
     // mal_decoder_config decoder_conf;
     // decoder_conf.format = mal_format_f32;
@@ -2007,8 +2033,8 @@ int main(int argc, char* argv[])
     //     &audio_args.decoders[0]
     // );
 
-    AudioArgs audio_args;
-    AudioArgs_init(&audio_args, 7);
+    Audio_Args audio_args;
+    Audio_Args_init(&audio_args, 7);
 
     mal_decoder_config decoder_conf;
     decoder_conf.format = mal_format_f32;
@@ -2315,7 +2341,7 @@ int main(int argc, char* argv[])
                 drawctx.begin();
                 drawctx.transform_matrix = FreeCamera_calc_view_matrix(&main_cam);
 
-                for (auto it = collision_map.begin_ptr(); it != collision_map.next_free_slot(); it += 1)
+                for (auto it = collision_map.begin_ptr(); it != collision_map.next_free_slot_ptr(); it += 1)
                 {
                     //Collider_print(it);
                     
@@ -2464,30 +2490,34 @@ int main(int argc, char* argv[])
 
             if (audio_tracks != 0) {
 
-                AudioCommand* cmd = (AudioCommand*)xmalloc(sizeof(*cmd));
-                cmd->type = AUDIO_COMMAND_TYPE::TRACK_SELECTION;
-                
-                cmd->track_selection.modified_tracks_bitmap = audio_tracks;
+                Audio_Command cmd = {
+                    .type = AUDIO_COMMAND_TYPE::TRACK_SELECTION,
+                    .track_selection = {
+                        .modified_tracks_bitmap = audio_tracks
+                    }
+                };
 
                 printf("Sending track change: %llx\n", audio_tracks);
 
-                if (ck_ring_enqueue_spsc(&audio_args.fifo.ring, audio_args.fifo.buffer, (void*)cmd) == false) {
+                if (ck_ring_enqueue_spsc_Audio_Command(&audio_args.fifo.ring, audio_args.fifo.buffer, &cmd) == false) {
                     fprintf(stderr, "ERROR: OUT OF AUDIO QUEUE SPACE\n");
                 }
             }
 
             switch (key_is_toggled_4_states(&input, CONTROL::TEMP, &temp)) {
             case TOGGLE_BRANCH::PRESSED_ON: {
-                AudioCommand* cmd = (AudioCommand*)xmalloc(sizeof(*cmd));
-                cmd->type = AUDIO_COMMAND_TYPE::ADJUST_MASTER_VOLUME;
-                
-                cmd->adjust_master_volume.duration = 5.0f;
-                cmd->adjust_master_volume.from     = 1.0f;
-                cmd->adjust_master_volume.to       = 0.0f;
-                cmd->adjust_master_volume.t_delta  = 0.0f;
-                cmd->adjust_master_volume.t_prev   = 0.0f; 
+                Audio_Command cmd = {
+                    .type = AUDIO_COMMAND_TYPE::ADJUST_MASTER_VOLUME,
+                    .adjust_master_volume = {
+                        .duration  = 5.0f,
+                        .from      = 1.0f,
+                        .to        = 0.0f,
+                        .t_delta   = 0.0f,
+                        .t_prev    = 0.0f,
+                    }
+                };
 
-                if (ck_ring_enqueue_spsc(&audio_args.fifo.ring, audio_args.fifo.buffer, (void*)cmd) == false) {
+                if (ck_ring_enqueue_spsc_Audio_Command(&audio_args.fifo.ring, audio_args.fifo.buffer, &cmd) == false) {
                     fprintf(stderr, "ERROR: OUT OF AUDIO QUEUE SPACE\n");
                 }
                 break;
@@ -2496,16 +2526,18 @@ int main(int argc, char* argv[])
                 break;
             }
             case TOGGLE_BRANCH::PRESSED_OFF: {
-                AudioCommand* cmd = (AudioCommand*)xmalloc(sizeof(*cmd));
-                cmd->type = AUDIO_COMMAND_TYPE::ADJUST_MASTER_VOLUME;
-                
-                cmd->adjust_master_volume.duration  = 5.0f;
-                cmd->adjust_master_volume.from      = 0.0f;
-                cmd->adjust_master_volume.to        = 1.0f;
-                cmd->adjust_master_volume.t_delta   = 0.0f;
-                cmd->adjust_master_volume.t_prev    = 0.0f;
+                Audio_Command cmd = {
+                    .type = AUDIO_COMMAND_TYPE::ADJUST_MASTER_VOLUME,
+                    .adjust_master_volume = {
+                        .duration  = 5.0f,
+                        .from      = 0.0f,
+                        .to        = 1.0f,
+                        .t_delta   = 0.0f,
+                        .t_prev    = 0.0f,
+                    }
+                };
 
-                if (ck_ring_enqueue_spsc(&audio_args.fifo.ring, audio_args.fifo.buffer, (void*)cmd) == false) {
+                if (ck_ring_enqueue_spsc_Audio_Command(&audio_args.fifo.ring, audio_args.fifo.buffer, &cmd) == false) {
                     fprintf(stderr, "ERROR: OUT OF AUDIO QUEUE SPACE\n");
                 }
                 break;
@@ -2882,7 +2914,7 @@ int main(int argc, char* argv[])
                     usize selection = 0;
                     it += 1;
                     usize idx = 1;
-                    for (; it != collision_map.next_free_slot(); it += 1) {
+                    for (; it != collision_map.next_free_slot_ptr(); it += 1) {
                         f64 d2 = dist_to_segment_squared(it->a, it->b, mouse);
                         if (d2 < min_dist) {
                             min_dist = d2;
@@ -2934,16 +2966,16 @@ int main(int argc, char* argv[])
                     in_progress_line[0].y = snap_to_grid(mouse.y, grid_len);
                     in_progress_line[0].z = mouse.z;
 
-                    collision_map.next_free_slot()->a = in_progress_line[0];
-                    collision_map.next_free_slot()->a.z = 0;
+                    collision_map.next_free_slot_ptr()->a = in_progress_line[0];
+                    collision_map.next_free_slot_ptr()->a.z = 0;
                 case TOGGLE_BRANCH::ON:
                     //printf("\tDRAWING\n");
                     in_progress_line[1].x = snap_to_grid(mouse.x, grid_len);
                     in_progress_line[1].y = snap_to_grid(mouse.y, grid_len);
                     in_progress_line[1].z = mouse.z;
 
-                    collision_map.next_free_slot()->b = in_progress_line[1];
-                    collision_map.next_free_slot()->b.z = 0;
+                    collision_map.next_free_slot_ptr()->b = in_progress_line[1];
+                    collision_map.next_free_slot_ptr()->b.z = 0;
 
                     in_prog.begin();
                     in_prog.draw_type = sd::LINES;
@@ -3134,7 +3166,7 @@ int main(int argc, char* argv[])
 
             CollisionStatus status;
             CollisionStatus_init(&status);
-            for (auto it = collision_map.begin_ptr(); it != collision_map.next_free_slot(); it += 1)
+            for (auto it = collision_map.begin_ptr(); it != collision_map.next_free_slot_ptr(); it += 1)
             {
                 //Collider_print(it);
                 
@@ -3174,16 +3206,16 @@ int main(int argc, char* argv[])
 
                         you.on_ground = false;
 
-                        // temp move this
-                        // send data args as pointer to pre-allocated buffer
-                        AudioCommand* cmd = (AudioCommand*)xmalloc(sizeof(*cmd));
-                        cmd->type = AUDIO_COMMAND_TYPE::DELAY;
+                        Audio_Command cmd = {
+                            .type = AUDIO_COMMAND_TYPE::DELAY,
+                            .delay = {
+                                .decay = 0.4,
+                                .channel_a_offset_percent = 0.0,
+                                .channel_b_offset_percent = 0.05
+                            }
+                        };
 
-                        cmd->delay.decay = 0.4;
-                        cmd->delay.channel_a_offset_percent = 0.0;
-                        cmd->delay.channel_b_offset_percent = 0.05;
-
-                        if (ck_ring_enqueue_spsc(&audio_args.fifo.ring, audio_args.fifo.buffer, (void*)cmd) == false) {
+                        if (ck_ring_enqueue_spsc_Audio_Command(&audio_args.fifo.ring, audio_args.fifo.buffer, &cmd) == false) {
                             fprintf(stderr, "ERROR: OUT OF AUDIO QUEUE SPACE\n");
                         }
                     } else {
@@ -3233,7 +3265,7 @@ int main(int argc, char* argv[])
 
             // if (collision_map.count > 0) {
             //     printf("{");
-            //     for (auto it = collision_map.begin(); it != collision_map.next_free_slot(); ++it)
+            //     for (auto it = collision_map.begin(); it != collision_map.next_free_slot_ptr(); ++it)
             //     {
             //         printf("\n");
             //         Collider_print(it);
@@ -3275,17 +3307,17 @@ int main(int argc, char* argv[])
         fclose(air_physics_conf.fd);
     }
     
-    VertexAttributeArray_delete(&vao_2d2);
-    VertexBufferData_delete_inplace(&tri_data);
+    Vertex_Attribute_Array_delete(&vao_2d2);
+    Vertex_Buffer_Data_delete_inplace(&tri_data);
     #ifdef SD
     sd::free(&drawctx);
     #endif
     #ifdef EDITOR
     sd::free(&in_prog);
     sd::free(&existing);
-    glDeleteProgram(shader_grid);
+    Shader_deinit_program(shader_grid);
     #endif
-    glDeleteProgram(shader_2d);
+    Shader_deinit_program(shader_2d);
 
     SDL_GL_DeleteContext(program_data.context);
     SDL_DestroyWindow(window);
@@ -3293,4 +3325,6 @@ int main(int argc, char* argv[])
     SDL_Quit();
 
     return EXIT_SUCCESS;
+
+    #endif
 }

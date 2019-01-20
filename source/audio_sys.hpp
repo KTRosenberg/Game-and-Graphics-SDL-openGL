@@ -33,10 +33,10 @@ enum struct AUDIO_COMMAND_TYPE : u8 {
 };
 
 
-typedef void (*Fn_AudioCallback)(void* args);
+typedef void (*Fn_audio_callback)(void* args);
 struct AudioCallbackObject {
     void* args;
-    Fn_AudioCallback callback;
+    Fn_audio_callback callback;
 
     inline void operator()(void)
     {
@@ -44,7 +44,7 @@ struct AudioCallbackObject {
     }
 };
 
-struct AudioCommand {
+struct Audio_Command {
     AUDIO_COMMAND_TYPE type;
 
     union {
@@ -67,9 +67,11 @@ struct AudioCommand {
         } track_selection;
     };
 
-    Fn_AudioCallback callback;
+    Fn_audio_callback callback;
     void* audio_callback_args;
 };
+
+CK_RING_PROTOTYPE(Audio_Command, Audio_Command)
 
 /*
 
@@ -132,20 +134,20 @@ void add_animation(float* target, float target_value, float delta)
 
 
 #define MAX_AUDIO_SOURCE_COUNT (16)
-struct AudioArgs {
+struct Audio_Args {
     mal_decoder decoders[MAX_AUDIO_SOURCE_COUNT];
     u8 audio_source_count;
 
 
-    ConcurrentFIFO_SingleProducerSingleConsumer<128> fifo;
+    Concurrent_Ring_Buffer<Audio_Command, 128> fifo;
 
-    AudioCommand command_buffer__[128 + 2];
+    Audio_Command command_buffer__[128 + 2];
     usize command_buffer_count__;
     usize command_buffer_idx__;
     usize total_frames_read;
 };
 
-void AudioArgs_init(AudioArgs* audio_sys, usize audio_source_count); 
+void Audio_Args_init(Audio_Args* audio_sys, usize audio_source_count); 
 
 mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void* p_samples);
 
@@ -157,11 +159,11 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
 #undef AUDIO_SYS_IMPLEMENTATION
 
 // TODO renaming
-void AudioArgs_init(AudioArgs* audio_sys, usize audio_source_count) 
+void Audio_Args_init(Audio_Args* audio_sys, usize audio_source_count) 
 {
     audio_sys->audio_source_count = audio_source_count;
-    ck_ring_init(&audio_sys->fifo.ring, audio_sys->fifo.capacity);
-    audio_sys->command_buffer_count__ = audio_sys->fifo.capacity;
+    ck_ring_init(&audio_sys->fifo.ring, audio_sys->fifo.cap());
+    audio_sys->command_buffer_count__ = audio_sys->fifo.cap();
     audio_sys->command_buffer_idx__ = 0;
     audio_sys->total_frames_read = 0;
 }
@@ -169,7 +171,7 @@ void AudioArgs_init(AudioArgs* audio_sys, usize audio_source_count)
 struct AudioSystem {
     mal_device device;
     float32 master_volume_percentage;
-    RingBuffer<AudioCommand, 64> command_queue;
+    RingBuffer<Audio_Command, 64> command_queue;
 } audio_system;
 
 struct Reverb {
@@ -213,7 +215,7 @@ void AudioSystem_init(void)
 usize track_bits = 127;
 mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void* p_samples)
 {
-    struct AudioArgs* args = (struct AudioArgs*)p_device->pUserData;
+    struct Audio_Args* args = (struct Audio_Args*)p_device->pUserData;
     if (args == NULL) {
         return 0;
     }
@@ -227,6 +229,11 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
     static f64 pan_range = 200.0;
     #define PAN_FOR_RIGHT(val) ((val / pan_range) + 0.5)
     #define PAN_FOR_LEFT(val) (1 - PAN_FOR_RIGHT(val))
+
+    // const power
+    // #define PAN_FOR_RIGHT(val) m::sin(((val / pan_range) + 0.5) * (PI / 2))
+    // #define PAN_FOR_LEFT(val) m::cos(((val / pan_range) + 0.5) * (PI / 2))
+    //
     f64 pan[2] = {PAN_FOR_LEFT(master_pan_value), PAN_FOR_RIGHT(master_pan_value)};
 
         for (usize frame = 0; frame < frame_count; ++frame) {
@@ -295,7 +302,7 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
 
     }
 
-    void* result;
+    Audio_Command cmd;
 
     static bool delay_is_on = false;
 
@@ -309,15 +316,8 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
     static f64 master_volume_percentage = 1.0f;
 
 
-    while (ck_ring_dequeue_spsc(&args->fifo.ring, args->fifo.buffer, &result)) {
-        //std::cout << (i64)result << std::endl;
-        
-        AudioCommand* cmd = (AudioCommand*)result;
-
-        RingBuffer_enqueue(&audio_system.command_queue, *cmd);
-
-        free(cmd); // temporary, will have a static buffer to avoid allocations and frees at runtime
-
+    while (ck_ring_dequeue_spsc_Audio_Command(&args->fifo.ring, args->fifo.buffer, &cmd)) {
+        RingBuffer_enqueue(&audio_system.command_queue, cmd); // TODO, will have a different system for organizing commands
     }
 
 
@@ -328,7 +328,7 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
 
 
     for (usize i = 0, size = audio_system.command_queue.size; i < size; ++i) {
-        AudioCommand* cmd = RingBuffer_dequeue_pointer(&audio_system.command_queue);
+        Audio_Command* cmd = RingBuffer_dequeue_pointer(&audio_system.command_queue);
 
         switch (cmd->type) {
         case AUDIO_COMMAND_TYPE::ADJUST_MASTER_VOLUME: {
@@ -359,7 +359,7 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
 
             master_volume_percentage = val;
 
-            if (std::abs(val - cmd->adjust_master_volume.to) > 0.01) {
+            if (m::abs(val - cmd->adjust_master_volume.to) > 0.01) {
                 RingBuffer_enqueue(&audio_system.command_queue, *cmd);                
             } else {
                 master_volume_percentage = cmd->adjust_master_volume.to;
