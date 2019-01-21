@@ -2,8 +2,8 @@ CXX         = g++
 CC          = gcc
 CXXDISABLEDFLAGS = -Wno-unused-function -Wno-unused-parameter
 CDISABLEDFLAGS = -Wno-unused-function -Wno-unused-parameter
-CXXFLAGS    = -O2 -Wall -Wextra $(CXXDISABLEDFLAGS) -std=c++17
-CFLAGS      = -O2 -Wall -Wextra $(CDISABLEDFLAGS) -std=c11
+CXXFLAGS    = -O3 -Wall -Wextra $(CXXDISABLEDFLAGS) -std=c++17
+CFLAGS      = -O3 -Wall -Wextra $(CDISABLEDFLAGS) -std=c11
 LDFLAGS     = -framework OpenGL -framework CoreFoundation -framework CoreAudio -framework AudioToolbox -lGLEW -lSDL2 -lSDL2_image -lm -lpthread  
 SDLCFLAGS   = $(shell sdl2-config --cflags)
 SDLLIBFLAGS = $(shell sdl2-config --libs)

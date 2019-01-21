@@ -345,6 +345,7 @@ sd::Renderer& init(sd::Renderer& ctx, const usize reserved_space_per_batch)
 
     ctx.vertex_idx = 0;
     ctx.element_idx = 0;
+    ctx.active_color = Vec4(0.0);
 
     return ctx;
 }
@@ -377,6 +378,7 @@ sd::Renderer& init_options(sd::Renderer& ctx, u64 bitmask_flags, const usize res
 
     ctx.vertex_idx = 0;
     ctx.element_idx = 0;
+    ctx.active_color = Vec4(0.0);
 
     return ctx;
 }

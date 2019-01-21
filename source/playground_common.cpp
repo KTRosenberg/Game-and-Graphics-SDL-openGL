@@ -33,6 +33,7 @@ extern "C"
         void (*clear_color_rgba)(float32, float32, float32, float32);
         void (*clear_color_vec4)(pg::Vec4);
         void (*clear_color_vec3)(pg::Vec3);
+        void (*color)(sd::Renderer*, pg::Vec4);
     } sd_data;
 
 #ifdef __cplusplus

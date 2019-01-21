@@ -51,6 +51,11 @@ void clear_color(pg::Vec3 c)
     sd::clear_color(Vec4(from(c), 1.0));
 }
 
+void color(sd::Renderer* ctx, pg::Vec4 c)
+{
+    sd::color(*ctx, Vec4(from(c)));
+}
+
 void pg_init(SD_Data* data, sd::Renderer& ctx, float32 w, float32 h)
 {
     data->renderer = &ctx;
@@ -64,6 +69,7 @@ void pg_init(SD_Data* data, sd::Renderer& ctx, float32 w, float32 h)
     data->clear_color_rgba = clear_color;
     data->clear_color_vec4 = clear_color;
     data->clear_color_vec3 = clear_color;
+    data->color = color;
 }
 
 
@@ -72,7 +78,12 @@ typedef void* (*pg_setup_proc)(SD_Data*);
 typedef void* (*pg_draw_proc)(float32, float32);
 
 addr_get_proc get_proc_address;
-pg_setup_proc pg_setup;
+
+void* pg_setup_error_state(SD_Data* _)
+{
+    return NULL;
+}
+pg_setup_proc pg_setup = pg_setup_error_state;
 
 void* pg_draw_proc_error_state(float32 _, float32 __) 
 {
@@ -102,6 +113,8 @@ sd::Renderer* R = NULL;
 struct Pg_Reload_Time {
     struct stat stat;
     time_t t_prev_modified; 
+    struct stat stat_header;
+    time_t t_prev_modified_header;
 } pg_time = {};
 
 bool test_rendering_poll_input(void)
@@ -159,11 +172,22 @@ bool test_rendering_poll_input(void)
     } else if (!window_state.focused) {
         if (auto_reload_on) { 
             check_file_status("./playground.cpp", &pg_time.stat);
+            check_file_status("./playground.hpp", &pg_time.stat_header);
+            bool updated = false;
             if (pg_time.stat.st_mtime != pg_time.t_prev_modified) {
                 reload_playground();
                 pg_init(&sd_data, *R, w_width, w_height);
                 pg_setup(&sd_data);
                 pg_time.t_prev_modified = pg_time.stat.st_mtime;
+                updated = true;
+            }
+            if (pg_time.stat_header.st_mtime != pg_time.t_prev_modified_header) {
+                if (!updated) {
+                    reload_playground();
+                    pg_init(&sd_data, *R, w_width, w_height);
+                    pg_setup(&sd_data);                    
+                }
+                pg_time.t_prev_modified_header = pg_time.stat_header.st_mtime;
             }
         } else {
             SDL_Delay(64);
@@ -189,18 +213,20 @@ void load_playground(void)
 {
     pg::version_number = 0;
 
-    std::string header = "#define PLAYGROUND_VERSION " + std::to_string(pg::version_number);
+    pg_draw = pg_draw_error_state;
+
+    std::string header = "#define PLAYGROUND_VERSION " + std::to_string(pg::version_number) + "\n";
     if (false == write_file_mode("./playground_version.hpp", "w", header.c_str(), strlen(header.c_str()))) {
         fprintf(stderr, "file write unsuccessful");
         abort();
     }
 
-    if (system("clang++ -O2 -dynamiclib -o playground0.dylib playground.cpp") != 0) {
+    if (system("clang++ -O3 -dynamiclib -o playground.dylib playground.cpp") != 0) {
         fprintf(stderr, "%s\n", "ERROR: playground compiled unsuccessfully");
-        abort();
+        return;
     }
 
-    dylib = dlopen("./playground0.dylib", RTLD_LAZY);
+    dylib = dlopen("./playground.dylib", RTLD_LAZY);
     if (dylib == NULL) {
         printf("%s\n", "couldn't load dylib");
         abort();
@@ -210,7 +236,7 @@ void load_playground(void)
     if (get_proc_address == NULL) {
         printf("%s\n", dlerror());
         dlclose(dylib);
-        abort();
+        return;
     }
 
 
@@ -218,38 +244,51 @@ void load_playground(void)
     if (pg_setup == NULL) {
         printf("%s\n", dlerror());
         dlclose(dylib);
-        abort();
+        return;
     }
 
 
     pg_draw = (pg_draw_proc)get_proc_address("draw");
     if (pg_draw == NULL) {
         printf("%s\n", dlerror());
+        pg_draw = pg_draw_error_state;
         dlclose(dylib);
-        abort();
+        return;
     }
 
     check_file_status("./playground.cpp", &pg_time.stat);
     pg_time.t_prev_modified = pg_time.stat.st_mtime;
+    check_file_status("./playground.hpp", &pg_time.stat_header);
+    pg_time.t_prev_modified_header = pg_time.stat_header.st_mtime;
 }
 
 void reload_playground(void)
 {
+
+    static char const* dylib_name_swap[4] = {
+        "clang++ -O3 -dynamiclib -o playground.dylib playground.cpp",
+        "./playground.dylib",
+        "clang++ -O3 -dynamiclib -o playground_swap.dylib playground.cpp",
+        "./playground_swap.dylib"
+    };
+    static u8 dylib_name_idx = 1;
+
     void* old_dylib = dylib;
 
     pg_draw = pg_draw_error_state;
 
-    std::string header = "#define PLAYGROUND_VERSION " + std::to_string(pg::version_number + 1);
+    std::string header = "#define PLAYGROUND_VERSION " + std::to_string(pg::version_number + 1) + "\n";
     if (false == write_file_mode("./playground_version.hpp", "w", header.c_str(), strlen(header.c_str()))) {
         fprintf(stderr, "file write unsuccessful");
+        abort();
     }
 
-    if (system(("clang++ -O2 -dynamiclib -o playground" + std::to_string(pg::version_number + 1) + ".dylib playground.cpp").c_str()) != 0) {
+    if (system(dylib_name_swap[dylib_name_idx * 2]) != 0) {
         fprintf(stderr, "%s\n", "ERROR: playground compiled unsuccessfully");
         return;
     }
 
-    dylib = dlopen(("./playground" + std::to_string(pg::version_number + 1) + ".dylib").c_str(), RTLD_LAZY);
+    dylib = dlopen(dylib_name_swap[(dylib_name_idx * 2) + 1], RTLD_LAZY);
     if (dylib == NULL) {
         printf("%s\n", "couldn't load dylib");
         abort();
@@ -286,6 +325,8 @@ void reload_playground(void)
     dlclose(old_dylib);
 
     pg::version_number += 1;
+
+    dylib_name_idx = 1 - dylib_name_idx;
 
 }
 
@@ -373,8 +414,8 @@ int test_rendering(int argc, char* argv[])
     timer.fps = 0;
 
     SDL_GL_SetSwapInterval(1);
-    glEnable(GL_DEPTH_TEST);
-    glDepthRange(0, 1);
+    //glEnable(GL_DEPTH_TEST);
+    //glDepthRange(0, 1);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -444,6 +485,7 @@ int test_rendering(int argc, char* argv[])
 void render_playground(sd::Renderer& ctx, SDL_Window* window, pg_draw_proc pg_draw) // temporarily no parameters for the renderer
 {
     sd::clear(sd::CLEAR_COLOR | sd::CLEAR_DEPTH);
+    sd::color(ctx, Vec4(0.0, 0.0, 0.0, 1.0));
 
     pg_draw(timer.t_since_start_s, timer.t_delta_s);
 

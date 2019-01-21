@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+/*
 //#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 //#define GLM_FORCE_LEFT_HANDED
 //#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
@@ -18,6 +19,7 @@
 //#define GLM_FORCE_INLINE
 #define GLM_FORCE_RADIANS
 
+
 #include <glm/glm.hpp>
 #include <glm/gtc/type_aligned.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -25,6 +27,9 @@
 #include <glm/ext.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/norm.hpp>
+*/
+
+#include "math.hpp"
 
 #include <bitset>
 #include <limits>
