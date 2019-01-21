@@ -58,11 +58,11 @@ struct Shared_Uniforms {
     Mat4    u_mv_matrix;
     Mat4    u_projection_matrix;
 
-    Uniform_Block_Index u_time_s_idx;
-    Uniform_Block_Index u_scale_idx;
-    Uniform_Block_Index u_resolution_idx;
-    Uniform_Block_Index u_mv_matrix_idx;
-    Uniform_Block_Index u_projection_matrix_idx;
+    Uniform_Block_Index uidx_time_s;
+    Uniform_Block_Index uidx_scale;
+    Uniform_Block_Index uidx_resolution;
+    Uniform_Block_Index uidx_mv_matrix;
+    Uniform_Block_Index uidx_projection_matrix;
 
     // TODO probably add texture samplers to the UBO as well
 
@@ -169,6 +169,7 @@ void Render_Batch_print(Render_Batch const& batch);
 typedef uint16 layer_index;
 
 static constexpr const u16 INDICES_PER_TRIANGLE = 3;
+static constexpr const u16 ELEMENTS_PER_TRIANGLE = 3;
 static constexpr const u16 INDICES_PER_QUAD = INDICES_PER_TRIANGLE * 2;
 static constexpr const u16 ELEMENTS_PER_QUAD = 4;
 
@@ -271,6 +272,65 @@ bool quad(sd::Renderer& ctx, layer_index L, Vec2 tl, Vec2 bl, Vec2 br, Vec2 tr);
 bool quad(sd::Renderer& ctx, layer_index L, Vec2 tl, Vec2 bl, Vec2 br, Vec2 tr, float32 angle);
 bool quad(sd::Renderer& ctx, layer_index L, Vec2 tl, Vec2 bl, Vec2 br, Vec2 tr, Vec4 color_tl, Vec4 color_bl, Vec4 color_br, Vec4 color_tr);
 bool quad(sd::Renderer& ctx, layer_index L, Vec2 tl, Vec2 bl, Vec2 br, Vec2 tr, Vec4 color_tl, Vec4 color_bl, Vec4 color_br, Vec4 color_tr, float32 angle);
+
+inline bool rect(sd::Renderer& ctx, const layer_index L, const Vec2 position, const float32 width, const float32 height)
+{
+    const vec2 bl = {position.x, position.y + height};
+    const Vec2 br = {position.x + width, position.y + height};
+    const Vec2 tr = {position.x + width, position.y};
+
+    return quad(ctx, L, position, bl, br, tr);
+}
+inline bool rect(sd::Renderer& ctx, const layer_index L, const Vec2 position, const float32 width, const float32 height, float32 angle)
+{
+    const vec2 bl = {position.x, position.y + height};
+    const Vec2 br = {position.x + width, position.y + height};
+    const Vec2 tr = {position.x + width, position.y};
+
+    return quad(ctx, L, position, bl, br, tr, angle);
+}
+inline bool rect(sd::Renderer& ctx, const layer_index L, const Vec2 position, const float32 width, const float32 height, 
+    const Vec4 color_tl, const Vec4 color_bl, const Vec4 color_br, const Vec4 color_tr)
+{
+    const vec2 bl = {position.x, position.y + height};
+    const Vec2 br = {position.x + width, position.y + height};
+    const Vec2 tr = {position.x + width, position.y};
+
+    return quad(ctx, L, position, bl, br, tr, color_tl, color_bl, color_br, color_tr);
+}
+inline bool rect(sd::Renderer& ctx, const layer_index L, const Vec2 position, const float32 width, const float32 height, 
+    const Vec4 color_tl, const Vec4 color_bl, const Vec4 color_br, const Vec4 color_tr, const float32 angle)
+{
+    const vec2 bl = {position.x, position.y + height};
+    const Vec2 br = {position.x + width, position.y + height};
+    const Vec2 tr = {position.x + width, position.y};
+
+    return quad(ctx, L, position, bl, br, tr, color_tl, color_bl, color_br, color_tr, angle);
+}
+
+inline bool square(sd::Renderer& ctx, const layer_index L, const Vec2 position, const float32 length)
+{
+    return rect(ctx, L, position, length, length, 0.0);
+}
+inline bool square(sd::Renderer& ctx, const layer_index L, const Vec2 position, const float32 length, float32 angle)
+{
+    return rect(ctx, L, position, length, length, angle);
+}
+inline bool square(sd::Renderer& ctx, const layer_index L, const Vec2 position, const float32 length, 
+    const Vec4 color_tl, const Vec4 color_bl, const Vec4 color_br, const Vec4 color_tr)
+{
+    return rect(ctx, L, position, length, length, color_tl, color_bl, color_br, color_tr, 0.0);
+}
+inline bool square(sd::Renderer& ctx, const layer_index L, const Vec2 position, const float32 length, 
+    const Vec4 color_tl, const Vec4 color_bl, const Vec4 color_br, const Vec4 color_tr, const float32 angle)
+{
+    return rect(ctx, L, position, length, length, color_tl, color_bl, color_br, color_tr, angle);
+}
+
+bool triangle(sd::Renderer& ctx, layer_index L, Vec2 a, Vec2 b, Vec2 c);
+bool triangle(sd::Renderer& ctx, layer_index L, Vec2 a, Vec2 b, Vec2 c, float32 rotation);
+bool triangle(sd::Renderer& ctx, layer_index L, Vec2 a, Vec2 b, Vec2 c, Vec4 color_a, Vec4 color_b, Vec4 color_c);
+bool triangle(sd::Renderer& ctx, layer_index L, Vec2 a, Vec2 b, Vec2 c, Vec4 color_a, Vec4 color_b, Vec4 color_c, float32 rotation);
 
 bool polygon_convex_regular(sd::Renderer const& ctx, layer_index L, GLfloat radius, Vec2 center, const usize count_sides);
 bool circle(sd::Renderer const& ctx, layer_index L, GLfloat radius, Vec2 center, usize detail = 37);
@@ -876,6 +936,58 @@ bool quad(sd::Renderer& ctx, layer_index L, Vec2 tl, Vec2 bl, Vec2 br, Vec2 tr, 
         next_element += ELEMENTS_PER_QUAD;
     }
 
+    return true;
+}
+
+
+bool triangle(sd::Renderer& ctx, layer_index L, Vec2 a, Vec2 b, Vec2 c)
+{
+    return triangle(ctx, L, a, b, c, 0.0);
+}
+bool triangle(sd::Renderer& ctx, layer_index L, Vec2 a, Vec2 b, Vec2 c, float32 angle)
+{
+    Render_Batch& layer = ctx.batches[L];
+    auto& v_data = layer.v_data;
+    auto& e_data = layer.e_data;
+    auto& next_element = layer.next_element;
+    auto& color = ctx.active_color;
+
+    usize vdata_idx = v_data.count;
+    {
+        auto *const vertices = v_data.next_free_slot_ptr();
+
+        increment_count(&v_data, ELEMENTS_PER_TRIANGLE);
+
+        vertices[0].position = Vec3(a, -L);
+        vertices[0].angle    = angle;
+        vertices[0].color    = color;
+        vertices[0].uv       = Vec2(0);
+        vertices[0].rotation_center = 0.0;
+
+        vertices[1].position = Vec3(b, -L);
+        vertices[1].angle    = angle;
+        vertices[1].color    = color;
+        vertices[1].uv       = Vec2(0);
+        vertices[1].rotation_center = 0.0;
+
+        vertices[2].position = Vec3(c, -L);
+        vertices[2].angle    = angle;
+        vertices[2].color    = color;
+        vertices[2].uv       = Vec2(0);
+        vertices[2].rotation_center = 0.0;
+    }
+
+    usize edata_idx = e_data.count;
+    {
+        auto *const elements = e_data.next_free_slot_ptr();
+
+        increment_count(&e_data, INDICES_PER_TRIANGLE);
+
+        elements[0] = next_element;
+        elements[1] = next_element + 1;
+        elements[2] = next_element + 2;
+    }
+    next_element += ELEMENTS_PER_TRIANGLE;
     return true;
 }
 

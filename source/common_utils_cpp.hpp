@@ -139,19 +139,34 @@ T make(void);
 namespace m {
 
 TYPE_T
-inline T min(T val_a, T val_b);
+inline T min(T val_a, T val_b)
+{
+    return glm::min(val_a, val_b);
+}
 
 TYPE_T
-inline T max(T val_a, T val_b);
+inline T max(T val_a, T val_b)
+{
+    return glm::max(val_a, val_b);
+}
 
 TYPE_T
-inline T abs(T val);
+inline T abs(T val)
+{
+    return glm::abs(val);
+}
 
 TYPE_T
-inline T cos(T val);
+inline T cos(T val)
+{
+    return glm::cos(val);
+}
 
 TYPE_T
-inline T sin(T val);
+inline T sin(T val)
+{
+    return glm::sin(val);
+}
 
 }
 
@@ -325,39 +340,6 @@ inline T dref_as(void* ptr)
     return *static_cast<T*>(ptr);
 }
 
-namespace m {
-
-TYPE_T
-inline T min(T val_a, T val_b)
-{
-    return glm::min(val_a, val_b);
-}
-
-TYPE_T
-inline T max(T val_a, T val_b)
-{
-    return glm::max(val_a, val_b);
-}
-
-TYPE_T
-inline T abs(T val)
-{
-    return glm::abs(val);
-}
-
-TYPE_T
-inline T cos(T val)
-{
-    return glm::cos(val);
-}
-
-TYPE_T
-inline T sin(T val)
-{
-    return glm::sin(val);
-}
-
-}
 
 inline f64 dist2(Vec3 v, Vec3 w)
 {

@@ -29,6 +29,8 @@ extern "C"
         bool (*quad_angle)(sd::Renderer*, layer_index, pg::Vec2, pg::Vec2, pg::Vec2, pg::Vec2, float32);
         bool (*quad_color_no_angle)(sd::Renderer* ctx, layer_index, pg::Vec2, pg::Vec2, pg::Vec2, pg::Vec2, pg::Vec4, pg::Vec4, pg::Vec4, pg::Vec4);
         bool (*quad_color_angle)(sd::Renderer* ctx, layer_index, pg::Vec2, pg::Vec2, pg::Vec2, pg::Vec2, pg::Vec4, pg::Vec4, pg::Vec4, pg::Vec4, float32);
+        bool (*triangle_no_angle)(sd::Renderer* ctx, layer_index L, pg::Vec2 a, pg::Vec2 b, pg::Vec2 c);
+        
         void (*clear)(u32);
         void (*clear_color_rgba)(float32, float32, float32, float32);
         void (*clear_color_vec4)(pg::Vec4);

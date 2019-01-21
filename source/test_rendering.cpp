@@ -34,6 +34,12 @@ bool quad(sd::Renderer* ctx, layer_index L, pg::Vec2 tl, pg::Vec2 bl, pg::Vec2 b
 {
     return sd::quad(*ctx, L, from(tl), from(bl), from(br), from(tr), from(color_tl), from(color_bl), from(color_br), from(color_tr), angle);
 }
+
+bool triangle(sd::Renderer* ctx, layer_index L, pg::Vec2 a, pg::Vec2 b, pg::Vec2 c)
+{
+    return sd::triangle(*ctx, L, from(a), from(b), from(c));
+}
+
 void clear(u32 mask)
 {
     sd::clear(mask);
@@ -65,6 +71,7 @@ void pg_init(SD_Data* data, sd::Renderer& ctx, float32 w, float32 h)
     data->quad_angle = quad;
     data->quad_color_no_angle = quad;
     data->quad_color_angle = quad;
+    data->triangle_no_angle = triangle;
     data->clear = clear;
     data->clear_color_rgba = clear_color;
     data->clear_color_vec4 = clear_color;

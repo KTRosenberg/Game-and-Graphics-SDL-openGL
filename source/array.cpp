@@ -88,37 +88,103 @@ struct Array {
 };
 
 TYPE_T_SIZE_N
-inline usize byte_length(Array<T, N>* array);
+inline usize byte_length(Array<T, N>* array)
+{
+    return sizeof(T) * N;
+}
 
 TYPE_T_SIZE_N
-inline void append(Array<T, N>* array, T val);
+inline void append(Array<T, N>* array, T val)
+{
+#ifndef NO_ARRAY_BOUNDS_CHECK
+    ASSERT_MSG(array->count < N, "Array has reached maximum capacity %llu", N);
+#endif
+
+    array->data[array->count] = val;
+    array->count += 1;
+}
 TYPE_T_SIZE_N
-inline void append(Array<T, N>* array, T* val);
-TYPE_T_SIZE_N
-inline void push(Array<T, N>* array, T val);
-TYPE_T_SIZE_N
-inline void push(Array<T, N>* array, T* val);
+inline void append(Array<T, N>* array, T* val)
+{
+#ifndef NO_ARRAY_BOUNDS_CHECK
+    ASSERT_MSG(array->count < N, "Array has reached maximum capacity %llu", array->count);
+#endif
+
+    array->data[array->count] = *val;
+    array->count += 1;
+}
 
 TYPE_T_SIZE_N
-inline T* peek(Array<T, N>* array);
+inline void push(Array<T, N>* array, T val)
+{
+#ifndef NO_ARRAY_BOUNDS_CHECK
+    ASSERT_MSG(array->count < N, "Array has reached maximum capacity %llu", array->count);
+#endif
+
+    array->data[array->count] = val;
+    array->count += 1;
+}
+TYPE_T_SIZE_N
+inline void push(Array<T, N>* array, T* val)
+{
+#ifndef NO_ARRAY_BOUNDS_CHECK
+    ASSERT_MSG(array->count < N, "Array has reached maximum capacity %llu", array->count);
+#endif
+
+    array->data[array->count] = *val;
+    array->count += 1;
+}
 
 TYPE_T_SIZE_N
-inline T pop(Array<T, N>* array);
+inline T* peek(Array<T, N>* array)
+{
+    if (array->count == 0) {
+        return nullptr;
+    }
+    return &array->data[array->count - 1];
+}
 
 TYPE_T_SIZE_N
-inline bool is_empty(Array<T, N>* array);
+inline T pop(Array<T, N>* array)
+{
+#ifndef NO_ARRAY_BOUNDS_CHECK
+    ASSERT_MSG(array->count != 0, "cannot pop if empty");
+#endif
+
+    array->count -= 1;
+    return array->data[array->count];
+}
 
 TYPE_T_SIZE_N
-inline void Array_init(Array<T, N>* array);
-TYPE_T_SIZE_N
-inline void init(Array<T, N>* array);
-
-
-TYPE_T_SIZE_N
-inline void swap(Array<T, N>* array, usize i, usize j);
+inline bool is_empty(Array<T, N>* array)
+{
+    return (array->count == 0);
+}
 
 TYPE_T_SIZE_N
-inline void clear(Array<T, N>* array);
+inline void Array_init(Array<T, N>* array)
+{
+    array->count = 0;
+}
+TYPE_T_SIZE_N
+inline void init(Array<T, N>* array)
+{
+    Array_init(array);
+}
+
+TYPE_T_SIZE_N
+inline void swap(Array<T, N>* array, usize i, usize j)
+{
+    T val_at_i = array[i];
+    array[i] = array[j];
+    array[j] = val_at_i;
+}
+
+TYPE_T_SIZE_N
+inline void clear(Array<T, N>* array)
+{
+    array->count = 0;
+}
 
 TYPE_T_SIZE_N
 void ordered_remove(Array<T, N>* array, usize index);
@@ -223,28 +289,78 @@ struct Dynamic_Array {
 };
 
 TYPE_T
-inline usize byte_length(Dynamic_Array<T>* array);
+inline usize byte_length(Dynamic_Array<T>* array)
+{
+    return sizeof(T) * array->count;
+}
 
 TYPE_T
-inline void append(Dynamic_Array<T>* array, T val);
+inline void append(Dynamic_Array<T>* array, T val)
+{
+    if (array->cap < array->count + 1) {
+        array__grow(array, 0);
+    }
+
+    array->data[array->count] = val;
+    array->count += 1;
+}
 TYPE_T
-inline void append(Dynamic_Array<T>* array, T* val);
-TYPE_T
-inline void push(Dynamic_Array<T>* array, T val);
-TYPE_T
-inline void push(Dynamic_Array<T>* array, T* val);
+inline void append(Dynamic_Array<T>* array, T* val)
+{
+    if (array->cap < array->count + 1) {
+        array__grow(array, 0);
+    }
+
+    array->data[array->count] = *val;
+    array->count += 1;
+}
 
 TYPE_T
-inline T* peek(Dynamic_Array<T>* array);
+inline void push(Dynamic_Array<T>* array, T val)
+{
+    if (array->cap < array->count + 1) {
+        array__grow(array, 0);
+    }
+
+    array->data[array->count] = val;
+    array->count += 1;
+}
+TYPE_T
+inline void push(Dynamic_Array<T>* array, T* val)
+{
+    if (array->cap < array->count + 1) {
+        array__grow(array, 0);
+    }
+
+    array->data[array->count] = *val;
+    array->count += 1;
+}
 
 TYPE_T
-inline T pop(Dynamic_Array<T>* array);
+inline T* peek(Dynamic_Array<T>* array)
+{
+    if (array->count == 0) {
+        return nullptr;
+    }
+    return &array->data[array->count - 1];
+}
 
 TYPE_T
-inline void reset_back(Dynamic_Array<T>* array);
+inline T pop(Dynamic_Array<T>* array)
+{
+#ifndef NO_ARRAY_BOUNDS_CHECK
+    ASSERT_MSG(array->count != 0, "cannot pop if empty");
+#endif
+
+    array->count -= 1;
+    return array->data[array->count];
+}
 
 TYPE_T
-inline bool is_empty(Dynamic_Array<T>* array);
+inline bool is_empty(Dynamic_Array<T>* array)
+{
+    return (array->count == 0);
+}
 
 TYPE_T
 void init(Dynamic_Array<T>* array);
@@ -265,14 +381,22 @@ void init_from_ptr(Dynamic_Array<T>* array, T* data, usize count, usize capacity
 
 
 TYPE_T
-inline void swap(Dynamic_Array<T>* array, usize i, usize j);
+inline void swap(Dynamic_Array<T>* array, usize i, usize j)
+{
+    T val_at_i = array[i];
+    array[i] = array[j];
+    array[j] = val_at_i;
+}
 
 
 TYPE_T
 void deallocate(Dynamic_Array<T>* array);
 
 TYPE_T
-void clear(void);
+inline void clear(Dynamic_Array<T>* array)
+{
+    array->count = 0;
+}
 
 TYPE_T
 void reserve(Dynamic_Array<T>* array, usize cap);
@@ -301,13 +425,6 @@ TYPE_T
 void copy(Dynamic_Array<T>* array, Dynamic_Array<T> const& data, isize offset, usize count);
 
 
-#endif // ARRAY_HPP
-
-#ifdef ARRAY_IMPLEMENTATION
-#undef ARRAY_IMPLEMENTATION
-
-// floating procedure API ////////////////////////////////////////////
-
 TYPE_T
 inline Array_Slice<T> slice(Array_Slice<T>* array, usize i, usize j)
 {
@@ -328,113 +445,25 @@ inline Array_Slice<T> slice(Array<T, N>* array, usize i, usize j)
     return Array_Slice<T>{&array->data[i], j - i};
 }
 
-TYPE_T_SIZE_N
-inline usize byte_length(Array<T, N>* array)
-{
-    return sizeof(T) * N;
-}
-
-TYPE_T_SIZE_N
-inline void append(Array<T, N>* array, T val)
+TYPE_T
+inline Array_Slice<T> slice(Dynamic_Array<T>* array, usize i, usize j)
 {
 #ifndef NO_ARRAY_BOUNDS_CHECK
-    ASSERT_MSG(array->count < N, "Array has reached maximum capacity %llu", N);
+    ASSERT_MSG(i <= j && j < array->count, "Slice out-of-bounds >= %llu", array->count);
 #endif
 
-    array->data[array->count] = val;
-    array->count += 1;
+    return Array_Slice<T>{&array->data[i], j - i};
 }
 
-TYPE_T_SIZE_N
-inline void append(Array<T, N>* array, T* val)
-{
-#ifndef NO_ARRAY_BOUNDS_CHECK
-    ASSERT_MSG(array->count < N, "Array has reached maximum capacity %llu", array->count);
-#endif
+#endif // ARRAY_HPP
 
-    array->data[array->count] = *val;
-    array->count += 1;
-}
+#ifdef ARRAY_IMPLEMENTATION
+#undef ARRAY_IMPLEMENTATION
 
-TYPE_T_SIZE_N
-inline void push(Array<T, N>* array, T val)
-{
-#ifndef NO_ARRAY_BOUNDS_CHECK
-    ASSERT_MSG(array->count < N, "Array has reached maximum capacity %llu", array->count);
-#endif
+// floating procedure API ////////////////////////////////////////////
 
-    array->data[array->count] = val;
-    array->count += 1;
-}
 
-TYPE_T_SIZE_N
-inline void push(Array<T, N>* array, T* val)
-{
-#ifndef NO_ARRAY_BOUNDS_CHECK
-    ASSERT_MSG(array->count < N, "Array has reached maximum capacity %llu", array->count);
-#endif
 
-    array->data[array->count] = *val;
-    array->count += 1;
-}
-
-TYPE_T_SIZE_N
-inline T* peek(Array<T, N>* array)
-{
-    if (array->count == 0) {
-        return nullptr;
-    }
-    return &array->data[array->count - 1];
-}
-
-TYPE_T_SIZE_N
-inline T pop(Array<T, N>* array)
-{
-#ifndef NO_ARRAY_BOUNDS_CHECK
-    ASSERT_MSG(array->count != 0, "cannot pop if empty");
-#endif
-
-    array->count -= 1;
-    return array->data[array->count];
-}
-
-TYPE_T_SIZE_N
-inline void reset_back(Array<T, N>* array)
-{
-    array->count = 0;
-}
-
-TYPE_T_SIZE_N
-inline bool is_empty(Array<T, N>* array)
-{
-    return (array->count == 0);
-}
-
-TYPE_T_SIZE_N
-inline void Array_init(Array<T, N>* array)
-{
-    array->count = 0;
-}
-
-TYPE_T_SIZE_N
-inline void init(Array<T, N>* array)
-{
-    Array_init(array);
-}
-
-TYPE_T_SIZE_N
-inline void swap(Array<T, N>* array, usize i, usize j)
-{
-    T val_at_i = array[i];
-    array[i] = array[j];
-    array[j] = val_at_i;
-}
-
-TYPE_T_SIZE_N
-inline void clear(Array<T, N>* array)
-{
-    array->count = 0;
-}
 
 TYPE_T_SIZE_N
 void ordered_remove(Array<T, N>* array, usize index)
@@ -470,6 +499,7 @@ void increment_count(Array<T, N>* array, const usize count_increment)
 
 // member procedure API ///////////////////////////////////////
 
+#if 0
 TYPE_T_SIZE_N
 inline Array_Slice<T> Array<T, N>::slice(usize i, usize j)
 {
@@ -536,103 +566,25 @@ inline void Array<T, N>::swap(usize i, usize j)
     ::swap(this, i, j);
 }
 
-
+#endif
 // floating procedure API ////////////////////////////////////////////
 
-TYPE_T
-inline Array_Slice<T> slice(Dynamic_Array<T>* array, usize i, usize j)
-{
-#ifndef NO_ARRAY_BOUNDS_CHECK
-    ASSERT_MSG(i <= j && j < array->count, "Slice out-of-bounds >= %llu", array->count);
-#endif
-
-    return Array_Slice<T>{&array->data[i], j - i};
-}
-
-TYPE_T
-inline usize byte_length(Dynamic_Array<T>* array)
-{
-    return sizeof(T) * array->count;
-}
-
-TYPE_T
-inline void append(Dynamic_Array<T>* array, T val)
-{
-    if (array->cap < array->count + 1) {
-        array__grow(array, 0);
-    }
-
-    array->data[array->count] = val;
-    array->count += 1;
-}
-
-TYPE_T
-inline void append(Dynamic_Array<T>* array, T* val)
-{
-    if (array->cap < array->count + 1) {
-        array__grow(array, 0);
-    }
-
-    array->data[array->count] = *val;
-    array->count += 1;
-}
-
-TYPE_T
-inline void push(Dynamic_Array<T>* array, T val)
-{
-    if (array->cap < array->count + 1) {
-        array__grow(array, 0);
-    }
-
-    array->data[array->count] = val;
-    array->count += 1;
-}
-
-TYPE_T
-inline void push(Dynamic_Array<T>* array, T* val)
-{
-    if (array->cap < array->count + 1) {
-        array__grow(array, 0);
-    }
-
-    array->data[array->count] = *val;
-    array->count += 1;
-}
-
-TYPE_T
-inline T* peek(Dynamic_Array<T>* array)
-{
-    if (array->count == 0) {
-        return nullptr;
-    }
-    return &array->data[array->count - 1];
-}
-
-TYPE_T
-inline T pop(Dynamic_Array<T>* array)
-{
-#ifndef NO_ARRAY_BOUNDS_CHECK
-    ASSERT_MSG(array->count != 0, "cannot pop if empty");
-#endif
-
-    array->count -= 1;
-    return array->data[array->count];
-}
-
-TYPE_T
-inline bool is_empty(Dynamic_Array<T>* array)
-{
-    return (array->count == 0);
-}
 
 
-TYPE_T
-inline void swap(Dynamic_Array<T>* array, usize i, usize j)
-{
-    T val_at_i = array[i];
-    array[i] = array[j];
-    array[j] = val_at_i;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 TYPE_T
 void deallocate(Dynamic_Array<T>* array)
@@ -646,11 +598,7 @@ void deallocate(Dynamic_Array<T>* array)
 
 }
 
-TYPE_T
-inline void clear(Dynamic_Array<T>* array)
-{
-    array->count = 0;
-}
+
 
 TYPE_T
 void reserve(Dynamic_Array<T>* array, usize cap)
@@ -871,6 +819,7 @@ void copy(Dynamic_Array<T>* array, Dynamic_Array<T> const& data, isize offset, u
 
 // member procedure API ///////////////////////////////////////
 
+#if 0
 TYPE_T
 inline Array_Slice<T> Dynamic_Array<T>::slice(usize i, usize j)
 {
@@ -936,7 +885,7 @@ inline void Dynamic_Array<T>::swap(usize i, usize j)
 {
     ::swap(this, i, j);
 }
-
+#endif
 
 
 #endif // ARRAY_CPP

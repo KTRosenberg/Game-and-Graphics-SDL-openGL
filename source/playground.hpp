@@ -17,6 +17,16 @@
 #define POSITIVE_INFINITY (std::numeric_limits<f64>::infinity())
 #define NEGATIVE_INFINITY (-POSITIVE_INFINITY)
 
+inline float64 sin01(float64 val)
+{
+    return ((sin(val) + 1.0) / 2.0);
+}
+
+inline float32 sin01(float32 val)
+{
+    return ((sin(val) + 1.0) / 2.0);    
+}
+
 // temp
 void* xmalloc(size_t num_bytes)
 {
@@ -109,7 +119,6 @@ bool quad(sd::Renderer& ctx, layer_index L, Vec2 tl, Vec2 bl, Vec2 br, Vec2 tr)
 }
 bool quad(sd::Renderer& ctx, layer_index L, Vec2 tl, Vec2 bl, Vec2 br, Vec2 tr, float32 angle)
 {
-
     return sd_data.quad_angle(&ctx, L, tl, bl, br, tr, angle);
 }
 bool quad(sd::Renderer& ctx, layer_index L, Vec2 tl, Vec2 bl, Vec2 br, Vec2 tr, Vec4 color_tl, Vec4 color_bl, Vec4 color_br, Vec4 color_tr)
@@ -120,6 +129,14 @@ bool quad(sd::Renderer& ctx, layer_index L, Vec2 tl, Vec2 bl, Vec2 br, Vec2 tr, 
 {
     return sd_data.quad_color_angle(&ctx, L, tl, bl, br, tr, color_tl, color_bl, color_br, color_tr, angle);
 }
+
+
+bool triangle(sd::Renderer& ctx, layer_index L, Vec2 a, Vec2 b, Vec2 c)
+{
+    return sd_data.triangle_no_angle(&ctx, L, a, b, c);
+}
+// TODO more triangle functions
+
 void clear(u32 mask)
 {
     sd_data.clear(mask);
@@ -164,7 +181,7 @@ extern "C" {
 static u64 call_count = 0;
 
 
-void* VERSIONED_PROC(get_proc_address) (const char* name)
+void* VERSIONED_PROC(get_proc_address)(const char* name)
 {
     printf("version: %d\n", PLAYGROUND_VERSION);
 
