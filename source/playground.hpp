@@ -183,18 +183,18 @@ static u64 call_count = 0;
 
 void* VERSIONED_PROC(get_proc_address)(const char* name)
 {
-    printf("version: %d\n", PLAYGROUND_VERSION);
+    //printf("version: %d\n", PLAYGROUND_VERSION);
 
     if (0 == strcmp(name, "setup")) {
-        printf("%s\n", "getting setup()");
+        //printf("%s\n", "getting setup()");
         return (void*)setup;
     }
     if (0 == strcmp(name, "draw")) {
-        printf("%s\n", "getting draw()");
+        //printf("%s\n", "getting draw()");
         return (void*)draw;
     }
 
-    printf("%s\n", "proc not found");
+    fprintf(stderr, "%s\n", "proc not found");
     return nullptr;
 }
 

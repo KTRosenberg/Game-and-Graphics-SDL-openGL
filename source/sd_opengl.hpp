@@ -273,14 +273,7 @@ bool quad(sd::Renderer& ctx, layer_index L, Vec2 tl, Vec2 bl, Vec2 br, Vec2 tr, 
 bool quad(sd::Renderer& ctx, layer_index L, Vec2 tl, Vec2 bl, Vec2 br, Vec2 tr, Vec4 color_tl, Vec4 color_bl, Vec4 color_br, Vec4 color_tr);
 bool quad(sd::Renderer& ctx, layer_index L, Vec2 tl, Vec2 bl, Vec2 br, Vec2 tr, Vec4 color_tl, Vec4 color_bl, Vec4 color_br, Vec4 color_tr, float32 angle);
 
-inline bool rect(sd::Renderer& ctx, const layer_index L, const Vec2 position, const float32 width, const float32 height)
-{
-    const vec2 bl = {position.x, position.y + height};
-    const Vec2 br = {position.x + width, position.y + height};
-    const Vec2 tr = {position.x + width, position.y};
 
-    return quad(ctx, L, position, bl, br, tr);
-}
 inline bool rect(sd::Renderer& ctx, const layer_index L, const Vec2 position, const float32 width, const float32 height, float32 angle)
 {
     const vec2 bl = {position.x, position.y + height};
@@ -289,14 +282,9 @@ inline bool rect(sd::Renderer& ctx, const layer_index L, const Vec2 position, co
 
     return quad(ctx, L, position, bl, br, tr, angle);
 }
-inline bool rect(sd::Renderer& ctx, const layer_index L, const Vec2 position, const float32 width, const float32 height, 
-    const Vec4 color_tl, const Vec4 color_bl, const Vec4 color_br, const Vec4 color_tr)
+inline bool rect(sd::Renderer& ctx, const layer_index L, const Vec2 position, const float32 width, const float32 height)
 {
-    const vec2 bl = {position.x, position.y + height};
-    const Vec2 br = {position.x + width, position.y + height};
-    const Vec2 tr = {position.x + width, position.y};
-
-    return quad(ctx, L, position, bl, br, tr, color_tl, color_bl, color_br, color_tr);
+    return rect(ctx, L, position, width, height, 0.0);
 }
 inline bool rect(sd::Renderer& ctx, const layer_index L, const Vec2 position, const float32 width, const float32 height, 
     const Vec4 color_tl, const Vec4 color_bl, const Vec4 color_br, const Vec4 color_tr, const float32 angle)
@@ -307,6 +295,12 @@ inline bool rect(sd::Renderer& ctx, const layer_index L, const Vec2 position, co
 
     return quad(ctx, L, position, bl, br, tr, color_tl, color_bl, color_br, color_tr, angle);
 }
+inline bool rect(sd::Renderer& ctx, const layer_index L, const Vec2 position, const float32 width, const float32 height, 
+    const Vec4 color_tl, const Vec4 color_bl, const Vec4 color_br, const Vec4 color_tr)
+{
+    return rect(ctx, L, position, width, height, color_tl, color_bl, color_br, color_tr, 0.0);
+}
+
 
 inline bool square(sd::Renderer& ctx, const layer_index L, const Vec2 position, const float32 length)
 {

@@ -110,6 +110,7 @@ int test_rendering(int argc, char* argv[]);
 void render_playground(sd::Renderer& ctx, SDL_Window* window, pg_draw_proc pg_draw);
 bool test_rendering_poll_input(void);
 
+//SDL_Window* window;
 float32 w_width;
 float32 w_height;
 
@@ -147,7 +148,25 @@ bool test_rendering_poll_input(void)
             case SDL_WINDOWEVENT_FOCUS_LOST:
                 window_state.focused = false;
                 break;
-            default:
+            case SDL_WINDOWEVENT_RESIZED:
+                // TEMP TODO move this somewhere else
+
+                s32 next_w = event.window.data1;
+                s32 next_h = event.window.data2;
+
+                float64 ratio_x = (float64)next_w / 1280.0;
+                float64 ratio_y = (float64)next_h / 720.0;
+                float64 ratio = (ratio_x < ratio_y) ? ratio_x : ratio_y;
+                ratio = ratio_x;
+
+                s32 view_w = (s32)(ratio * 1280.0);
+                s32 view_h = (s32)(ratio * 720.0);
+
+                s32 view_x = (s32)((next_w - 1280.0 * ratio) / 2);
+                s32 view_y = (s32)((next_h - 720.0 * ratio) / 2);
+
+                SDL_SetWindowSize(window, view_w, view_h);
+                glViewport(0, 0, view_w, view_h);
                 break;
             }
             break;
@@ -355,13 +374,13 @@ int test_rendering(int argc, char* argv[])
     // create the window
     w_width = 1280.0f;
     w_height = 720.0f;
-    SDL_Window* window = nullptr;
+    window = nullptr;
     if (nullptr == (window = SDL_CreateWindow(
         WINDOW_HEADER,
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
         w_width, w_height,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN)))
+        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE)))
     {
         fprintf(stderr, "Window could not be created\n");
         return EXIT_FAILURE;
@@ -492,6 +511,7 @@ int test_rendering(int argc, char* argv[])
 void render_playground(sd::Renderer& ctx, SDL_Window* window, pg_draw_proc pg_draw) // temporarily no parameters for the renderer
 {
     sd::clear(sd::CLEAR_COLOR | sd::CLEAR_DEPTH);
+    sd::clear_color(0, 0, 0, 0);
     sd::color(ctx, Vec4(0.0, 0.0, 0.0, 1.0));
 
     pg_draw(timer.t_since_start_s, timer.t_delta_s);

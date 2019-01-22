@@ -799,9 +799,8 @@ TYPE_T
 Dynamic_Array<T> Dynamic_Array<T>::make_from_ptr(T* data, usize count, usize capacity)
 {
     Dynamic_Array<T> array = {};
-    array.data  = data;
-    array.count = count;
-    array.cap   = capacity;
+
+    init_from_ptr(&array, data, count, capacity);
 
     return array;
 }
