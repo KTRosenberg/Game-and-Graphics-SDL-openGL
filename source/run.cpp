@@ -28,9 +28,11 @@
 
 //#define METATESTING
 
-#define TEST_RENDERING
+//#define TEST_RENDERING
 
 // audio
+
+#define GLM_FORCE_ALIGNED_GENTYPES
 #define AUDIO_SYS_IMPLEMENTATION
 #include "audio_sys.hpp"
 
@@ -3220,6 +3222,19 @@ int main(int argc, char* argv[])
                         }
                     } else {
                         you.velocity_air = Vec3(0.0);
+                    }
+
+                    if (key_is_pressed(&input, CONTROL::TEMP)) {
+                        Audio_Command cmd = {
+                            .type = AUDIO_COMMAND_TYPE::REVERB,
+                            .reverb = {
+                                0.0f
+                            }
+                        };
+
+                        if (ck_ring_enqueue_spsc_Audio_Command(&audio_args.fifo.ring, audio_args.fifo.buffer, &cmd) == false) {
+                            fprintf(stderr, "ERROR: OUT OF AUDIO QUEUE SPACE\n");
+                        }                        
                     }
                 }
                 //you.bound.spatial.x = out.x - (1 * you.bound.width); <-- ENABLE TO MAKE THE FLOOR A TREADMILL

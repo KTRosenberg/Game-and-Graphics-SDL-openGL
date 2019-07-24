@@ -1,6 +1,7 @@
 #ifndef AUDIO_SYS_HPP
 #define AUDIO_SYS_HPP
 
+#define GLM_FORCE_ALIGNED_GENTYPES
 #include "common_utils_cpp.hpp"
 
 #include <ck_ring.h>
@@ -29,6 +30,7 @@ enum struct AUDIO_COMMAND_TYPE : u8 {
     ADJUST_MASTER_VOLUME,
     TRACK_SELECTION,
     DELAY,
+    REVERB,
     ENUM_COUNT
 };
 
@@ -62,6 +64,9 @@ struct Audio_Command {
             float32 channel_b_offset_percent;
             bool on;
         } delay;
+        struct {
+            float32 __PLACEHOLDER__;
+        } reverb;
         struct {
             usize modified_tracks_bitmap;
         } track_selection;
@@ -305,6 +310,7 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
     Audio_Command cmd;
 
     static bool delay_is_on = false;
+    static bool reverb_is_on = false;
 
     // (60 / 170) * 1000
     static const f64 delayMilliseconds = 352.94117647 * 1; // milliseconds per beat
@@ -376,6 +382,10 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
             }
             break;
         }
+        case AUDIO_COMMAND_TYPE::REVERB: {
+            reverb_is_on = !reverb_is_on;
+            break;
+        }
         case AUDIO_COMMAND_TYPE::TRACK_SELECTION: {
             // TODO
             usize modified_tracks = cmd->track_selection.modified_tracks_bitmap;
@@ -409,7 +419,10 @@ mal_u32 on_send_frames_to_device(mal_device* p_device, mal_u32 frame_count, void
                 reverb_position = (reverb_position + 1) % ((usize)(delaySamples * 2));
             }
         }
-        //fv_process(&fx_reverb.ctx, (float*)p_samples, frames_read * 2);
+    }
+
+    if (reverb_is_on) {
+        fv_process(&fx_reverb.ctx, (float*)p_samples, frames_read * 2);
     }
 
 

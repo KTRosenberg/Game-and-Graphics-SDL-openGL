@@ -1,4 +1,5 @@
 #include "types.h"
+#define GLM_FORCE_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 
 #include <vector>
