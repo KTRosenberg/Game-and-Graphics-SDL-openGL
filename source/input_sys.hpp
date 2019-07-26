@@ -8,8 +8,6 @@
 
 #if !(UNITY_BUILD)
 
-#include <ostream>
-
 #include "sdl.hpp"
 #define COMMON_UTILS_CPP_IMPLEMENTATION
 #include "common_utils_cpp.hpp"

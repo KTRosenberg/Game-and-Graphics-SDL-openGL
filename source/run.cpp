@@ -58,18 +58,15 @@
 #include "collision.h"
 
 
-
 #include "sdl.hpp"
 
 #include <string>
+// TODO replace iostream
+#include <iostream>
 
 #define CAMERA_IMPLEMENTATION
 #include "camera.hpp"
 
-
-
-// TODO remove all references to iostream
-#include <iostream>
 
 int ignore_mouse_movement(void* unused, SDL_Event* event)
 {
@@ -293,23 +290,23 @@ void LogicNode_traverse(LogicNode* v, float64 value, std::string tabs);
 
 void LogicNode_handle_value(LogicNode* v, float64 value, std::string tabs)
 {
-    #ifdef LOGIC_NODE_PRINT
-    std::cout << tabs << *(v->value_n.value_ptr) << std::endl;
-    #endif
+    // #ifdef LOGIC_NODE_PRINT
+    // std::cout << tabs << *(v->value_n.value_ptr) << std::endl;
+    // #endif
     // TODO multiple outs
     LogicNode_traverse(v->value_n.out, *(v->value_n.value_ptr), tabs + "  ");
 }
 void LogicNode_handle_none(LogicNode* v, float64 value, std::string tabs)
 {
-    #ifdef LOGIC_NODE_PRINT
-    std::cout << tabs << logic_node_type_strings[(usize)v->type] << " : " << value << std::endl;
-    #endif
+    // #ifdef LOGIC_NODE_PRINT
+    // std::cout << tabs << logic_node_type_strings[(usize)v->type] << " : " << value << std::endl;
+    // #endif
 }
 void LogicNode_handle_and(LogicNode* v, float64 value, std::string tabs)
 {
-    #ifdef LOGIC_NODE_PRINT
-    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;    
-    #endif
+    // #ifdef LOGIC_NODE_PRINT
+    // std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;    
+    // #endif
     
     v->and_n.in[v->and_n.in_received] = value;
     v->and_n.in_received += 1;
@@ -326,81 +323,81 @@ void LogicNode_handle_and(LogicNode* v, float64 value, std::string tabs)
 }
 void LogicNode_handle_or(LogicNode* v, float64 value, std::string tabs)
 {
-    #ifdef LOGIC_NODE_PRINT
-    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
-    #endif
+    // #ifdef LOGIC_NODE_PRINT
+    // std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    // #endif
 }
 void LogicNode_handle_xor(LogicNode* v, float64 value, std::string tabs)
 {
-    #ifdef LOGIC_NODE_PRINT
-    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
-    #endif
+    // #ifdef LOGIC_NODE_PRINT
+    // std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    // #endif
 }
 void LogicNode_handle_not(LogicNode* v, float64 value, std::string tabs)
 {
-    #ifdef LOGIC_NODE_PRINT
-    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
-    #endif
+    // #ifdef LOGIC_NODE_PRINT
+    // std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    // #endif
 }
 void LogicNode_handle_less_than(LogicNode* v, float64 value, std::string tabs)
 {
-    #ifdef LOGIC_NODE_PRINT
-    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
-    #endif
+    // #ifdef LOGIC_NODE_PRINT
+    // std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    // #endif
 }
 void LogicNode_handle_less_eq(LogicNode* v, float64 value, std::string tabs)
 {
-    #ifdef LOGIC_NODE_PRINT
-    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
-    #endif
+    // #ifdef LOGIC_NODE_PRINT
+    // std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    // #endif
 }
 void LogicNode_handle_greater_than(LogicNode* v, float64 value, std::string tabs)
 {
-    #ifdef LOGIC_NODE_PRINT
-    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
-    #endif
+    // #ifdef LOGIC_NODE_PRINT
+    // std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    // #endif
 }
 void LogicNode_handle_greater_eq(LogicNode* v, float64 value, std::string tabs)
 {
-    #ifdef LOGIC_NODE_PRINT
-    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
-    #endif
+    // #ifdef LOGIC_NODE_PRINT
+    // std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    // #endif
 }
 void LogicNode_handle_equal(LogicNode* v, float64 value, std::string tabs)
 {
-    #ifdef LOGIC_NODE_PRINT
-    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
-    #endif
+    // #ifdef LOGIC_NODE_PRINT
+    // std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    // #endif
 }
 void LogicNode_handle_while(LogicNode* v, float64 value, std::string tabs)
 {
-    #ifdef LOGIC_NODE_PRINT
-    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
-    #endif
+    // #ifdef LOGIC_NODE_PRINT
+    // std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    // #endif
 }
 void LogicNode_handle_add(LogicNode* v, float64 value, std::string tabs)
 {
-    #ifdef LOGIC_NODE_PRINT
-    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
-    #endif
+    // #ifdef LOGIC_NODE_PRINT
+    // std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    // #endif
 }
 void LogicNode_handle_subtract(LogicNode* v, float64 value, std::string tabs)
 {
-    #ifdef LOGIC_NODE_PRINT
-    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
-    #endif
+    // #ifdef LOGIC_NODE_PRINT
+    // std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    // #endif
 }
 void LogicNode_handle_multiply(LogicNode* v, float64 value, std::string tabs)
 {
-    #ifdef LOGIC_NODE_PRINT
-    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
-    #endif
+    // #ifdef LOGIC_NODE_PRINT
+    // std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    // #endif
 }
 void LogicNode_handle_divide(LogicNode* v, float64 value, std::string tabs)
 {
-    #ifdef LOGIC_NODE_PRINT
-    std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
-    #endif
+    // #ifdef LOGIC_NODE_PRINT
+    // std::cout << tabs << logic_node_type_strings[(usize)v->type] << std::endl;
+    // #endif
 }
 
 void LogicNode_traverse(LogicNode* v, float64 value, std::string tabs)
@@ -1431,7 +1428,7 @@ int main(int argc, char* argv[])
         root_b_val = bvals[i];
         LogicNode_traverse(&root_a, 0.0, "");
         LogicNode_traverse(&root_b, 0.0, "");
-        std::cout << "------------------------" << std::endl;
+        puts("------------------------");
 
     }
 
@@ -1467,7 +1464,7 @@ int main(int argc, char* argv[])
 
     // std::cout << Thing_array[4].speed << std::endl;
 
-    std::cout << StaticArrayCount(config_state) << std::endl;
+    printf("%lu\n", StaticArrayCount(config_state));
     // modify
     for (usize k = 0; k < 2; k += 1) {
         for (usize i = 0; i < StaticArrayCount(config_state); i += 1) {
@@ -2099,7 +2096,7 @@ int main(int argc, char* argv[])
         int w = 0;
         int h = 0;
         SDL_GetWindowSize(window, &w, &h);
-        std::cout << "WIDTH: " << w << " HEIGHT: " << h << std::endl;
+        printf("WIDTH: %d HEIGHT: %d\n", w, h);
     }
     while (is_running) {
         t_prev = t_now;
@@ -2580,7 +2577,7 @@ int main(int argc, char* argv[])
         #ifdef DEBUG_PRINT
 
             if (pos.x != prev_pos.x || pos.y != prev_pos.y || pos.z != prev_pos.z) {
-                std::cout << "VIEW_POSITION{x : " << pos.x << ", y : " << pos.y << ", z: " << pos.z << "}" << std::endl;
+                printf("VIEW_POSITION{x : %f, y :  %f, z :  %f }", pos.x, pos.y, pos.z);
             }
             prev_pos.x = pos.x;
             prev_pos.y = pos.y;
