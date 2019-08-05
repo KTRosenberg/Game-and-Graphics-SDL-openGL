@@ -28,7 +28,7 @@
 
 //#define METATESTING
 
-//#define TEST_RENDERING
+#define TEST_RENDERING
 
 // audio
 

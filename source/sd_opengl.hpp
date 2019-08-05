@@ -688,6 +688,9 @@ void Render_Batch_deinit(sd::Render_Batch& batch)
 #endif
 }
 
+
+#include <chrono>
+
 void render(sd::Renderer& ctx, layer_index idx)
 {
     Render_Batch* const batch = &ctx.batches[idx];
@@ -742,7 +745,7 @@ void render(sd::Renderer& ctx, layer_index idx)
 
         const f32 w = (1280.0f);
         const f32 h = (720.0f);
-        mat4 mat_projection = glm::ortho(
+        mat4 mat_projection_ortho = glm::ortho(
             0.0f, 
             1.0f * w, 
             1.0f * h,
@@ -750,6 +753,43 @@ void render(sd::Renderer& ctx, layer_index idx)
             0.0f, 
             1.0f * 10.0f
         );
+
+
+
+        mat4 mat_projection_perspective = glm::perspective(
+            glm::radians(60.0f),
+            (1280.0f / 720.0f),
+            0.01f, 1000.0f
+        );
+
+        //     vec3 pos = vec3(-(1280.0 / 2.0) + a_position.x, (720.0 / 2.0) - a_position.y, a_position.z - 1000.0);
+
+
+
+        using namespace std::chrono;
+        static uint64 start = duration_cast< milliseconds >(
+            system_clock::now().time_since_epoch()
+        ).count();
+
+        uint64 ms = duration_cast< milliseconds >(
+            system_clock::now().time_since_epoch()
+        ).count() - start;
+        const float32 t = sin01((float64)ms / 1000.0f);
+
+        mat_projection_perspective = mat_projection_perspective * glm::translate(glm::scale(Mat4(1.0f), Vec3(1.0f, -1.0f, 1.0f)) * glm::rotate(Mat4(1.0f), ((float32)((float64)ms * 0.0 /*disable rotation for now*/ /1000.0)), Vec3(0.0f, 1.0f, 0.0f)), 
+            Vec3(-(1280.0 / 2.0), -(720.0f / 2.0f), -720.01f)
+        );
+
+        Mat4 proj(1.0f);
+
+        float* pSource = (float*)glm::value_ptr(proj);
+        const float* orthoSource = (const float*)glm::value_ptr(mat_projection_ortho);
+        const float* perspSource = (const float*)glm::value_ptr(mat_projection_perspective);
+        for (uint32 i = 0; i < 16; i += 1) {
+            pSource[i] = lerp(orthoSource[i], perspSource[i], t);
+        }
+
+        Mat4 mat_projection = proj;//mat_projection_perspective;
 
         glUseProgram(ctx.shader_catalogue.shaders[1].program);
         glUniformMatrix4fv(
