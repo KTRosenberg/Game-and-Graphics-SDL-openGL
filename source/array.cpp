@@ -171,6 +171,16 @@ inline void init(Array<T, N>* array)
 {
     Array_init(array);
 }
+TYPE_T_SIZE_N
+inline void init_to_cap(Array<T, N>* array)
+{
+    Array_init_to_cap(array);
+}
+TYPE_T_SIZE_N
+inline void Array_init_to_cap(Array<T, N>* array)
+{
+    array->count = N;
+}
 
 TYPE_T_SIZE_N
 inline void swap(Array<T, N>* array, usize i, usize j)
