@@ -16,8 +16,5 @@ Here I hit different hotkeys to enable/disable different audio tracks. The audio
 https://soundcloud.com/synchronizerman/time_rush_v_2_0_1
 
 
-https://github.com/KTRosenberg/Game-and-Graphics-SDL-openGL/assets/16908296/7c4c82c0-cbb4-444b-a432-c42164b246ba
-
-
 https://github.com/KTRosenberg/Game-and-Graphics-SDL-openGL/assets/16908296/d4d1a998-5071-42a4-b4b9-d0f6885c6205
 
