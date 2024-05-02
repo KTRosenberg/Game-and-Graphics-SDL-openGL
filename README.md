@@ -11,7 +11,7 @@
 
 https://github.com/KTRosenberg/Game-and-Graphics-SDL-openGL/assets/16908296/6873a6ab-4679-49c5-a59a-f68f504b5fe6
 
-Here I hit different hotkeys to enable/disable different audio tracks. The audio is my original composition:
+Here I hit different hotkeys to enable/disable different audio tracks. The audio is my original composition: (Unmute please.)
 
 https://soundcloud.com/synchronizerman/time_rush_v_2_0_1
 
