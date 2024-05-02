@@ -8,8 +8,16 @@
 
 ![screenshot](A.png)
 
+#### Hot reloading C++ code (testing) with my own dynamic library-reloading logic
+
+
+https://github.com/KTRosenberg/Game-and-Graphics-SDL-openGL/assets/16908296/b88dab85-f0e4-4a80-a891-e6dccbd15bee
+
+#### Parallax scrolling
 
 https://github.com/KTRosenberg/Game-and-Graphics-SDL-openGL/assets/16908296/6873a6ab-4679-49c5-a59a-f68f504b5fe6
+
+#### Dynamic audio
 
 Here I hit different hotkeys to enable/disable different audio tracks. The audio is my original composition: (Unmute please.)
 
