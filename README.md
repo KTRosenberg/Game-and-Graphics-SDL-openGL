@@ -8,7 +8,7 @@
 
 ![screenshot](A.png)
 
-#### Hot reloading C++ code (testing) with my own dynamic library-reloading logic
+#### Hot reloading C++ code (testing) with my own dynamic library-reloading logic and 2D rendering
 
 
 https://github.com/KTRosenberg/Game-and-Graphics-SDL-openGL/assets/16908296/b88dab85-f0e4-4a80-a891-e6dccbd15bee
